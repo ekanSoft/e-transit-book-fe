@@ -1,6 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { errorMessages } from './errors';
 describe('Backend errors', () => {
+  it('uses terminal wording for assignment errors and preserves names in other messages', () => {
+    const messages = ['Your account is not assigned to a branch', 'Contact East Branch Travel'];
+    expect(
+      errorMessages(new HttpErrorResponse({ status: 403, error: { message: messages } })),
+    ).toEqual(['Your account is not assigned to a terminal.', 'Contact East Branch Travel']);
+  });
   it('preserves useful conflict messages', () =>
     expect(
       errorMessages(

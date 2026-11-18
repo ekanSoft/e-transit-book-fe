@@ -180,8 +180,8 @@
         </div>
         <div class="panel-footer">
           <span class="muted">Review your terminals before the next departure.</span
-          ><a appButton variant="secondary" routerLink="/app/branches"
-            >View branches <app-icon name="arrow"
+          ><a appButton variant="secondary" routerLink="/app/terminals"
+            >View terminals <app-icon name="arrow"
           /></a>
         </div>
       </section>
@@ -224,8 +224,8 @@
         <div class="empty-state">
           <app-icon name="bus" /><strong>No upcoming departures</strong>
           <p>
-            Check your <a routerLink="/app/branches">branch directory</a> while preparing your next
-            departures.
+            Check your <a routerLink="/app/terminals">terminal directory</a> while preparing your
+            next departures.
           </p>
         </div>
       }
@@ -274,7 +274,7 @@
     } @else {
       <div class="empty-state">
         <app-icon name="bus" /><strong>No trips today</strong
-        ><a routerLink="/app/branches">View branch directory</a>
+        ><a routerLink="/app/terminals">View terminal directory</a>
       </div>
     }
   </section>

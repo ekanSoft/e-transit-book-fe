@@ -8,11 +8,12 @@ import { Session } from '../../auth/session';
 import { Theme, ThemeToggle } from '../theme';
 import { Brand } from '../../../shared/ui/brand';
 import { Icon, IconName } from '../../../shared/ui/icon';
+import { employeeRoleLabel } from '../../../shared/utilities/employee-role';
 
 type NavItem = { label: string; url: string; icon: IconName };
 const navigation: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [{ label: 'Dashboard', url: '/app/dashboard', icon: 'overview' }] },
-  { group: 'Operations', items: [{ label: 'Branches', url: '/app/branches', icon: 'pin' }] },
+  { group: 'Operations', items: [{ label: 'Terminals', url: '/app/terminals', icon: 'pin' }] },
   {
     group: 'Workspace',
     items: [
@@ -72,7 +73,5 @@ export class OperatorShell {
       (this.session.employee()?.firstName?.[0] || '') +
       (this.session.employee()?.lastName?.[0] || ''),
   );
-  readonly role = computed(() =>
-    (this.session.employee()?.role || '').replaceAll('_', ' ').toLowerCase(),
-  );
+  readonly role = computed(() => employeeRoleLabel(this.session.employee()?.role));
 }

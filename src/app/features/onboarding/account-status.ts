@@ -22,7 +22,7 @@ import { Icon } from '../../shared/ui/icon';
             <span class="review-dot done"><app-icon name="check" /></span>
             <div>
               <strong>Business details submitted</strong>
-              <p>Your profile, verification and primary branch are saved.</p>
+              <p>Your profile, verification and primary terminal are saved.</p>
             </div>
           </li>
           <li>

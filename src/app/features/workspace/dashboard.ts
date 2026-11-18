@@ -86,7 +86,7 @@ export class Dashboard {
   );
   readonly scope = computed(() =>
     ['BRANCH_MANAGER', 'ACCOUNTANT'].includes(this.session.employee()?.role ?? '')
-      ? 'Assigned branch'
+      ? 'Assigned terminal'
       : 'Business operations',
   );
   refresh() {

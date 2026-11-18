@@ -20,7 +20,7 @@ import { OnboardingApi } from './data-access/onboarding-api';
     <div class="panel-heading">
       <div>
         <span class="eyebrow">STEP 01</span>
-        <h2>Business profile</h2>
+        <h2>Business Profile</h2>
         <p>Tell us about your business and how to reach you.</p>
       </div>
       <span class="panel-icon"><app-icon name="building" /></span>

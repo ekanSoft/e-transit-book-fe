@@ -1,6 +1,6 @@
 # eTransitBook operator portal
 
-Angular 21.2, TypeScript, and Tailwind CSS 4. The portal includes employee authentication, business registration, approval status, operational reporting, a branch directory, and separate company and employee profiles.
+Angular 21.2, TypeScript, and Tailwind CSS 4. The portal includes employee authentication, business registration, approval status, operational reporting, a terminal directory, and separate company and employee profiles.
 
 ## Local setup
 
@@ -49,8 +49,8 @@ Static hosting is also possible using `dist/e-transit-book-fe/browser`. Configur
 | `/onboarding`             | Resume the first missing registration stage                      |
 | `/pending-approval`       | Pending review, restricted account, or recoverable context error |
 | `/app/dashboard`          | Operational dashboard for the selected business (also the destination of `/app`) |
-| `/app/branches`           | Searchable, paginated terminal directory |
-| `/app/business-profile`   | Read-only registration details and primary branch |
+| `/app/terminals`           | Searchable, paginated terminal directory |
+| `/app/business-profile`   | Read-only registration details and primary terminal |
 | `/app/account`            | Employee profile, workspace role, and appearance |
 
 The session service owns JWT storage under `etransitbook.session`. It reloads `/employees/me` and `/business` after refresh. There is no refresh-token flow because the backend does not provide one. Protected API `401` responses clear authenticated state and redirect to sign-in; rejected login credentials remain inline. Bearer tokens are attached only to the configured API's protected endpoints, never to public auth calls or third-party URLs.
@@ -63,19 +63,19 @@ Routing uses both `accountStatus` and `registrationComplete`. Pending incomplete
 
 The portal follows the device’s light or dark appearance by default, including changes while it is open. The header toggle saves an explicit choice for this browser. Select **System** under **My account → Appearance** to follow the device again. The initial theme is applied before Angular starts. The sidebar retains its dark palette in both modes. A native modal drawer provides navigation on smaller viewports.
 
-The dashboard uses `GET /reports/dashboard` for totals, payment mix and upcoming trips. For periods with revenue it also reads `GET /reports/sales` for daily values. The default period is the last seven WAT calendar days. Administrators and operations managers receive company reports. Branch managers and accountants receive their backend-scoped reports. Booking agents and drivers see today's permitted departures from `GET /trips`.
+The dashboard uses `GET /reports/dashboard` for totals, payment mix and upcoming trips. For periods with revenue it also reads `GET /reports/sales` for daily values. The default period is the last seven WAT calendar days. Administrators and operations managers receive company reports. Terminal managers and accountants receive their backend-scoped reports. Booking agents and drivers see today's permitted departures from `GET /trips`.
 
 Switching workspaces signs out the current membership and opens sign-in with the employee email prefilled. A fresh login issues the selection token or session JWT. There is no authenticated token-exchange endpoint. Company verification links are displayed to administrators and operations managers. The backend currently includes those fields in its business response to other authenticated roles too.
 
 ## Onboarding contracts
 
-The wizard orders Business Profile → Primary Branch → Business Verification. Each successful PATCH is followed by a fresh business and employee read. Saved steps can be reopened while registration is editable. The branch lookup follows the paginated directory until it finds the backend's `primeBranch` flag. Editing an existing primary branch requires the account assigned to it because the backend upsert targets the signed-in employee's branch.
+The wizard orders Business Profile → Primary Terminal → Business Verification. Each successful PATCH is followed by a fresh business and employee read. Saved steps can be reopened while registration is editable. The terminal lookup follows the paginated directory until it finds the backend's `primeBranch` flag. Editing an existing primary terminal requires the account assigned to it because the backend upsert targets the signed-in employee's branch.
 
 - Profile uses multipart data with an address JSON string and optional `logo`. The request field for support phone is `supportContact`; the returned field is `supportPhoneNumber`.
 - Business types are `TRANSPORTATION` and `CAR_HIRE`.
 - Verification accepts an RC number **or** at least one document. Supported field names are `certificateOfIncorporation`, `formCAC`, and `memorandumAndArticle`. All three files are not mandatory.
 - Each file has the backend's 20 MB size limit. The logo picker requests images; verification documents follow the backend's general upload support. Files can be replaced. Removing a newly selected file does not delete an existing saved file because no deletion endpoint exists in this scope.
-- Primary branch uses JSON with `name`, `phoneNumber`, and nested address.
+- The primary terminal form sends `PATCH /business/branch` using JSON with `name`, `phoneNumber`, and nested address.
 - Nigerian phone numbers normalize to `+234…`. Country and state codes are uppercased before submission.
 - Progress comes from returned `registrationStage` values (`PROFILE`, `VERIFICATION`, `BRANCH`), not browser-stored wizard indices. Onboarding never activates a business.
 
@@ -104,6 +104,6 @@ See `docs/VERIFICATION.md` for observed evidence and limits.
 - `shared/ui`: buttons, icons, brand, notifications and error feedback.
 - `features/auth`: lazy authentication pages and shared email request flow.
 - `features/onboarding`: step forms, API payload builders, wizard and account status.
-- `features/workspace`: dashboard, branch directory, read-only business profile and account settings.
+- `features/workspace`: dashboard, terminal directory, read-only business profile and account settings.
 
 Typed Reactive Forms follow the repository conventions; signals own application/feature state. Native controls and a modal `<dialog>` provide keyboard behavior without a large UI framework. No backend source files were changed.

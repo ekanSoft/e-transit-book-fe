@@ -27,9 +27,9 @@ export class Onboarding {
   private readonly router = inject(Router);
   private readonly notifications = inject(Notifications);
   readonly steps = [
-    { key: 'PROFILE', title: 'Business profile' },
-    { key: 'BRANCH', title: 'Primary branch' },
-    { key: 'VERIFICATION', title: 'Business verification' },
+    { key: 'PROFILE', title: 'Business Profile' },
+    { key: 'BRANCH', title: 'Primary Terminal' },
+    { key: 'VERIFICATION', title: 'Business Verification' },
   ] as const;
   readonly next = computed(() => {
     const b = this.session.business();

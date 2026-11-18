@@ -43,7 +43,7 @@
   <div class="profile-grid">
     <section class="panel">
       <div class="panel-heading">
-        <h2>Primary branch</h2>
+        <h2>Primary terminal</h2>
         <app-icon name="pin" />
       </div>
       @if (branch.error()) {
@@ -51,10 +51,10 @@
           class="text-button inset"
           (click)="branch.reload()"
         >
-          Retry branch lookup
+          Try loading the terminal again
         </button>
       } @else if (branch.isLoading()) {
-        <p class="loading" role="status">Loading primary branch…</p>
+        <p class="loading" role="status">Loading primary terminal…</p>
       } @else if (branch.value(); as item) {
         <dl class="details-list">
           <div>
@@ -71,7 +71,7 @@
           </div>
         </dl>
       } @else {
-        <p class="loading">No primary branch is recorded.</p>
+        <p class="loading">No primary terminal is recorded.</p>
       }
     </section>
     @if (showVerification()) {

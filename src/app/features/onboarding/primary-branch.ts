@@ -29,8 +29,8 @@ import { OnboardingApi } from './data-access/onboarding-api';
     <div class="panel-heading">
       <div>
         <span class="eyebrow">STEP 02</span>
-        <h2>Primary branch</h2>
-        <p>Add the main location your business operates from.</p>
+        <h2>Primary Terminal</h2>
+        <p>Enter the main park where passengers board for most of your trips. You can add other terminals later.</p>
       </div>
       <span class="panel-icon"><app-icon name="pin" /></span>
     </div>
@@ -39,14 +39,13 @@ import { OnboardingApi } from './data-access/onboarding-api';
         class="text-button inset"
         (click)="primary.reload()"
       >
-        Retry branch lookup
+        Try loading the terminal again
       </button>
     } @else if (primary.isLoading()) {
-      <p role="status" class="loading">Loading branch details…</p>
+      <p role="status" class="loading">Loading terminal details…</p>
     } @else if (locked()) {
       <div class="alert">
-        The primary branch must be updated by the account assigned to it. Sign in with that account
-        to edit this step.
+        Sign in with the account assigned to this terminal to update its details.
       </div>
     } @else {
       <form
@@ -61,13 +60,13 @@ import { OnboardingApi } from './data-access/onboarding-api';
           <fieldset [disabled]="busy()">
             <div class="form-grid">
               <app-field
-                id="branch-name"
-                label="Branch name"
+                [id]="'branch-name'"
+                label="Terminal name"
                 [control]="form.controls.name"
                 placeholder="e.g. Jibowu Terminal"
                 [maxLength]="120"
               /><app-field
-                id="branch-phone"
+                [id]="'branch-phone'"
                 label="Phone number"
                 [control]="form.controls.phoneNumber"
                 type="tel"
@@ -76,7 +75,7 @@ import { OnboardingApi } from './data-access/onboarding-api';
               />
             </div>
             <div class="form-section">
-              <h3>Branch address</h3>
+              <h3>Terminal address</h3>
               <app-address-fields [group]="form.controls.address" prefix="branch" />
             </div>
           </fieldset>

@@ -7,6 +7,7 @@ import { Session } from '../../core/auth/session';
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
+import { employeeRoleLabel } from '../../shared/utilities/employee-role';
 @Component({
   selector: 'app-select-business',
   imports: [DatePipe, RouterLink, Button, Errors, Icon],
@@ -55,6 +56,7 @@ import { Icon } from '../../shared/ui/icon';
 })
 export class SelectBusiness {
   readonly session = inject(Session);
+  readonly roleLabel = employeeRoleLabel;
   readonly busy = signal(false);
   readonly errors = signal<string[]>([]);
   readonly pendingId = signal('');
@@ -81,13 +83,10 @@ export class SelectBusiness {
       return next === 'PROFILE'
         ? 'Business profile required'
         : next === 'BRANCH'
-          ? 'Branch setup required'
+          ? 'Primary terminal required'
           : 'Registration in progress';
     }
-    return this.roleLabel(choice.businessAccountStatus);
-  }
-  roleLabel(role: string) {
-    return role.toLowerCase().replaceAll('_', ' ');
+    return choice.businessAccountStatus.toLowerCase();
   }
   async select(id: string) {
     if (this.busy()) return;

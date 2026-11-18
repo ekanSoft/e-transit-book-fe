@@ -24,21 +24,19 @@ import { OnboardingApi } from './data-access/onboarding-api';
     <div class="panel-heading">
       <div>
         <span class="eyebrow">STEP 03</span>
-        <h2>Business verification</h2>
-        <p>Help us verify your registered transport business.</p>
+        <h2>Business Verification</h2>
+        <p>
+          Enter your company registration number (RC number) or upload one registration document.
+        </p>
       </div>
       <span class="panel-icon"><app-icon name="shield" /></span>
     </div>
     <form (submit)="$event.preventDefault(); submit()" novalidate [attr.aria-busy]="busy()">
       <div class="panel-body">
         <app-errors [messages]="errors()" />
-        <div class="alert">
-          Provide your RC number or upload at least one of the documents below. Your business will
-          be reviewed before activation.
-        </div>
         <fieldset [disabled]="busy()">
           <app-field
-            id="rc-number"
+            [id]="'rc-number'"
             label="RC number"
             [control]="rcNumber"
             placeholder="e.g. RC1234567"
@@ -47,11 +45,15 @@ import { OnboardingApi } from './data-access/onboarding-api';
           />
           <div class="form-section">
             <h3>Registration documents</h3>
-            <p class="muted small">Upload a clear, readable copy. Each file can be up to 20 MB.</p>
+            <p class="muted small">
+              If you entered your RC number, you can skip this section. Otherwise, upload a clear
+              copy of any one document.
+            </p>
             @for (document of documents; track document.key) {
               <app-file-upload
                 [id]="document.key"
                 [label]="document.label"
+                [optional]="true"
                 [existing]="!!session.business()?.documents?.[document.key]"
                 [disabled]="busy()"
                 (changed)="setFile(document.key, $event)"
@@ -62,9 +64,9 @@ import { OnboardingApi } from './data-access/onboarding-api';
         </fieldset>
       </div>
       <div class="panel-footer">
-        <span class="small muted">Your documents are used for business review.</span
+        <span class="small muted">We’ll review your details before activating your account.</span
         ><button appButton type="submit" [disabled]="busy() || !filesValid()">
-          {{ busy() ? 'Uploading and saving…' : 'Save and continue' }}<app-icon name="arrow" />
+          {{ busy() ? 'Saving…' : 'Save and continue' }}<app-icon name="arrow" />
         </button>
       </div>
     </form>
@@ -104,7 +106,7 @@ export class BusinessVerification {
     this.rcNumber.markAsTouched();
     if (this.rcNumber.invalid) return;
     if (!this.rcNumber.value.trim() && !Object.keys(this.files()).length) {
-      this.errors.set(['Enter your RC number or choose at least one verification document.']);
+      this.errors.set(['Enter your RC number or upload one document to continue.']);
       return;
     }
     this.busy.set(true);

@@ -6,14 +6,18 @@ export const MAX_FILE_SIZE = 20 * 1024 * 1024;
   imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div class="upload-control">
-    <label [for]="id()">{{ label() }}</label>
+    <label [for]="id()"
+      >{{ label() }}
+      @if (optional()) {
+        <span class="optional">(optional)</span>
+      }
+    </label>
     <div class="upload-area" [class.upload-invalid]="error()">
       <app-icon name="upload" />
       <div>
         <span class="upload-title">{{
           file()?.name || (existing() ? 'File already uploaded' : 'Choose a file to upload')
-        }}</span
-        ><span class="muted small">{{ hint() }} · Up to 20 MB</span>
+        }}</span><span class="muted small">{{ hint() }} · Up to 20 MB</span>
       </div>
       <input
         #picker
@@ -40,6 +44,7 @@ export const MAX_FILE_SIZE = 20 * 1024 * 1024;
 export class FileUpload {
   readonly id = input.required<string>();
   readonly label = input.required<string>();
+  readonly optional = input(false);
   readonly accept = input('');
   readonly hint = input('Document');
   readonly existing = input(false);

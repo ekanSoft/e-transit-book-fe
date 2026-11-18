@@ -73,9 +73,10 @@ export const routes: Routes = [
         title: 'Dashboard · eTransitBook',
         loadComponent: () => import('./features/workspace/dashboard').then((m) => m.Dashboard),
       },
+      { path: 'app/branches', pathMatch: 'full', redirectTo: '/app/terminals' },
       {
-        path: 'app/branches',
-        title: 'Branches · eTransitBook',
+        path: 'app/terminals',
+        title: 'Terminals · eTransitBook',
         loadComponent: () => import('./features/workspace/branches').then((m) => m.Branches),
       },
       {

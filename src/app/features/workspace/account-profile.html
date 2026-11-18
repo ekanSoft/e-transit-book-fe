@@ -25,7 +25,7 @@
       </div>
       <div>
         <dt>Workspace role</dt>
-        <dd>{{ e.role.replaceAll('_', ' ').toLowerCase() | titlecase }}</dd>
+        <dd>{{ roleLabel(e.role) | titlecase }}</dd>
       </div>
       <div>
         <dt>Email verification</dt>
