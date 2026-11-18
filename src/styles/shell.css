@@ -1,0 +1,389 @@
+@layer components {
+  .operator-layout {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    min-height: 100dvh;
+  }
+  .operator-layout.sidebar-collapsed {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+  .desktop-sidebar,
+  .drawer-inner {
+    color: var(--side-text);
+    background: var(--sidebar);
+    --color-brand: #85debb;
+    display: flex;
+    flex-direction: column;
+    padding: 0 12px 12px;
+    min-height: 100%;
+    border-right: 1px solid #2c333a;
+  }
+  .desktop-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    min-height: 0;
+  }
+  .sidebar-brand {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    border-bottom: 1px solid #2c333a;
+  }
+  .desktop-sidebar nav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .desktop-sidebar .sidebar-brand,
+  .desktop-sidebar .workspace-chip,
+  .desktop-sidebar .sidebar-bottom {
+    flex-shrink: 0;
+  }
+  .workspace-chip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-align: left;
+    border: 1px solid #333c45;
+    background: #191f26;
+    border-radius: 8px;
+    padding: 9px;
+    margin: 17px 0 8px;
+    color: var(--side-text);
+    width: 100%;
+  }
+  .workspace-chip:hover {
+    background: #212a32;
+  }
+  .workspace-initial {
+    background: #293c36;
+    width: 31px;
+    height: 34px;
+    border-radius: 5px;
+    color: #a1e2c2;
+    font-weight: 700;
+  }
+  .workspace-chip .sidebar-label {
+    min-width: 0;
+    flex: 1;
+  }
+  .sidebar-label small,
+  .sidebar-bottom small {
+    display: block;
+    color: var(--side-muted);
+    font-size: 11px;
+  }
+  .workspace-chip strong,
+  .sidebar-bottom strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .workspace-chip strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  .switch-icon {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
+    color: var(--side-muted);
+  }
+  .nav-group {
+    margin: 20px 11px 6px;
+    color: var(--side-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.095em;
+    font-size: 10px;
+    font-weight: 650;
+  }
+  .nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 38px;
+    color: #bdc6cf;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    margin: 2px 0;
+  }
+  .nav-link:hover {
+    background: #1c232a;
+    color: white;
+    text-decoration: none;
+  }
+  .nav-link.active {
+    background: #1a322b;
+    color: #9be8c4;
+  }
+  .nav-link.active:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 2px;
+    background: #64d9a3;
+  }
+  .sidebar-bottom {
+    margin-top: auto;
+    border-top: 1px solid #2c333a;
+    padding: 15px 8px 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #274237;
+    color: #a4e3c6;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .sidebar-collapsed .desktop-sidebar {
+    padding-inline: 9px;
+  }
+  .sidebar-collapsed .desktop-sidebar :is(.sidebar-label, .brand-name, .switch-icon) {
+    display: none;
+  }
+  .sidebar-collapsed .desktop-sidebar .workspace-chip {
+    justify-content: center;
+    padding: 5px;
+  }
+  .sidebar-collapsed .desktop-sidebar :is(.nav-link, .sidebar-brand, .sidebar-bottom) {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .sidebar-collapsed .desktop-sidebar .nav-group {
+    height: 1px;
+    background: #30363c;
+    margin: 14px 8px 8px;
+  }
+  .sidebar-collapsed .desktop-sidebar nav {
+    overflow: visible;
+  }
+  .sidebar-collapsed .desktop-sidebar .nav-link:is(:hover, :focus-visible):after {
+    content: attr(data-tip);
+    position: absolute;
+    left: calc(100% + 8px);
+    white-space: nowrap;
+    background: #29333c;
+    color: white;
+    padding: 5px 10px;
+    border: 1px solid #52606a;
+    border-radius: 6px;
+    z-index: 10;
+  }
+  .desktop-sidebar {
+    z-index: 5;
+  }
+  .operator-main {
+    min-width: 0;
+  }
+  .operator-header,
+  .auth-top {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 clamp(16px, 2.25vw, 36px);
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-surface);
+  }
+  .header-location,
+  .header-account,
+  .page-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-location {
+    font-size: 12px;
+  }
+  .header-location strong {
+    font-weight: 550;
+  }
+  .header-divider {
+    height: 20px;
+    width: 1px;
+    background: var(--color-line);
+  }
+  .account-trigger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+  }
+  .account-trigger app-icon {
+    width: 13px;
+  }
+  .account-popover {
+    position: fixed;
+    inset: 55px 18px auto auto;
+    color: var(--color-ink);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 9px;
+    padding: 10px;
+    box-shadow: 0 8px 32px #0003;
+    min-width: 220px;
+    max-width: calc(100vw - 32px);
+    margin: 0;
+  }
+  .account-popover > strong,
+  .account-popover > small {
+    display: block;
+    padding: 0 8px;
+    overflow-wrap: anywhere;
+  }
+  .account-popover > small {
+    color: var(--color-muted);
+    margin-bottom: 8px;
+  }
+  .account-popover a,
+  .account-popover button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--color-ink);
+    width: 100%;
+    text-align: left;
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .account-popover :is(a, button):hover {
+    background: var(--raised);
+    text-decoration: none;
+  }
+  .mobile-menu,
+  .navigation-drawer:not([open]) {
+    display: none;
+  }
+  .navigation-drawer {
+    position: fixed;
+    inset: 0 auto 0 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: min(290px, 88vw);
+    max-width: none;
+    padding: 0;
+    border: 0;
+    margin: 0;
+    background: var(--sidebar);
+  }
+  .drawer-inner {
+    position: relative;
+  }
+  .drawer-close {
+    position: absolute;
+    top: 14px;
+    right: 8px;
+    color: var(--side-text);
+  }
+  .navigation-drawer::backdrop {
+    background: #03060999;
+  }
+  .workspace-content {
+    max-width: 1640px;
+    margin: 0 auto;
+    padding: clamp(20px, 2.3vw, 37px);
+  }
+  .page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .page-heading h1 + p,
+  .panel-heading p,
+  .identity p {
+    color: var(--color-muted);
+    font-size: 13px;
+    margin-top: 5px;
+  }
+  .kicker {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .signal-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--data-1);
+  }
+  .page-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .range-select {
+    position: relative;
+  }
+  .range-select app-icon {
+    position: absolute;
+    pointer-events: none;
+    left: 10px;
+    top: 11px;
+    width: 15px;
+    height: 15px;
+    color: var(--color-muted);
+  }
+  .range-select select {
+    padding: 7px 9px 7px 32px;
+    width: auto;
+    min-height: 39px;
+    font-size: 13px;
+    background: var(--color-surface);
+    border-color: var(--color-line);
+  }
+}
+@media (max-width: 950px) {
+  .operator-layout,
+  .operator-layout.sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desktop-sidebar,
+  .rail-toggle {
+    display: none;
+  }
+  .mobile-menu {
+    display: inline-flex;
+  }
+}
+@media (max-width: 620px) {
+  .operator-header,
+  .auth-top {
+    height: 56px;
+    padding: 0 14px;
+  }
+  .workspace-content {
+    padding: 20px 14px;
+  }
+  .desktop-only {
+    display: none;
+  }
+  .page-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .header-location,
+  .header-account {
+    gap: 8px;
+  }
+}

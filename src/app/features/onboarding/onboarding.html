@@ -1,0 +1,53 @@
+<div class="setup-container">
+  <div class="page-heading">
+    <div>
+      <p class="kicker">{{ session.business()?.name }}</p>
+      <h1>Business registration</h1>
+      <p>Save each step to prepare your business for approval.</p>
+    </div>
+    <span class="badge">{{ completeCount() }} of 3 saved</span>
+  </div>
+  <nav aria-label="Registration progress">
+    <ol class="stepper">
+      @for (step of steps; track step.key; let index = $index) {
+        <li>
+          <button
+            type="button"
+            [class.current]="current() === step.key"
+            [attr.aria-current]="current() === step.key ? 'step' : null"
+            [disabled]="saving() || (!completed(step.key) && next() !== step.key)"
+            (click)="open(step.key)"
+          >
+            <span class="step-number">
+              @if (completed(step.key)) {
+                <app-icon name="check" />
+              } @else {
+                {{ index + 1 }}
+              }</span
+            ><span
+              ><strong>{{ step.title }}</strong
+              ><small>{{
+                completed(step.key) ? 'Saved' : next() === step.key ? 'In progress' : 'Upcoming'
+              }}</small></span
+            >
+          </button>
+        </li>
+      }
+    </ol>
+  </nav>
+  <section
+    class="panel wizard-panel"
+    [attr.inert]="refreshing() ? '' : null"
+    aria-label="Registration form"
+  >
+    @if (visible('PROFILE')) {
+      <app-company-profile [hidden]="current() !== 'PROFILE'" (saved)="saved($event)" />
+    }
+    @if (visible('BRANCH')) {
+      <app-primary-branch [hidden]="current() !== 'BRANCH'" (saved)="saved($event)" />
+    }
+    @if (visible('VERIFICATION')) {
+      <app-business-verification [hidden]="current() !== 'VERIFICATION'" (saved)="saved($event)" />
+    }
+  </section>
+</div>

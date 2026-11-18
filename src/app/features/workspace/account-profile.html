@@ -1,0 +1,64 @@
+@if (session.employee(); as e) {
+  <div class="page-heading">
+    <div>
+      <h1>My account</h1>
+      <p>Your employee profile and portal preferences.</p>
+    </div>
+  </div>
+  <section class="panel">
+    <div class="identity">
+      <span class="identity-icon">{{ e.firstName[0] }}{{ e.lastName[0] }}</span>
+      <div>
+        <h2>{{ e.firstName }} {{ e.lastName }}</h2>
+        <p>{{ session.business()?.name }}</p>
+      </div>
+      <span class="badge success">{{ e.accountStatus.toLowerCase() | titlecase }}</span>
+    </div>
+    <dl class="details-grid">
+      <div>
+        <dt>Email</dt>
+        <dd>{{ e.email }}</dd>
+      </div>
+      <div>
+        <dt>Phone number</dt>
+        <dd>{{ e.phoneNumber || 'Not provided' }}</dd>
+      </div>
+      <div>
+        <dt>Workspace role</dt>
+        <dd>{{ e.role.replaceAll('_', ' ').toLowerCase() | titlecase }}</dd>
+      </div>
+      <div>
+        <dt>Email verification</dt>
+        <dd>{{ e.signupVerified ? 'Verified' : 'Pending' }}</dd>
+      </div>
+    </dl>
+  </section>
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Appearance</h2>
+        <p>Choose a theme or follow your device’s appearance.</p>
+      </div>
+      <app-icon name="sun" />
+    </div>
+    <div class="theme-options" role="group" aria-label="Portal theme">
+      <button
+        [attr.aria-pressed]="theme.preference() === 'system'"
+        (click)="theme.setPreference('system')"
+      >
+        <app-icon name="monitor" /> System
+      </button>
+      <button
+        [attr.aria-pressed]="theme.preference() === 'dark'"
+        (click)="theme.setPreference('dark')"
+      >
+        <app-icon name="moon" /> Dark</button
+      ><button
+        [attr.aria-pressed]="theme.preference() === 'light'"
+        (click)="theme.setPreference('light')"
+      >
+        <app-icon name="sun" /> Light
+      </button>
+    </div>
+  </section>
+}

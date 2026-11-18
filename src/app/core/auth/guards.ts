@@ -1,0 +1,20 @@
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { permitsWorkspaceRoute } from './routing';
+import { Session } from './session';
+export const guestGuard: CanActivateFn = async () => {
+  const session = inject(Session),
+    router = inject(Router);
+  if (!session.authenticated()) return true;
+  await session.ensureContext();
+  return session.authenticated() ? router.parseUrl(session.destination()) : true;
+};
+export const authGuard: CanActivateFn = async (_route, state) => {
+  const session = inject(Session),
+    router = inject(Router);
+  if (!session.authenticated()) return router.parseUrl('/login');
+  await session.ensureContext();
+  if (!session.authenticated()) return router.parseUrl('/login');
+  const destination = session.destination();
+  return permitsWorkspaceRoute(destination, state.url) ? true : router.parseUrl(destination);
+};

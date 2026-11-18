@@ -1,0 +1,60 @@
+# Verification record
+
+## Operator portal redesign · 18 November 2026
+
+The production Angular app was exercised in Chromium against the NestJS API. Tests that needed account creation used a separate, uniquely named local MongoDB database and the real controllers, guards, services, validation, and response formatter. The test mail provider captured verification and reset links in memory. Approved memberships were test fixtures. Browser checks of active operations and pending approval also ran against the existing backend on port 4000.
+
+| Area | Observed result |
+| --- | --- |
+| Authentication | Signup, resend, verification from a direct link, password reset from a direct link, and subsequent sign-in all succeeded. Only the disposable account password changed. |
+| Business context | A single eligible membership reached the dashboard directly. Multi-business login showed both roles, completed the selected login, and switched from an active company to a pending company with a new JWT. Reload and logout preserved the expected boundaries. A second open tab switched to the pending company and could no longer display the first company’s dashboard. |
+| Registration | The API accepted profile, primary branch, then verification. Reload and sign-in restored the first missing step. Updating a saved profile preserved an in-progress branch draft. The saved primary branch could be reopened and updated. Verification with an RC number completed registration and led to pending approval. |
+| Reports | Existing operational data rendered from the dashboard and sales endpoints. Today, seven-day, and thirty-day requests used the correct inclusive WAT dates. An empty company showed setup guidance. A driver received the trip schedule without a reporting request. A simulated report failure displayed the error and recovered on retry. |
+| Restricted access | Rejected and inactive businesses saw their status pages. A suspended sign-in displayed the API’s denial reason without establishing a session. |
+| Profiles and navigation | The active company opened read-only registration details. The directory supported search and clearing an empty result. My Account, the account popover, desktop collapse, keyboard navigation, mobile drawer dismissal and focus return worked. |
+| Appearance | Chromium showed dark mode on a fresh visit and retained light mode after reload. The computed sidebar background stayed the same. Layout and browser AXE checks covered 360, 768, and 1440 px widths. The inspected auth, wizard, status, dashboard, account, and navigation states had zero detected violations. |
+| Build and smoke checks | Production build passed with a 334.62 kB initial browser bundle (92.50 kB estimated transfer). All 54 unit tests passed. The live API returned the expected response status and error envelope for all 16 unauthenticated or invalid smoke requests. |
+
+The reference preview and the direct Apex demo were inspected. Browser navigation followed the grouped sidebar links, including dashboard, logistics, wizard, forms, layouts, users, roles, settings, and data grid. Inspection also covered the account menu, theme control, expanded and collapsed rail, and mobile drawer.
+
+### Backend contract notes
+
+- The login-selection records carry `registrationComplete` and `registrationStage`. Successful JWT issuance returns a business identifier. The authenticated `/business` read supplies the current full registration record for routing.
+- A new credential exchange is required to switch business. The backend has no authenticated membership-switch endpoint.
+- The branch API exposes a paginated directory with a `primeBranch` flag. A dedicated primary-branch read is unavailable. The onboarding upsert uses the signed-in employee's branch, which determines who can reopen and save an existing primary branch.
+- Registration writes are locked for active businesses. Conflicting stage, completion, and approval fields lead to a status recheck. The business schema has no separate suspension or rejection explanation field. The UI presents the backend's message when a request is denied.
+- Dashboard totals and upcoming trips come from `GET /api/v1/reports/dashboard`. Daily revenue comes from `GET /api/v1/reports/sales` for periods with collections. The dashboard response has no recent-booking feed. Booking agents and drivers use the permitted daily trip list.
+- Company verification links are shown to admins and operations managers. Server-side document permissions would require a backend change because the business endpoint returns the full company record.
+
+The sign-in image is bundled at `public/terminal.webp`. The built-in image generator produced an overhead editorial view of emerald and ivory intercity coaches in marked terminal bays. The font is bundled locally with its license. Browser email tests verified link handling using captured mail. External inbox delivery was outside that test.
+
+## Earlier verification · 17 November 2026
+
+Date: 17 November 2026. Target: local backend at `http://localhost:4000/api/v1`.
+
+### Completed on 17 November
+
+- Read backend controllers, services, DTOs, enum/schema definitions, response/error formatters, architecture, frontend notes, and handoff. Compared the endpoints against the running Swagger JSON schema.
+- Inspected the reference's dashboard, wizard, forms, layouts, users, roles, settings, and data-grid pages, including desktop sidebar and mobile layout.
+- Production build passes. Initial bundle is approximately 276 kB before transfer compression; features are lazy loaded.
+- 35 unit tests pass, including session/context races, multipart contracts, status/stage routing, temporary selection expiry, email selection and deep-link tokens.
+- All twelve integrated API endpoints return expected validation/authentication envelopes under invalid or unauthenticated requests.
+- Real multi-business login, complete-login, slug-scoped single-business login, employee context, and business context succeed.
+- All three onboarding writes reject active businesses with the actual backend approval restriction.
+- Disposable signup succeeds with a unique email alias. Signup with an already registered admin email returns the expected `409`.
+- Unverified login returns `403`; resend verification succeeds; signup verification and subsequent single-account login succeed.
+- Multipart profile with JSON address and PNG logo succeeds; a fresh business fetch preserves the completed profile stage.
+- Empty verification returns the expected `400`. Multipart RC number plus all three PDF document fields succeeds.
+- Primary-branch submission completes all three stages, sets `registrationComplete=true`, and leaves `accountStatus=PENDING`.
+- Password-reset initiation returns business choices for a shared email and accepts a slug-scoped request for the QA account. Invalid reset tokens are rejected.
+
+The QA business is named `eTransitBook Frontend QA 1794936579956`. Uploaded PDF fixtures identify themselves as QA tests, not legal documents. Original active businesses were not modified. The disposable business remains pending; no manual approval or database-write bypass was used. The signup verification token was read only for that new local test record; inbox delivery has not been independently observed.
+
+### Configuration finding on 17 November
+
+Backend email links currently use `http://localhost:3000`; Angular's default development origin is `http://localhost:4200`. Align `FRONTEND_URL` with the frontend port, or run the frontend on port 3000. No backend files were modified.
+
+### Verification limits on 17 November
+
+- Local browser access was blocked by a saved permission. Responsive visual and browser AXE checks remain pending permission availability.
+- Successful live password reset was deliberately skipped at the user's request. No password was changed. Unit tests cover the frontend payload and password confirmation behavior.

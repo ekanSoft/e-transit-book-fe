@@ -1,3 +1,508 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+@import './styles/shell.css';
+@import './styles/portal.css';
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/fonts/dm-sans-latin-wght-normal.woff2') format('woff2');
+  font-weight: 100 1000;
+  font-display: swap;
+}
+@theme {
+  --font-sans: 'DM Sans', 'Segoe UI', sans-serif;
+  --color-brand: #71d7ad;
+  --color-canvas: #13171c;
+  --color-surface: #1b2026;
+  --color-ink: #edf1f4;
+  --color-muted: #a5afbc;
+  --color-line: #343c46;
+}
+:root {
+  color-scheme: dark;
+  --raised: #222930;
+  --control: #151a20;
+  --control-line: #65707d;
+  --accent-fill: #126649;
+  --accent-hover: #157652;
+  --tint: #1c352c;
+  --error: #ffb6af;
+  --error-bg: #392626;
+  --track: #373f48;
+  --data-1: #5fc59c;
+  --data-2: #82a4cf;
+  --data-3: #d6b37b;
+  --sidebar: #0d1116;
+  --side-text: #e6ebee;
+  --side-muted: #a5afba;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-brand: #116047;
+  --color-canvas: #f4f6f8;
+  --color-surface: #fff;
+  --color-ink: #1c2630;
+  --color-muted: #566471;
+  --color-line: #d7dde2;
+  --raised: #f0f3f5;
+  --control: #fff;
+  --control-line: #808a94;
+  --tint: #e4f2eb;
+  --error: #922d29;
+  --error-bg: #fff0ee;
+  --track: #e3e8ec;
+  --data-1: #298762;
+  --data-2: #526f9d;
+  --data-3: #a07836;
+}
+@layer base {
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font: 14px/1.5 var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body:has(dialog[open]) {
+    overflow: hidden;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  h1,
+  h2,
+  h3,
+  p,
+  dl,
+  dd {
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(24px, 2.15vw, 32px);
+    line-height: 1.2;
+    font-weight: 650;
+    letter-spacing: -0.045em;
+  }
+  h2 {
+    font-size: 17px;
+    line-height: 1.35;
+    font-weight: 620;
+    letter-spacing: -0.025em;
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: 630;
+    margin: 0 0 14px;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-brand);
+    outline-offset: 3px;
+  }
+  h1:focus,
+  h2:focus {
+    outline: none;
+  }
+  a {
+    color: var(--color-brand);
+    font-weight: 600;
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  button,
+  summary,
+  select {
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 550;
+    margin-bottom: 7px;
+  }
+  input,
+  select {
+    min-width: 0;
+    width: 100%;
+    border: 1px solid var(--control-line);
+    border-radius: 7px;
+    background: var(--control);
+    color: var(--color-ink);
+    padding: 9px 12px;
+    min-height: 42px;
+  }
+  input::placeholder {
+    color: var(--color-muted);
+  }
+  input[aria-invalid='true'],
+  select[aria-invalid='true'] {
+    border-color: var(--error);
+  }
+  input:focus,
+  select:focus {
+    border-color: var(--color-brand);
+  }
+  fieldset {
+    min-width: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    background: var(--raised);
+    color: var(--color-muted);
+    font-size: 11px;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  th,
+  td {
+    padding: 12px 18px;
+    border-top: 1px solid var(--color-line);
+    vertical-align: middle;
+  }
+  td {
+    font-size: 13px;
+  }
+  tbody tr:hover {
+    background: var(--raised);
+  }
+}
+@layer components {
+  app-icon {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    vertical-align: middle;
+  }
+  app-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+  app-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .brand-mark,
+  .avatar,
+  .workspace-initial,
+  .auth-symbol,
+  .identity-icon,
+  .status-symbol,
+  .panel-icon,
+  .choice-icon {
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #106342;
+    color: white;
+  }
+  .brand-mark app-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .brand-name {
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.055em;
+  }
+  .brand-name > span {
+    font-weight: 450;
+  }
+  .button,
+  .icon-button,
+  .theme-options button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    min-height: 39px;
+    border-radius: 7px;
+    padding: 8px 15px;
+    transition:
+      background 0.15s,
+      color 0.15s;
+    font-size: 13px;
+  }
+  .button {
+    color: white;
+    background: var(--accent-fill);
+    border: 1px solid transparent;
+  }
+  .button:hover:not(:disabled) {
+    background: var(--accent-hover);
+    text-decoration: none;
+  }
+  .button-secondary,
+  .theme-options button {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    color: var(--color-ink);
+  }
+  .button-secondary:hover:not(:disabled),
+  .button-quiet:hover:not(:disabled),
+  .icon-button:hover {
+    background: var(--raised);
+    color: var(--color-ink);
+  }
+  .icon-button,
+  .button-quiet {
+    background: transparent;
+    color: var(--color-muted);
+  }
+  .icon-button {
+    width: 38px;
+    padding: 8px;
+  }
+  .role-label {
+    text-transform: capitalize;
+  }
+  .text-button {
+    color: var(--color-brand);
+    min-height: 36px;
+    font-weight: 600;
+  }
+  .text-button:hover {
+    text-decoration: underline;
+  }
+  .inset {
+    margin: 0 20px 12px;
+  }
+  .muted,
+  .small,
+  .optional,
+  .field-hint {
+    color: var(--color-muted);
+  }
+  .small,
+  .field-hint,
+  .optional {
+    font-size: 12px;
+  }
+  .optional {
+    font-weight: 400;
+  }
+  .eyebrow,
+  .kicker {
+    color: var(--color-brand);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.5;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--raised);
+    color: var(--color-muted);
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+  }
+  .badge app-icon {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
+  }
+  .success,
+  .auth-symbol,
+  .status-symbol,
+  .choice-icon,
+  .identity-icon {
+    background: var(--tint);
+    color: var(--color-brand);
+  }
+  .alert {
+    padding: 12px 15px;
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    background: var(--raised);
+    color: var(--color-ink);
+    margin: 12px 0;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .alert-error {
+    background: var(--error-bg);
+    color: var(--error);
+  }
+  .alert-error ul {
+    list-style: disc;
+    padding-left: 18px;
+  }
+  .field-error {
+    color: var(--error);
+    font-size: 12px;
+  }
+  app-field {
+    display: block;
+    min-width: 0;
+    margin-bottom: 16px;
+  }
+  .input-wrap {
+    position: relative;
+  }
+  .password-input {
+    padding-right: 60px;
+  }
+  .password-toggle {
+    position: absolute;
+    inset: 0 4px 0 auto;
+    color: var(--color-muted);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 8px;
+  }
+  .field-hint,
+  .field-error {
+    margin-top: 4px;
+  }
+  .field-hint:empty,
+  .field-error:empty {
+    display: none;
+  }
+  .form-grid,
+  .details-grid,
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 18px;
+  }
+  .full-width {
+    grid-column: 1/-1;
+  }
+  .form-section {
+    border-top: 1px solid var(--color-line);
+    padding-top: 20px;
+    margin-top: 6px;
+  }
+  .form-section > p {
+    margin-bottom: 16px;
+  }
+  .upload-control {
+    margin-bottom: 12px;
+  }
+  .upload-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--control);
+    border: 1px dashed var(--control-line);
+    border-radius: 8px;
+    padding: 16px;
+    position: relative;
+  }
+  .upload-area > app-icon {
+    color: var(--color-brand);
+  }
+  .upload-area input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  .upload-area:focus-within {
+    outline: 3px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  .upload-invalid {
+    border-color: var(--error);
+  }
+  .upload-area span {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+  .upload-title {
+    font-weight: 550;
+    font-size: 13px;
+  }
+  .skip-link {
+    position: fixed;
+    top: -100px;
+    left: 12px;
+    z-index: 100;
+    background: var(--color-surface);
+    padding: 10px 16px;
+  }
+  .skip-link:focus {
+    top: 12px;
+  }
+  .route-progress {
+    position: fixed;
+    z-index: 80;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-fill);
+    color: white;
+    font-size: 12px;
+    padding: 3px 12px;
+    border-radius: 0 0 6px 6px;
+  }
+  .toast-region {
+    position: fixed;
+    z-index: 85;
+    right: 16px;
+    bottom: 16px;
+    max-width: calc(100% - 32px);
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    background: #164a38;
+    color: white;
+    border: 1px solid #46846b;
+    border-radius: 8px;
+  }
+  .toast button {
+    padding: 3px 6px;
+    font-size: 19px;
+  }
+}
+@media (max-width: 599px) {
+  .form-grid,
+  .details-grid,
+  .profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

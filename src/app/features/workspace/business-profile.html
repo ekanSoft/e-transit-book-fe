@@ -1,0 +1,110 @@
+@if (session.business(); as b) {
+  <div class="page-heading">
+    <div>
+      <h1>Business profile</h1>
+      <p>Approved registration details for this workspace.</p>
+    </div>
+    <span class="badge"><app-icon name="shield" />Read-only</span>
+  </div>
+  <section class="panel">
+    <div class="identity">
+      <span class="identity-icon">
+        @if (logo(); as image) {
+          <img [ngSrc]="image" width="52" height="52" alt="" />
+        } @else {
+          <app-icon name="building" />
+        }
+      </span>
+      <div>
+        <h2>{{ b.name }}</h2>
+        <p>{{ b.businessType.replace('_', ' ').toLowerCase() | titlecase }}</p>
+      </div>
+      <span class="badge success">{{ b.accountStatus.toLowerCase() | titlecase }}</span>
+    </div>
+    <dl class="details-grid">
+      <div>
+        <dt>Contact email</dt>
+        <dd>{{ b.email || 'Not provided' }}</dd>
+      </div>
+      <div>
+        <dt>Contact phone</dt>
+        <dd>{{ b.contactPhoneNumber || 'Not provided' }}</dd>
+      </div>
+      <div>
+        <dt>Registered address</dt>
+        <dd>{{ address(b.address) || 'Not provided' }}</dd>
+      </div>
+      <div>
+        <dt>Support phone</dt>
+        <dd>{{ b.supportPhoneNumber || 'Not provided' }}</dd>
+      </div>
+    </dl>
+  </section>
+  <div class="profile-grid">
+    <section class="panel">
+      <div class="panel-heading">
+        <h2>Primary branch</h2>
+        <app-icon name="pin" />
+      </div>
+      @if (branch.error()) {
+        <app-errors [messages]="errors(branch.error())" /><button
+          class="text-button inset"
+          (click)="branch.reload()"
+        >
+          Retry branch lookup
+        </button>
+      } @else if (branch.isLoading()) {
+        <p class="loading" role="status">Loading primary branch…</p>
+      } @else if (branch.value(); as item) {
+        <dl class="details-list">
+          <div>
+            <dt>Name</dt>
+            <dd>{{ item.name }}</dd>
+          </div>
+          <div>
+            <dt>Address</dt>
+            <dd>{{ address(item.address) || 'Not provided' }}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{{ item.phoneNumber || 'Not provided' }}</dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="loading">No primary branch is recorded.</p>
+      }
+    </section>
+    @if (showVerification()) {
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Business verification</h2>
+          <app-icon name="file" />
+        </div>
+        <dl class="details-list">
+          <div>
+            <dt>Registration number</dt>
+            <dd>{{ b.rcNumber || 'Not provided' }}</dd>
+          </div>
+          @for (doc of documents(); track doc.key) {
+            <div>
+              <dt>{{ doc.label }}</dt>
+              <dd>
+                @if (doc.url) {
+                  <a
+                    [href]="doc.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    [attr.aria-label]="'View document: ' + doc.label + ' (opens in a new tab)'"
+                    >View document <span aria-hidden="true">↗</span></a
+                  >
+                } @else {
+                  {{ doc.submitted ? 'Submitted · link unavailable' : 'Not submitted' }}
+                }
+              </dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
+  </div>
+}

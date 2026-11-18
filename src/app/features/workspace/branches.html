@@ -1,0 +1,86 @@
+<div class="page-heading">
+  <div>
+    <h1>Branches</h1>
+    <p>Terminal directory for {{ session.business()?.name }}.</p>
+  </div>
+</div>
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Branch directory</h2>
+    <form class="search-form" role="search" (submit)="$event.preventDefault(); search(term.value)">
+      <input
+        #term
+        type="search"
+        placeholder="Search by name"
+        aria-label="Branch name"
+        (search)="search(term.value)"
+      /><button class="icon-button" aria-label="Search branches"><app-icon name="search" /></button>
+    </form>
+  </div>
+  @if (list.error()) {
+    <app-errors [messages]="errors(list.error())" /><button
+      class="text-button inset"
+      (click)="list.reload()"
+    >
+      Retry
+    </button>
+  } @else if (list.isLoading()) {
+    <p class="loading" role="status">Loading branches…</p>
+  } @else if (list.hasValue()) {
+    @let page = list.value();
+    @if (page.content.length) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Branch name</th>
+              <th>Address</th>
+              <th>Phone</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of page.content; track b._id) {
+              <tr>
+                <td>
+                  <strong>{{ b.name }}</strong>
+                  @if (b.primeBranch) {
+                    <span class="badge">Primary</span>
+                  }
+                </td>
+                <td>{{ address(b.address) || 'Not provided' }}</td>
+                <td>{{ b.phoneNumber || 'Not provided' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <app-icon name="pin" /><strong>{{
+          query().search ? 'No matching branches' : 'No branches recorded'
+        }}</strong>
+        @if (query().search) {
+          <button class="text-button" (click)="term.value = ''; search('')">Clear search</button>
+        }
+      </div>
+    }
+    <div class="pager">
+      <span>{{ page.total }} branches · Page {{ page.currentPage }} of {{ page.totalPages }}</span>
+      <div>
+        <button
+          class="button button-secondary"
+          [disabled]="!page.hasPrev"
+          (click)="go(page.currentPage - 1)"
+        >
+          Previous</button
+        ><button
+          class="button button-secondary"
+          [disabled]="!page.hasNext"
+          (click)="go(page.currentPage + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</section>

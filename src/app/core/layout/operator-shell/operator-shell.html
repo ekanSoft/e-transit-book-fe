@@ -1,0 +1,125 @@
+<div class="operator-layout" [class.sidebar-collapsed]="collapsed()">
+  <aside class="desktop-sidebar"><ng-container *ngTemplateOutlet="sidebar" /></aside>
+  <dialog
+    #drawer
+    class="navigation-drawer"
+    aria-label="Main navigation"
+    (click)="$event.target === drawer && drawer.close()"
+  >
+    <div class="drawer-inner">
+      <button
+        type="button"
+        class="drawer-close icon-button"
+        aria-label="Close navigation"
+        (click)="drawer.close()"
+        autofocus
+      >
+        <app-icon name="close" /></button
+      ><ng-container *ngTemplateOutlet="sidebar" />
+    </div>
+  </dialog>
+  <ng-template #sidebar>
+    <div class="sidebar-brand"><app-brand /></div>
+    <button
+      class="workspace-chip"
+      title="Sign in to switch business"
+      (click)="drawer.close(); session.switchBusiness()"
+    >
+      <span class="workspace-initial">{{ session.business()?.name?.charAt(0) || '•' }}</span><span
+        class="sidebar-label"
+        ><small>Current business</small
+        ><strong>{{ session.business()?.name || 'Business workspace' }}</strong></span
+      ><span class="sr-only">Sign in to switch business</span
+      ><app-icon class="switch-icon" name="switch" />
+    </button>
+    <nav aria-label="Workspace navigation">
+      @for (group of groups(); track group.group) {
+        <div class="nav-group">
+          <span class="sidebar-label">{{ group.group }}</span>
+        </div>
+        @for (item of group.items; track item.url) {
+          <a
+            class="nav-link"
+            [routerLink]="item.url"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            [attr.aria-label]="item.label"
+            [attr.data-tip]="item.label"
+            (click)="drawer.close()"
+            ><app-icon [name]="item.icon" /><span class="sidebar-label">{{ item.label }}</span></a
+          >
+        }
+      }
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="avatar">{{ initials() || '•' }}</span>
+      <div class="sidebar-label">
+        <strong>{{ session.employee()?.firstName }} {{ session.employee()?.lastName }}</strong
+        ><small class="role-label">{{ role() }}</small>
+      </div>
+    </div>
+  </ng-template>
+  <div class="operator-main">
+    <header class="operator-header">
+      <div class="header-location">
+        <button
+          type="button"
+          class="icon-button rail-toggle"
+          (click)="collapsed.set(!collapsed())"
+          [attr.aria-expanded]="!collapsed()"
+          [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <app-icon name="panel" />
+        </button>
+        <button
+          type="button"
+          class="icon-button mobile-menu"
+          aria-label="Open navigation"
+          (click)="drawer.showModal()"
+        >
+          <app-icon name="menu" />
+        </button>
+        <span class="header-divider"></span><span class="muted desktop-only">Workspace</span
+        ><span class="muted desktop-only">/</span><strong>{{ page() }}</strong>
+      </div>
+      <div class="header-account">
+        <app-theme-toggle /><span class="header-divider"></span>
+        <button
+          #trigger
+          type="button"
+          class="account-trigger"
+          [attr.aria-label]="(initials() || '') + ' Account menu'"
+          popovertarget="account-actions"
+        >
+          <span class="avatar">{{ initials() || '•' }}</span><app-icon name="down" />
+        </button>
+        <div #menu popover id="account-actions" class="account-popover">
+          <strong>{{ session.employee()?.firstName }} {{ session.employee()?.lastName }}</strong
+          ><small>{{ session.employee()?.email }}</small>
+          @if (session.destination() === '/app/dashboard') {
+            <a routerLink="/app/account" (click)="menu.hidePopover()"
+              ><app-icon name="user" /> My account</a
+            >
+          }
+          <button (click)="theme.toggle(); menu.hidePopover()">
+            <app-icon [name]="theme.light() ? 'moon' : 'sun'" />{{ theme.nextLabel() }}
+          </button>
+          <button (click)="menu.hidePopover(); session.switchBusiness()">
+            <app-icon name="switch" />Sign in to switch business
+          </button>
+          <button (click)="menu.hidePopover(); session.logout()">
+            <app-icon name="logout" />Sign out
+          </button>
+        </div>
+      </div>
+    </header>
+    <main id="main-content" class="workspace-content">
+      @if (session.storageWarning()) {
+        <div class="alert">Browser storage is unavailable. Sign in again after a reload.</div>
+      }
+      @for (token of outletSession(); track token) {
+        <router-outlet />
+      }
+    </main>
+  </div>
+</div>
