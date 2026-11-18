@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "check:api": "node scripts/check-api.mjs",
+    "sync:states": "node scripts/sync-nigeria-states.mjs",
     "serve:ssr:e-transit-book-fe": "node dist/e-transit-book-fe/server/server.mjs"
   },
   "private": true,

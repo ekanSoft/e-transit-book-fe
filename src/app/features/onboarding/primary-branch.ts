@@ -14,6 +14,7 @@ import { WorkspaceData } from '../workspace/workspace-data';
 import { Business } from '../../core/http/api.models';
 import { errorMessages } from '../../core/http/errors';
 import { AddressFields, addressForm } from '../../shared/forms/address-fields';
+import { savedAddressValue } from '../../shared/utilities/nigerian-address';
 import { Field } from '../../shared/forms/field';
 import { focusInvalid, requiredText } from '../../shared/forms/validators';
 import { nigerianPhone } from '../../shared/utilities/phone';
@@ -123,7 +124,7 @@ export class PrimaryBranch {
           this.form.patchValue({
             name: b.name,
             phoneNumber: b.phoneNumber ?? '',
-            address: b.address,
+            address: savedAddressValue(b.address),
           });
       }
     });

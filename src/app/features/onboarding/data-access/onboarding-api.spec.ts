@@ -11,10 +11,7 @@ describe('Backend multipart contract', () => {
         address: {
           street: ' 12 Allen Avenue ',
           city: 'Ikeja',
-          state: 'Lagos',
-          stateCode: 'la',
-          country: 'Nigeria',
-          countryCode: 'ng',
+          stateCode: 'LA',
         },
       },
       null,
@@ -28,8 +25,6 @@ describe('Backend multipart contract', () => {
       city: 'Ikeja',
       state: 'Lagos',
       stateCode: 'LA',
-      country: 'Nigeria',
-      countryCode: 'NG',
     });
     expect(data.has('logo')).toBe(false);
   });

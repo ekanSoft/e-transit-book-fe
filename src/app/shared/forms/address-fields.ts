@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Field } from './field';
+import { stateOptions } from '../utilities/nigerian-address';
 export function addressForm() {
   return new FormGroup({
     street: new FormControl('', {
@@ -11,22 +12,7 @@ export function addressForm() {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(2), Validators.maxLength(75)],
     }),
-    state: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(75)],
-    }),
-    stateCode: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(10)],
-    }),
-    country: new FormControl('Nigeria', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(75)],
-    }),
-    countryCode: new FormControl('NG', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(3)],
-    }),
+    stateCode: new FormControl('', { nonNullable: true, validators: Validators.required }),
   });
 }
 @Component({
@@ -45,7 +31,7 @@ export function addressForm() {
     />
     <app-field
       [id]="prefix() + '-city'"
-      label="City"
+      label="City or town"
       [control]="group().controls.city"
       autocomplete="address-level2"
       [maxLength]="75"
@@ -53,34 +39,19 @@ export function addressForm() {
     <app-field
       [id]="prefix() + '-state'"
       label="State"
-      [control]="group().controls.state"
-      autocomplete="address-level1"
-      [maxLength]="75"
-    />
-    <app-field
-      [id]="prefix() + '-state-code'"
-      label="State code"
       [control]="group().controls.stateCode"
-      hint="e.g. LA for Lagos"
-      [maxLength]="10"
+      [options]="states"
+      placeholder="Select your state"
+      autocomplete="address-level1"
     />
-    <app-field
-      [id]="prefix() + '-country'"
-      label="Country"
-      [control]="group().controls.country"
-      autocomplete="country-name"
-      [maxLength]="75"
-    />
-    <app-field
-      [id]="prefix() + '-country-code'"
-      label="Country code"
-      [control]="group().controls.countryCode"
-      hint="e.g. NG for Nigeria"
-      [maxLength]="3"
-    />
+    <div>
+      <label style="font-weight: 700">Country</label>
+      Nigeria
+    </div>
   </div>`,
 })
 export class AddressFields {
+  readonly states = stateOptions;
   readonly group = input.required<ReturnType<typeof addressForm>>();
   readonly prefix = input.required<string>();
 }

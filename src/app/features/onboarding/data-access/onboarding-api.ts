@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Api } from '../../../core/http/api';
-import { Address, Business, BusinessType, DocumentKey } from '../../../core/http/api.models';
+import { Business, BusinessType, DocumentKey } from '../../../core/http/api.models';
+import { addressPayload, type AddressFormValue } from '../../../shared/utilities/nigerian-address';
 import { normalizeNigerianPhone } from '../../../shared/utilities/phone';
 export interface ProfileRequest {
   name: string;
@@ -8,7 +9,7 @@ export interface ProfileRequest {
   contactPhoneNumber: string;
   supportContact: string;
   businessType: BusinessType;
-  address: Address;
+  address: AddressFormValue;
 }
 export function profileFormData(value: ProfileRequest, logo: File | null): FormData {
   const body = new FormData();
@@ -16,21 +17,11 @@ export function profileFormData(value: ProfileRequest, logo: File | null): FormD
   body.set('email', value.email.trim().toLowerCase());
   body.set('contactPhoneNumber', normalizeNigerianPhone(value.contactPhoneNumber));
   body.set('businessType', value.businessType);
-  body.set('address', JSON.stringify(normalizeAddress(value.address)));
+  body.set('address', JSON.stringify(addressPayload(value.address)));
   if (value.supportContact.trim())
     body.set('supportContact', normalizeNigerianPhone(value.supportContact));
   if (logo) body.set('logo', logo);
   return body;
-}
-export function normalizeAddress(value: Address): Address {
-  return {
-    street: value.street.trim(),
-    city: value.city.trim(),
-    state: value.state.trim(),
-    stateCode: value.stateCode.trim().toUpperCase(),
-    country: value.country.trim(),
-    countryCode: value.countryCode.trim().toUpperCase(),
-  };
 }
 export function verificationFormData(
   rcNumber: string,
@@ -53,11 +44,11 @@ export class OnboardingApi {
       verificationFormData(rcNumber, files),
     );
   }
-  branch(value: { name: string; phoneNumber: string; address: Address }) {
+  branch(value: { name: string; phoneNumber: string; address: AddressFormValue }) {
     return this.api.patch<Business>('/business/branch', {
       name: value.name.trim(),
       phoneNumber: normalizeNigerianPhone(value.phoneNumber),
-      address: normalizeAddress(value.address),
+      address: addressPayload(value.address),
     });
   }
 }

@@ -4,6 +4,7 @@ import { Session } from '../../core/auth/session';
 import { Business, BusinessType } from '../../core/http/api.models';
 import { errorMessages } from '../../core/http/errors';
 import { AddressFields, addressForm } from '../../shared/forms/address-fields';
+import { savedAddressValue } from '../../shared/utilities/nigerian-address';
 import { Field } from '../../shared/forms/field';
 import { FileUpload } from '../../shared/forms/file-upload';
 import { emailValidators, focusInvalid, requiredText } from '../../shared/forms/validators';
@@ -127,7 +128,11 @@ export class CompanyProfile {
   constructor() {
     const business = this.session.business();
     if (business)
-      this.form.patchValue({ ...business, supportContact: business.supportPhoneNumber ?? '' });
+      this.form.patchValue({
+        ...business,
+        address: savedAddressValue(business.address),
+        supportContact: business.supportPhoneNumber ?? '',
+      });
   }
   async submit(element: HTMLFormElement) {
     if (this.busy() || !this.fileValid()) return;

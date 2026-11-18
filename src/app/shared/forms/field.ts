@@ -24,10 +24,14 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
         <select
           [id]="id()"
           [formControl]="control()"
+          [attr.autocomplete]="autocomplete()"
           [attr.aria-required]="!optional()"
           [attr.aria-invalid]="invalid()"
           [attr.aria-describedby]="id() + '-hint'"
         >
+          @if (placeholder()) {
+            <option value="" disabled>{{ placeholder() }}</option>
+          }
           @for (option of options(); track option.value) {
             <option [value]="option.value">{{ option.label }}</option>
           }
@@ -95,7 +99,7 @@ export class Field {
   validationMessage() {
     const c = this.control();
     if (c.hasError('required') || c.hasError('whitespace'))
-      return `Enter ${this.label().toLowerCase()}.`;
+      return this.options().length ? 'Select an option.' : `Enter ${this.label().toLowerCase()}.`;
     if (c.hasError('email')) return 'Enter a valid email address.';
     if (c.hasError('phone')) return 'Enter a valid Nigerian phone number, e.g. 08012345678.';
     if (c.hasError('minlength'))
