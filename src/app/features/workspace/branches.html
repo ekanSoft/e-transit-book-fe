@@ -16,8 +16,8 @@
     <app-directory-search
       label="Search terminals"
       placeholder="Search by terminal name"
-      [value]="query().search"
-      (changed)="search($event)"
+      [value]="query()"
+      (changed)="query.set($event)"
     />
   </div>
   <div [attr.aria-busy]="list.isLoading()">
@@ -26,7 +26,7 @@
         <app-errors [messages]="errors(list.error())" />
         <button appButton variant="secondary" type="button" (click)="list.reload()">Retry</button>
       </div>
-    } @else if (list.hasValue() && list.value().content.length) {
+    } @else if (filteredTerminals().length) {
       <table class="directory-table" role="table" aria-label="Terminals">
         <thead role="rowgroup">
           <tr role="row">
@@ -42,7 +42,7 @@
           </tr>
         </thead>
         <tbody role="rowgroup">
-          @for (terminal of list.value().content; track terminal._id) {
+          @for (terminal of filteredTerminals(); track terminal._id) {
             <tr role="row">
               <td role="cell" class="directory-identity">
                 <span class="directory-avatar"><app-icon name="pin" /></span>
@@ -112,8 +112,8 @@
     } @else if (list.hasValue()) {
       <div class="empty-state directory-empty">
         <app-icon name="pin" />
-        <strong>{{ query().search ? 'No matching terminals' : 'No terminals recorded' }}</strong>
-        @if (query().search) {
+        <strong>{{ query() ? 'No matching terminals' : 'No terminals recorded' }}</strong>
+        @if (query()) {
           <button class="text-button" type="button" (click)="searchControl().clear(true)">
             Clear search
           </button>
@@ -121,13 +121,10 @@
       </div>
     }
   </div>
-  <app-directory-pager
-    singular="terminal"
-    plural="terminals"
-    [waiting]="list.isLoading()"
-    [page]="list.hasValue() ? list.value() : undefined"
-    (pageChange)="go($event)"
-  />
+  @if (list.hasValue()) {
+    @let count = filteredTerminals().length;
+    <div class="pager" role="status">{{ count }} {{ count === 1 ? 'terminal' : 'terminals' }}</div>
+  }
 </section>
 
 @if (editor(); as current) {
@@ -138,6 +135,6 @@
     [managerLoadFailed]="!!managers.error()"
     (retryManagers)="managers.reload()"
     (dismissed)="editor.set(null)"
-    (saved)="saved($event)"
+    (saved)="saved()"
   />
 }

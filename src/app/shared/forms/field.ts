@@ -16,17 +16,36 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Icon } from '../ui/icon';
+import { FieldHelp } from './field-help';
 @Component({
   selector: 'app-field',
-  imports: [ReactiveFormsModule, Combobox, ComboboxInput, Listbox, Option, Icon],
+  imports: [ReactiveFormsModule, Combobox, ComboboxInput, Listbox, Option, Icon, FieldHelp],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    .field-label-with-help {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 7px;
+    }
+
+    .field-label-with-help label {
+      margin-bottom: 0;
+    }
+  `,
   template: `
-    <label [for]="id()"
-      >{{ label() }}
-      @if (optional()) {
-        <span class="optional">(optional)</span>
+    <div [class.field-label-with-help]="labelHelp()">
+      <label [for]="id()" [class.sr-only]="hideLabel()"
+        >{{ label() }}
+        @if (optional() && !hideLabel()) {
+          <span class="optional">(optional)</span>
+        }
+      </label>
+      @if (labelHelp(); as help) {
+        <app-field-help [id]="id() + '-help'" [label]="label()" [text]="help" />
       }
-    </label>
+    </div>
     <div class="input-wrap">
       @if (options().length && overlayOptions() && !useOverlay()) {
         <select
@@ -34,7 +53,7 @@ import { Icon } from '../ui/icon';
           [formControl]="control()"
           [attr.aria-required]="!optional()"
           [attr.aria-invalid]="invalid()"
-          [attr.aria-describedby]="id() + '-hint'"
+          [attr.aria-describedby]="descriptionIds()"
         >
           @if (placeholder()) {
             <option value="" disabled>{{ placeholder() }}</option>
@@ -54,7 +73,6 @@ import { Icon } from '../ui/icon';
         >
           <input
             ngComboboxInput
-            readonly
             class="picker-trigger"
             [class.picker-anchor]="useOverlay()"
             [id]="id()"
@@ -63,7 +81,7 @@ import { Icon } from '../ui/icon';
             [disabled]="control().disabled"
             [attr.aria-required]="!optional()"
             [attr.aria-invalid]="invalid()"
-            [attr.aria-describedby]="id() + '-hint'"
+            [attr.aria-describedby]="descriptionIds()"
             [class.ng-invalid]="control().invalid"
             (blur)="control().markAsTouched()"
           />
@@ -96,7 +114,7 @@ import { Icon } from '../ui/icon';
           [attr.maxlength]="maxLength()"
           [attr.aria-required]="!optional()"
           [attr.aria-invalid]="invalid()"
-          [attr.aria-describedby]="id() + '-hint'"
+          [attr.aria-describedby]="descriptionIds()"
           [class.password-input]="type() === 'password'"
         />
         @if (type() === 'password') {
@@ -134,6 +152,7 @@ export class Field {
   private readonly dropdown = viewChild<ElementRef<HTMLDivElement>>('dropdown');
   readonly id = input.required<string>();
   readonly label = input.required<string>();
+  readonly hideLabel = input(false);
   readonly control = input.required<FormControl<string>>();
   readonly type = input('text');
   readonly autocomplete = input('off');
@@ -141,6 +160,10 @@ export class Field {
   readonly maxLength = input<number | null>(null);
   readonly optional = input(false);
   readonly hint = input('');
+  readonly labelHelp = input('');
+  protected readonly descriptionIds = computed(() =>
+    this.labelHelp() ? `${this.id()}-hint ${this.id()}-help` : `${this.id()}-hint`,
+  );
   readonly options = input<readonly { value: string; label: string }[]>([]);
   readonly overlayOptions = input(false);
   protected readonly useOverlay = computed(() => {

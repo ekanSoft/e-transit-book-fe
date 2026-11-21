@@ -1,6 +1,6 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Button } from '../../shared/ui/button';
 import { Icon } from '../../shared/ui/icon';
 import { EmailRequest } from './email-request';
@@ -14,7 +14,7 @@ import { EmailRequest } from './email-request';
       <h1>Workspace access unavailable</h1>
       <p>{{ reason }}</p>
     </div>
-    <a appButton class="w-full" routerLink="/login">Back to sign in</a>
+    <a appButton class="w-full" routerLink="/login" [queryParams]="{ slug }">Back to sign in</a>
     @if (needsVerification) {
       @if (recipient) {
         <app-email-request [recipient]="recipient" />
@@ -24,6 +24,7 @@ import { EmailRequest } from './email-request';
     }`,
 })
 export class AccessStatus {
+  protected readonly slug = inject(ActivatedRoute).snapshot.queryParamMap.get('slug');
   private readonly state = inject(Location).getState();
   readonly reason =
     this.state &&

@@ -49,6 +49,19 @@
               />
             }
             <app-field
+              [id]="'employee-password'"
+              [label]="employee() ? 'New password' : 'Initial staff password'"
+              [control]="form.controls.password"
+              type="password"
+              autocomplete="new-password"
+              [maxLength]="100"
+              [optional]="!!employee()"
+              [hint]="employee() ? 'Leave blank to keep the current password.' : ''"
+              [labelHelp]="
+                employee() ? '' : 'Use at least 8 characters. We’ll email the sign-in details.'
+              "
+            />
+            <app-field
               [id]="'employee-phone'"
               label="Phone number"
               [control]="form.controls.phoneNumber"
@@ -65,7 +78,11 @@
             />
           </div>
         </section>
-        <div class="employee-access">
+        <section
+          class="management-section employee-access"
+          aria-labelledby="employee-access-heading"
+        >
+          <h3 id="employee-access-heading">Workspace access</h3>
           <div class="form-grid">
             <app-field
               [id]="'employee-role'"
@@ -73,59 +90,40 @@
               [control]="form.controls.role"
               [options]="roleOptions()"
               [overlayOptions]="true"
-              placeholder="Select a role"
+              [optional]="existingDriver()"
+              [placeholder]="existingDriver() ? 'Driver (current role)' : 'Select a role'"
             />
             @if (showTerminal()) {
-              @if (terminalOptions().length) {
-                <app-field
-                  [id]="'employee-terminal'"
-                  label="Assigned terminal"
-                  [control]="form.controls.branch"
-                  [options]="terminalOptions()"
-                  [overlayOptions]="true"
-                  placeholder="Select a terminal"
-                  [hint]="
-                    terminalMissing()
-                      ? 'The current terminal is unavailable. Select a terminal from the list.'
-                      : ''
-                  "
-                />
-              } @else {
-                <div>
-                  <p class="field-hint" role="status">
-                    @if (terminalLoadFailed()) {
-                      Terminal choices could not be loaded.
-                    } @else if (terminals()) {
-                      Add a terminal before assigning this role.
-                    } @else {
-                      Loading terminals…
-                    }
-                  </p>
-                  @if (terminalLoadFailed()) {
-                    <button class="text-button" type="button" (click)="retryTerminals.emit()">
-                      Retry loading terminals
-                    </button>
-                  }
-                </div>
-              }
+              <div class="full-width">
+                @if (terminals() || canAddTerminal()) {
+                  <app-searchable-select
+                    [id]="'employee-terminal'"
+                    label="Assigned terminal"
+                    [control]="form.controls.branch"
+                    [options]="terminalOptions()"
+                    [actionLabel]="canAddTerminal() ? 'Add terminal' : ''"
+                    (action)="openTerminalCreator($event)"
+                    placeholder="Select a terminal"
+                    searchLabel="Search terminals"
+                    [hint]="
+                      terminalMissing()
+                        ? 'The current terminal is unavailable. Select a terminal from the list.'
+                        : ''
+                    "
+                  />
+                }
+                @if (terminalLoadFailed()) {
+                  <p class="field-hint" role="status">Terminal choices could not be loaded.</p>
+                  <button class="text-button" type="button" (click)="retryTerminals.emit()">
+                    Retry loading terminals
+                  </button>
+                } @else if (!terminals()) {
+                  <p class="field-hint" role="status">Loading terminals…</p>
+                }
+              </div>
             }
-            <app-field
-              class="full-width"
-              [id]="'employee-password'"
-              [label]="employee() ? 'New password' : 'Initial password'"
-              [control]="form.controls.password"
-              type="password"
-              autocomplete="new-password"
-              [maxLength]="100"
-              [optional]="!!employee()"
-              [hint]="
-                employee()
-                  ? 'Leave blank to keep the current password.'
-                  : 'Use at least 8 characters. The system sends sign-in details to the address above.'
-              "
-            />
           </div>
-        </div>
+        </section>
       </fieldset>
     </div>
     <footer class="management-footer">
@@ -150,3 +148,12 @@
     </footer>
   </form>
 </app-management-dialog>
+
+@if (terminalCreator(); as trigger) {
+  <app-terminal-form
+    [quickCreate]="true"
+    [trigger]="trigger"
+    (dismissed)="terminalCreator.set(null)"
+    (saved)="selectCreatedTerminal($event)"
+  />
+}

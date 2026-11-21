@@ -58,6 +58,6 @@ export class BusinessProfile {
   );
   readonly branch = resource({
     params: () => this.session.business()?._id,
-    loader: ({ abortSignal }) => this.api.primaryBranch(abortSignal),
+    loader: () => this.api.primaryBranch(),
   });
 }

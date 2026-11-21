@@ -12,5 +12,7 @@ export const passwordValidators = [
   Validators.maxLength(100),
 ];
 export function focusInvalid(form: HTMLFormElement) {
-  form.querySelector<HTMLElement>('input.ng-invalid, select.ng-invalid')?.focus();
+  form
+    .querySelector<HTMLElement>('input.ng-invalid, select.ng-invalid, button.ng-invalid')
+    ?.focus();
 }

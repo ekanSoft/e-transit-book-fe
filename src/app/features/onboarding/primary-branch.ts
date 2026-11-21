@@ -103,7 +103,7 @@ export class PrimaryBranch {
   readonly errorMessages = errorMessages;
   readonly primary = resource({
     params: () => this.session.business()?._id,
-    loader: ({ abortSignal }) => this.directory.primaryBranch(abortSignal),
+    loader: () => this.directory.primaryBranch(),
   });
   readonly locked = computed(() => {
     if (!this.primary.hasValue()) return false;

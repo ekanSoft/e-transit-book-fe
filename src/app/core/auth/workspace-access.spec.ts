@@ -37,7 +37,12 @@ describe('workspace directory access', () => {
   const employee = signal<Employee | null>(null);
   const selectedBusiness = signal<Business | null>(null);
   const token = signal<string | null>(null);
-  const target = { business: business._id, role: 'BOOKING_AGENT' as const, branch: 'terminal-a' };
+  const target = {
+    _id: 'target',
+    business: business._id,
+    role: 'BOOKING_AGENT' as const,
+    branch: 'terminal-a',
+  };
 
   beforeEach(() => {
     employee.set(null);
@@ -67,9 +72,9 @@ describe('workspace directory access', () => {
         'BRANCH_MANAGER',
         'BOOKING_AGENT',
         'ACCOUNTANT',
-        'DRIVER',
       ]);
       expect(access.canManageEmployee(target)).toBe(true);
+      expect(access.canManageEmployee({ ...target, _id: 'actor', role })).toBe(false);
       expect(access.canManageEmployee({ ...target, role: 'ADMIN' })).toBe(false);
       expect(access.canManageEmployee({ ...target, business: 'business-b' })).toBe(false);
     },
@@ -82,8 +87,9 @@ describe('workspace directory access', () => {
     expect(access.canCreateTerminal()).toBe(false);
     expect(access.canEditTerminal('terminal-a')).toBe(true);
     expect(access.canEditTerminal('terminal-b')).toBe(false);
-    expect(access.employeeRoles()).toEqual(['BOOKING_AGENT', 'DRIVER']);
+    expect(access.employeeRoles()).toEqual(['BOOKING_AGENT']);
     expect(access.canManageEmployee(target)).toBe(true);
+    expect(access.canManageEmployee({ ...target, _id: 'actor' })).toBe(false);
     expect(access.canManageEmployee({ ...target, role: 'DRIVER' })).toBe(true);
     expect(access.canManageEmployee({ ...target, role: 'ACCOUNTANT' })).toBe(false);
     expect(access.canManageEmployee({ ...target, branch: 'terminal-b' })).toBe(false);

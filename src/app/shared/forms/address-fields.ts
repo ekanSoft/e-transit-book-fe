@@ -41,6 +41,7 @@ export function addressForm() {
       label="State"
       [control]="group().controls.stateCode"
       [options]="states"
+      [overlayOptions]="overlayOptions()"
       placeholder="Select your state"
       autocomplete="address-level1"
     />
@@ -51,4 +52,5 @@ export class AddressFields {
   readonly states = stateOptions;
   readonly group = input.required<ReturnType<typeof addressForm>>();
   readonly prefix = input.required<string>();
+  readonly overlayOptions = input(false);
 }

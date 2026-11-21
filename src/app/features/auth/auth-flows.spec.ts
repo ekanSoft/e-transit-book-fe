@@ -159,6 +159,9 @@ describe('Email authentication flows', () => {
       await harness.fixture.whenStable();
       const screen = harness.routeNativeElement!;
       expect(screen.textContent).toContain('Please verify your email before logging in');
+      expect(screen.querySelector('a[href="/login?slug=test-transport"]')?.textContent).toContain(
+        'Back to sign in',
+      );
       resendButton(screen).click();
       const resend = http.expectOne(resendUrl + '?slug=test-transport');
       expect(resend.request.body).toEqual({ email: 'test@example.com' });

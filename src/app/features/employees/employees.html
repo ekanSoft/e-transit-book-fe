@@ -21,29 +21,27 @@
           [value]="query().search"
           (changed)="search($event)"
         />
-        <select
-          #role
-          aria-label="Filter by role"
-          [value]="query().role"
-          (change)="filterRole(role.value)"
-        >
-          <option value="">All roles</option>
-          @for (option of roles; track option.value) {
-            <option [value]="option.value">{{ option.label }}</option>
-          }
-        </select>
-        @if (access.canCreateTerminal() && terminals.hasValue() && terminals.value().length) {
-          <select
-            #terminal
-            aria-label="Filter by terminal"
-            [value]="query().branch ?? ''"
-            (change)="filterTerminal(terminal.value)"
-          >
-            <option value="">All terminals</option>
-            @for (branch of terminals.value(); track branch._id) {
-              <option [value]="branch._id">{{ branch.name }}</option>
-            }
-          </select>
+        <app-field
+          class="directory-filter"
+          [id]="'employee-role-filter'"
+          label="Filter by role"
+          [control]="roleFilter"
+          [options]="roleFilterOptions"
+          [hideLabel]="true"
+          [optional]="true"
+          [overlayOptions]="true"
+        />
+        @if (access.canCreateTerminal() && terminalFilterOptions().length > 1) {
+          <app-field
+            class="directory-filter"
+            [id]="'employee-terminal-filter'"
+            label="Filter by terminal"
+            [control]="terminalFilter"
+            [options]="terminalFilterOptions()"
+            [hideLabel]="true"
+            [optional]="true"
+            [overlayOptions]="true"
+          />
         }
         @if (filtered()) {
           <button type="button" class="text-button" (click)="clear(true)">Clear filters</button>
@@ -62,6 +60,7 @@
           <thead role="rowgroup">
             <tr role="row">
               <th role="columnheader" scope="col">Employee</th>
+              <th role="columnheader" scope="col" class="directory-phone">Phone</th>
               <th role="columnheader" scope="col">Role</th>
               <th role="columnheader" scope="col">Terminal</th>
               <th role="columnheader" scope="col">Status</th>
@@ -70,38 +69,67 @@
           </thead>
           <tbody role="rowgroup">
             @for (employee of list.value().content; track employee._id) {
-              <tr role="row">
+              @let viewOnly = employee.role === 'ADMIN' || employee._id === access.employee()?._id;
+              @let clickable = canViewDetails(employee);
+              @let terminal = terminalLabel(employee);
+              <tr
+                role="row"
+                [class.directory-view-only]="viewOnly"
+                [class.directory-clickable]="clickable"
+                (click)="openDetails(employee, $event)"
+              >
                 <td role="cell" class="directory-identity">
                   <span class="directory-avatar directory-initials" aria-hidden="true"
                     >{{ employee.firstName[0] }}{{ employee.lastName[0] }}</span
                   >
                   <div class="directory-identity-text">
-                    <strong>{{ name(employee) }}</strong>
-                    <span class="directory-detail">{{
-                      employee.email || employee.phoneNumber
-                    }}</span>
+                    @if (clickable) {
+                      <button
+                        type="button"
+                        class="directory-employee-name"
+                        aria-haspopup="dialog"
+                        [attr.aria-label]="'View details for ' + name(employee)"
+                      >
+                        {{ name(employee) }}
+                      </button>
+                    } @else {
+                      <strong>{{ name(employee) }}</strong>
+                    }
+                    @if (employee.email) {
+                      <span class="directory-detail">{{ employee.email }}</span>
+                    }
                   </div>
+                </td>
+                <td role="cell" class="directory-phone">
+                  <span class="directory-mobile-label" aria-hidden="true">Phone</span>
+                  <span>{{ employee.phoneNumber }}</span>
                 </td>
                 <td role="cell">
                   <span class="directory-mobile-label" aria-hidden="true">Role</span>
                   <span class="badge">{{ roleLabel(employee) }}</span>
                 </td>
-                <td role="cell">
-                  <span class="directory-mobile-label" aria-hidden="true">Terminal</span>
-                  <span>{{ terminalLabel(employee) }}</span>
+                <td role="cell" [class.directory-empty-terminal]="!terminal">
+                  @if (terminal) {
+                    <span class="directory-mobile-label" aria-hidden="true">Terminal</span>
+                    <span>{{ terminal }}</span>
+                  }
                 </td>
                 <td role="cell">
                   <span class="directory-mobile-label" aria-hidden="true">Status</span>
                   <span
                     class="badge directory-status"
-                    [class.directory-positive]="employee.accountStatus === 'ACTIVE'"
-                    [class.directory-restricted]="employee.accountStatus === 'SUSPENDED'"
+                    [class.directory-positive]="!viewOnly && employee.accountStatus === 'ACTIVE'"
+                    [class.directory-restricted]="
+                      !viewOnly && employee.accountStatus === 'SUSPENDED'
+                    "
                   >
                     {{ status[employee.accountStatus] }}
                   </span>
                 </td>
                 <td role="cell" class="directory-actions">
-                  @if (access.canManageEmployee(employee)) {
+                  @if (viewOnly) {
+                    <span class="small">View only</span>
+                  } @else if (access.canManageEmployee(employee)) {
                     <button
                       #trigger
                       class="icon-button directory-row-trigger"
@@ -184,7 +212,21 @@
   </section>
 
   @if (action(); as current) {
-    @if (current.kind === 'status') {
+    @if (current.kind === 'details') {
+      @if (canViewDetails(current.employee)) {
+        <app-employee-details
+          [employee]="current.employee"
+          [roleLabel]="roleLabel(current.employee)"
+          [statusLabel]="status[current.employee.accountStatus]"
+          [trigger]="current.trigger"
+          [terminal]="assignedTerminal(current.employee)"
+          [terminalLoading]="terminals.isLoading()"
+          [terminalLoadFailed]="!!terminals.error()"
+          (retryTerminal)="terminals.reload()"
+          (dismissed)="action.set(null)"
+        />
+      }
+    } @else if (current.kind === 'status') {
       @let suspending = current.employee.accountStatus === 'ACTIVE';
       <app-management-dialog
         [title]="suspending ? 'Suspend employee' : 'Reactivate employee'"
@@ -234,6 +276,7 @@
         [terminals]="terminals.hasValue() ? terminals.value() : undefined"
         [terminalLoadFailed]="!!terminals.error()"
         (retryTerminals)="terminals.reload()"
+        (terminalCreated)="terminalCreated($event)"
         (dismissed)="action.set(null)"
         (saved)="saved($event)"
       />

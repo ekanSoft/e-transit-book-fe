@@ -11,7 +11,7 @@ import {
   LoginSuccess,
 } from '../http/api.models';
 import { errorMessages } from '../http/errors';
-import { businessDestination } from './routing';
+import { businessDestination, isSignInRoute } from './routing';
 
 @Injectable({ providedIn: 'root' })
 export class Session {
@@ -35,6 +35,7 @@ export class Session {
   });
   private pendingLoad?: Promise<void>;
   private generation = 0;
+  private signInAttempt = 0;
   private expectedBusiness?: string;
 
   constructor() {
@@ -48,8 +49,9 @@ export class Session {
     if (token === this.token()) return;
     this.clear(false);
     this.tokenState.set(token);
+    if (isSignInRoute(this.router.url)) return;
     if (token) await this.loadContext();
-    if (this.token() === token) {
+    if (this.token() === token && !isSignInRoute(this.router.url)) {
       await this.router.navigateByUrl(token ? this.destination() : '/login');
     }
   }
@@ -61,10 +63,16 @@ export class Session {
     }
   }
   async login(email: string, password: string, slug?: string) {
-    const generation = ++this.generation;
+    const attempt = ++this.signInAttempt;
     this.selection.set(null);
-    const { data } = await this.api.post<LoginResult>('/auth/login', { email, password }, slug);
-    if (generation !== this.generation) return;
+    let data: LoginResult;
+    try {
+      ({ data } = await this.api.post<LoginResult>('/auth/login', { email, password }, slug));
+    } catch (error) {
+      if (attempt !== this.signInAttempt) return;
+      throw error;
+    }
+    if (attempt !== this.signInAttempt) return;
     if (data.requiresAccountSelection) {
       this.selection.set({ ...data, email });
       await this.router.navigateByUrl('/auth/select-business');
@@ -76,24 +84,26 @@ export class Session {
       this.selection.set(null);
       throw new Error('Your sign-in request has expired. Please sign in again.');
     }
-    const generation = this.generation;
+    const attempt = this.signInAttempt;
+    let data: LoginSuccess;
     try {
-      const { data } = await this.api.post<LoginSuccess>('/auth/complete-login', {
+      ({ data } = await this.api.post<LoginSuccess>('/auth/complete-login', {
         token: selection.token,
         businessId,
-      });
-      if (generation !== this.generation) return;
+      }));
+      if (attempt !== this.signInAttempt || this.selection() !== selection) return;
       if (data.business.id !== businessId)
         throw new Error('The selected business could not be confirmed. Sign in again.');
-      await this.acceptLogin(data);
     } catch (error) {
+      if (attempt !== this.signInAttempt || this.selection() !== selection) return;
       // Selection tokens are single-use, including an account eligibility failure.
-      if (generation === this.generation) this.selection.set(null);
+      this.selection.set(null);
       throw error;
     }
+    await this.acceptLogin(data);
   }
   private async acceptLogin(result: LoginSuccess) {
-    this.clear();
+    this.clear(false);
     this.expectedBusiness = result.business.id;
     this.tokenState.set(result.token);
     try {
@@ -148,6 +158,7 @@ export class Session {
   }
   clear(removeStored = true) {
     this.generation++;
+    this.signInAttempt++;
     this.expectedBusiness = undefined;
     this.pendingLoad = undefined;
     this.tokenState.set(null);
@@ -169,7 +180,10 @@ export class Session {
   async signInError(error: unknown, recipient?: EmailRecipient): Promise<string[]> {
     const messages = errorMessages(error);
     if (error instanceof HttpErrorResponse && error.status === 403) {
-      await this.router.navigateByUrl('/auth/access-status', {
+      const destination = this.router.createUrlTree(['/auth/access-status'], {
+        queryParams: { slug: recipient?.slug },
+      });
+      await this.router.navigateByUrl(destination, {
         state: { reason: messages.join(' ') },
         info: recipient,
       });

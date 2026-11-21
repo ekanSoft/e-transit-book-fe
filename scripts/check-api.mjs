@@ -12,6 +12,7 @@ const paths = [
   ['GET', '/employees/me', 401],
   ['GET', '/business', 401],
   ['GET', '/branch', 401],
+  ['GET', '/routes', 401],
   ['GET', '/branch/000000000000000000000000', 401],
   ['POST', '/branch', 401],
   ['PATCH', '/branch/000000000000000000000000', 401],
@@ -58,12 +59,14 @@ if (process.env.TEST_EMAIL && process.env.TEST_PASSWORD) {
     ({ data } = await selected.json());
     console.log('PASS multiple-business login and selection');
   } else console.log('PASS single-account login');
-  for (const path of ['/employees/me', '/business']) {
+  for (const path of ['/employees/me', '/business', '/branch', '/routes']) {
     const current = await fetch(base + path, {
       headers: { Authorization: `Bearer ${data.token}` },
     });
     assert.equal(current.status, 200);
-    assert.equal((await current.json()).success, true);
+    const result = await current.json();
+    assert.equal(result.success, true);
+    if (path === '/branch' || path === '/routes') assert.ok(Array.isArray(result.data));
     console.log(`PASS authenticated GET ${path}`);
   }
 }

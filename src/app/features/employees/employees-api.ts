@@ -40,15 +40,6 @@ export function employeeName(employee: Pick<EmployeeRow, 'firstName' | 'lastName
   return [employee.firstName, employee.lastName].filter(Boolean).join(' ');
 }
 
-export const roleOptions = [
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'OPERATIONS_MANAGER', label: 'Operations Manager' },
-  { value: 'BRANCH_MANAGER', label: 'Terminal Manager' },
-  { value: 'BOOKING_AGENT', label: 'Booking Agent' },
-  { value: 'ACCOUNTANT', label: 'Accountant' },
-  { value: 'DRIVER', label: 'Driver' },
-] satisfies { value: EmployeeRole; label: string }[];
-
 @Injectable({ providedIn: 'root' })
 export class EmployeesApi {
   private readonly api = inject(Api);

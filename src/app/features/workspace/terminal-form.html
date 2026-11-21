@@ -1,9 +1,10 @@
 <app-management-dialog
+  dialogId="terminal-dialog"
   [title]="terminal() ? 'Edit terminal' : 'Add terminal'"
   [description]="terminal() ? terminal()!.name : 'Set up a motor park or passenger pickup point.'"
   [trigger]="trigger()"
   [busy]="busy()"
-  [drawer]="true"
+  [drawer]="!quickCreate()"
   (dismiss)="dismissed.emit()"
 >
   <form
@@ -35,7 +36,11 @@
         </div>
         <section class="management-section" aria-labelledby="terminal-address-heading">
           <h3 id="terminal-address-heading">Terminal address</h3>
-          <app-address-fields [group]="form.controls.address" prefix="terminal" />
+          <app-address-fields
+            [group]="form.controls.address"
+            prefix="terminal"
+            [overlayOptions]="true"
+          />
         </section>
         @if (allowManager()) {
           <section class="management-section" aria-labelledby="terminal-manager-heading">
@@ -46,8 +51,9 @@
                 label="Designated manager"
                 [control]="form.controls.branchManager"
                 [options]="managerOptions()"
+                [overlayOptions]="true"
                 [optional]="true"
-                hint="Assign the Terminal Manager role and this terminal in Employees to make someone eligible."
+                hint="Manage the employee’s terminal assignment separately in Employees."
               />
             } @else if (managerLoadFailed()) {
               <p class="muted small">Manager choices could not be loaded.</p>

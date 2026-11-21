@@ -20,6 +20,10 @@ export function permitsWorkspaceRoute(destination: string, url: string) {
   if (destination === '/app/dashboard') return path === '/app' || path.startsWith('/app/');
   return path === destination;
 }
+export function isSignInRoute(url: string) {
+  const [path] = url.split(/[?#]/, 1);
+  return path === '/login' || path === '/auth/select-business' || path === '/auth/access-status';
+}
 export function businessDestination(business: Business): string {
   if (registrationConflict(business)) return '/pending-approval';
   if (business.accountStatus === 'ACTIVE') return '/app/dashboard';

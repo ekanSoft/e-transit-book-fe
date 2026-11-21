@@ -10,31 +10,33 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormControl } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Session } from '../../core/auth/session';
 import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import type { AccountStatus } from '../../core/http/api.models';
 import { errorMessages } from '../../core/http/errors';
+import { Field } from '../../shared/forms/field';
 import { Button } from '../../shared/ui/button';
 import { DirectoryPager, DirectorySearch } from '../../shared/ui/directory-controls';
 import { Errors, Notifications } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
 import { ManagementDialog } from '../../shared/ui/management-dialog';
-import { WorkspaceData } from '../workspace/workspace-data';
+import { employeeRoleDisplayName, employeeRoleOptions } from '../../shared/utilities/employee-role';
+import { Branch, WorkspaceData } from '../workspace/workspace-data';
+import { EmployeeDetails } from './employee-details';
 import { EmployeeForm } from './employee-form';
-import {
-  employeeName,
-  EmployeeRow,
-  EmployeesApi,
-  EmployeeQuery,
-  roleOptions,
-} from './employees-api';
+import { employeeName, EmployeeRow, EmployeesApi, EmployeeQuery } from './employees-api';
 
 type EmployeeAction =
   | { kind: 'create'; trigger: HTMLElement }
   | { kind: 'edit' | 'status'; employee: EmployeeRow; trigger: HTMLElement };
 
+type EmployeeDetailsAction = { kind: 'details'; employee: EmployeeRow; trigger: HTMLElement };
+
 const defaultQuery: EmployeeQuery = { page: 1, limit: 12, search: '', role: '', branch: '' };
+const filterableRoles = employeeRoleOptions.filter(({ value }) => value !== 'ADMIN');
 
 const statusLabels: Record<AccountStatus, string> = {
   ACTIVE: 'Active',
@@ -50,8 +52,10 @@ const statusLabels: Record<AccountStatus, string> = {
     Button,
     DirectoryPager,
     DirectorySearch,
+    EmployeeDetails,
     EmployeeForm,
     Errors,
+    Field,
     Icon,
     ManagementDialog,
     RouterLink,
@@ -65,15 +69,16 @@ export class Employees {
   private readonly api = inject(EmployeesApi);
   private readonly terminalsApi = inject(WorkspaceData);
   private readonly notify = inject(Notifications);
-  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchControl = viewChild(DirectorySearch);
-  readonly action = signal<EmployeeAction | null>(null);
+  readonly action = signal<EmployeeAction | EmployeeDetailsAction | null>(null);
   readonly statusBusy = signal(false);
   readonly statusErrors = signal<string[]>([]);
   readonly statusUncertain = signal(false);
   readonly errors = errorMessages;
-  readonly roles = roleOptions;
+  readonly roleFilterOptions = [{ value: '', label: 'All roles' }, ...filterableRoles];
+  readonly roleFilter = new FormControl('', { nonNullable: true });
+  readonly terminalFilter = new FormControl('', { nonNullable: true });
   readonly name = employeeName;
   readonly status = statusLabels;
   readonly pageSizes = [12, 25, 50];
@@ -110,23 +115,33 @@ export class Employees {
             branch: this.access.canCreateTerminal() ? undefined : this.access.employee()?.branch,
           }
         : undefined,
-    loader: async ({ params, abortSignal }) => {
-      if (!params.branch) return this.terminalsApi.allBranches(abortSignal);
+    loader: async ({ params }) => {
+      if (!params.branch) return this.terminalsApi.allBranches();
       const { data } = await this.terminalsApi.branch(params.branch);
       return data ? [data] : [];
     },
   });
-  readonly terminalNames = computed(
+  private readonly terminalsById = computed(
     () =>
       new Map(
-        (this.terminals.hasValue() ? this.terminals.value() : []).map(({ _id, name }) => [
-          _id,
-          name,
+        (this.terminals.hasValue() ? this.terminals.value() : []).map((terminal) => [
+          terminal._id,
+          terminal,
         ]),
       ),
   );
+  readonly terminalFilterOptions = computed(() => [
+    { value: '', label: 'All terminals' },
+    ...Array.from(this.terminalsById().values(), ({ _id, name }) => ({ value: _id, label: name })),
+  ]);
 
   constructor() {
+    this.roleFilter.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((role) => this.filterRole(role));
+    this.terminalFilter.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((branch) => this.filterTerminal(branch));
     effect(() => {
       if (!this.list.hasValue() || this.list.isLoading()) return;
       const page = this.list.value();
@@ -135,16 +150,17 @@ export class Employees {
   }
 
   roleLabel(employee: EmployeeRow) {
-    return this.roles.find(({ value }) => value === employee.role)?.label ?? employee.role;
+    return employeeRoleDisplayName(employee.role);
+  }
+
+  assignedTerminal(employee: EmployeeRow) {
+    return employee.branch ? this.terminalsById().get(employee.branch) : undefined;
   }
 
   terminalLabel(employee: EmployeeRow) {
-    if (employee.role === 'OPERATIONS_MANAGER' || (employee.role === 'ADMIN' && !employee.branch)) {
-      return 'Company-wide';
-    }
-    if (!employee.branch) return 'Unassigned';
+    if (!employee.branch) return '';
     return (
-      this.terminalNames().get(employee.branch) ??
+      this.assignedTerminal(employee)?.name ??
       (this.terminals.isLoading() ? 'Loading…' : 'Terminal unavailable')
     );
   }
@@ -154,13 +170,14 @@ export class Employees {
       this.query.update((query) => ({ ...query, page: 1, search }));
   }
 
-  filterRole(role: string) {
-    const selected = this.roles.find(({ value }) => value === role)?.value ?? '';
-    this.query.update((query) => ({ ...query, page: 1, role: selected }));
+  private filterRole(role: string) {
+    const selected = filterableRoles.find(({ value }) => value === role)?.value ?? '';
+    if (selected !== this.query().role)
+      this.query.update((query) => ({ ...query, page: 1, role: selected }));
   }
 
-  filterTerminal(branch: string) {
-    if (this.access.canCreateTerminal())
+  private filterTerminal(branch: string) {
+    if (this.access.canCreateTerminal() && branch !== this.query().branch)
       this.query.update((query) => ({ ...query, page: 1, branch }));
   }
 
@@ -176,7 +193,34 @@ export class Employees {
 
   clear(focus = false) {
     this.searchControl()?.clear(focus);
+    this.roleFilter.reset();
+    this.terminalFilter.reset();
     this.query.update(({ limit }) => ({ ...defaultQuery, limit }));
+  }
+
+  terminalCreated(terminal: Branch) {
+    const terminals = this.terminals.hasValue() ? this.terminals.value() : [];
+    this.terminals.set([terminal, ...terminals.filter(({ _id }) => _id !== terminal._id)]);
+    this.terminals.reload();
+    this.notify.show('Terminal added and selected.');
+  }
+
+  canViewDetails(employee: EmployeeRow) {
+    return (
+      employee.role !== 'ADMIN' &&
+      this.access.canViewEmployees() &&
+      this.access.scope()?.business === employee.business &&
+      (this.access.canCreateTerminal() || this.access.employee()?.branch === employee.branch)
+    );
+  }
+
+  openDetails(employee: EmployeeRow, event: MouseEvent) {
+    if (!this.canViewDetails(employee) || !(event.target instanceof Element)) return;
+    if (event.target.closest('.directory-actions')) return;
+    const row = event.currentTarget;
+    if (!(row instanceof HTMLElement)) return;
+    const trigger = row.querySelector<HTMLButtonElement>('.directory-employee-name');
+    if (trigger) this.action.set({ kind: 'details', employee, trigger });
   }
 
   open(action: EmployeeAction, popover?: HTMLElement) {
@@ -193,7 +237,7 @@ export class Employees {
     this.action.set(action);
   }
 
-  async saved(employee: EmployeeRow) {
+  saved(employee: EmployeeRow) {
     const creating = this.action()?.kind === 'create';
     this.action.set(null);
     if (creating) {
@@ -208,7 +252,6 @@ export class Employees {
     }
     this.notify.show('Employee updated.');
     this.updateRow(employee);
-    await this.refreshOwnAccess(employee);
   }
 
   async toggle(employee: EmployeeRow) {
@@ -230,7 +273,6 @@ export class Employees {
         data.accountStatus === 'SUSPENDED' ? 'Employee suspended.' : 'Employee reactivated.',
       );
       this.updateRow(data);
-      await this.refreshOwnAccess(data);
     } catch (error) {
       if (this.destroyRef.destroyed || scope !== this.access.scope()) return;
       const messages = errorMessages(error);
@@ -260,12 +302,4 @@ export class Employees {
     this.list.reload();
   }
 
-  private async refreshOwnAccess(employee: EmployeeRow) {
-    if (employee._id !== this.access.employee()?._id) return;
-    const token = this.session.token();
-    await this.session.loadContext();
-    if (token === this.session.token() && !this.access.canViewEmployees()) {
-      await this.router.navigateByUrl(this.session.destination());
-    }
-  }
 }

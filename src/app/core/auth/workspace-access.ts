@@ -1,17 +1,14 @@
 import { computed, inject, Injectable } from '@angular/core';
+import { employeeRoleOptions } from '../../shared/utilities/employee-role';
 import type { EmployeeRole } from '../http/api.models';
 import { Session } from './session';
 
 export type AssignableRole = Exclude<EmployeeRole, 'ADMIN'>;
 
-const terminalManagerRoles: readonly AssignableRole[] = ['BOOKING_AGENT', 'DRIVER'];
-const operationsRoles: readonly AssignableRole[] = [
-  'OPERATIONS_MANAGER',
-  'BRANCH_MANAGER',
-  'BOOKING_AGENT',
-  'ACCOUNTANT',
-  'DRIVER',
-];
+const terminalManagerTargetRoles: readonly AssignableRole[] = ['BOOKING_AGENT', 'DRIVER'];
+const operationsRoles: readonly AssignableRole[] = employeeRoleOptions
+  .map(({ value }) => value)
+  .filter((role) => role !== 'ADMIN');
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceAccess {
@@ -42,7 +39,7 @@ export class WorkspaceAccess {
     this.canCreateTerminal()
       ? operationsRoles
       : this.canViewEmployees()
-        ? terminalManagerRoles
+        ? operationsRoles.filter((role) => terminalManagerTargetRoles.includes(role))
         : [],
   );
 
@@ -53,16 +50,22 @@ export class WorkspaceAccess {
     );
   }
 
-  canManageEmployee(target: { role: EmployeeRole; branch?: string | null; business: string }) {
+  canManageEmployee(target: {
+    _id: string;
+    role: EmployeeRole;
+    branch?: string | null;
+    business: string;
+  }) {
     const employee = this.employee();
     return (
       !!employee &&
+      employee._id !== target._id &&
       employee.business._id === target.business &&
       target.role !== 'ADMIN' &&
       (this.canCreateTerminal() ||
         (this.canViewEmployees() &&
           employee.branch === target.branch &&
-          terminalManagerRoles.includes(target.role)))
+          terminalManagerTargetRoles.includes(target.role)))
     );
   }
 }

@@ -1,10 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
   inject,
+  Injector,
   input,
   OnInit,
   output,
@@ -15,20 +17,22 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Session } from '../../core/auth/session';
 import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import { Field } from '../../shared/forms/field';
+import { SearchableSelect } from '../../shared/forms/searchable-select';
 import { applyServerValidation } from '../../shared/forms/server-validation';
 import { emailValidators, focusInvalid, requiredText } from '../../shared/forms/validators';
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { ManagementDialog } from '../../shared/ui/management-dialog';
+import { employeeRoleOptions } from '../../shared/utilities/employee-role';
 import { nigerianPhone, normalizeNigerianPhone } from '../../shared/utilities/phone';
 import type { Branch } from '../workspace/workspace-data';
+import { TerminalForm } from '../workspace/terminal-form';
 import {
   CreateEmployee,
   employeeName,
   EmployeeRow,
   EmployeesApi,
   Gender,
-  roleOptions,
   UpdateEmployee,
 } from './employees-api';
 
@@ -40,7 +44,15 @@ const genderOptions = [
 
 @Component({
   selector: 'app-employee-form',
-  imports: [Button, Errors, Field, ManagementDialog, ReactiveFormsModule],
+  imports: [
+    Button,
+    Errors,
+    Field,
+    ManagementDialog,
+    ReactiveFormsModule,
+    SearchableSelect,
+    TerminalForm,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './employee-form.html',
 })
@@ -49,6 +61,7 @@ export class EmployeeForm implements OnInit {
   private readonly access = inject(WorkspaceAccess);
   private readonly session = inject(Session);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   readonly employee = input<EmployeeRow>();
   readonly terminals = input<Branch[]>();
   readonly terminalLoadFailed = input(false);
@@ -56,12 +69,19 @@ export class EmployeeForm implements OnInit {
   readonly saved = output<EmployeeRow>();
   readonly dismissed = output<void>();
   readonly retryTerminals = output<void>();
+  readonly terminalCreated = output<Branch>();
+  readonly terminalCreator = signal<HTMLElement | null>(null);
   readonly busy = signal(false);
   readonly errors = signal<string[]>([]);
   readonly name = employeeName;
   readonly genderOptions = genderOptions;
+  readonly existingDriver = computed(
+    () => this.employee()?.role === 'DRIVER' && !this.access.employeeRoles().includes('DRIVER'),
+  );
   readonly roleOptions = computed(() =>
-    roleOptions.filter(({ value }) => this.access.employeeRoles().some((role) => role === value)),
+    employeeRoleOptions.filter(({ value }) =>
+      this.access.employeeRoles().some((role) => role === value),
+    ),
   );
   readonly terminalOptions = computed(() =>
     (this.terminals() ?? []).map(({ _id, name, address }) => ({
@@ -90,7 +110,10 @@ export class EmployeeForm implements OnInit {
       lastName: value.lastName.trim(),
       email: value.email.trim().toLowerCase(),
       phoneNumber: normalizeNigerianPhone(value.phoneNumber),
-      role: this.access.employeeRoles().find((role) => role === value.role),
+      role:
+        this.existingDriver() && !value.role
+          ? ('DRIVER' as const)
+          : this.access.employeeRoles().find((role) => role === value.role),
       branch: value.branch,
       gender,
       password: value.password,
@@ -100,6 +123,7 @@ export class EmployeeForm implements OnInit {
     const role = this.details().role;
     return this.access.canCreateTerminal() && !!role && role !== 'OPERATIONS_MANAGER';
   });
+  readonly canAddTerminal = computed(() => !this.employee() && this.showTerminal());
   readonly terminalMissing = computed(
     () =>
       this.showTerminal() &&
@@ -131,12 +155,14 @@ export class EmployeeForm implements OnInit {
   ngOnInit() {
     const employee = this.employee();
     if (employee) {
+      const existingDriver = this.existingDriver();
+      if (existingDriver) this.form.controls.role.removeValidators(Validators.required);
       this.form.reset({
         firstName: employee.firstName,
         lastName: employee.lastName,
         email: employee.email,
         phoneNumber: employee.phoneNumber ?? '',
-        role: employee.role,
+        role: existingDriver ? '' : employee.role,
         branch: employee.branch ?? '',
         gender: employee.gender ?? 'unspecified',
         password: '',
@@ -146,6 +172,16 @@ export class EmployeeForm implements OnInit {
       this.form.controls.password.addValidators(Validators.required);
       this.form.controls.password.updateValueAndValidity();
     }
+  }
+
+  openTerminalCreator(trigger: HTMLElement) {
+    if (this.canAddTerminal() && !this.busy()) this.terminalCreator.set(trigger);
+  }
+
+  selectCreatedTerminal(terminal: Branch) {
+    this.terminalCreated.emit(terminal);
+    this.form.controls.branch.setValue(terminal._id);
+    this.terminalCreator.set(null);
   }
 
   async submit(element: HTMLFormElement) {
@@ -177,7 +213,7 @@ export class EmployeeForm implements OnInit {
       ].some((control) => control.invalid) ||
       (this.showTerminal() && controls.branch.invalid);
     if (invalid || !role) {
-      focusInvalid(element);
+      afterNextRender({ write: () => focusInvalid(element) }, { injector: this.injector });
       return;
     }
     this.busy.set(true);

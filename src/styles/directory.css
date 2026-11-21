@@ -35,6 +35,18 @@
   padding-block: 6px;
 }
 
+.directory-filters .directory-filter {
+  width: min(185px, 100%);
+  margin: 0;
+}
+
+.directory-filters .directory-filter :is(.picker-trigger, select) {
+  width: 100%;
+  min-height: 38px;
+  padding-block: 7px;
+  font-size: 13px;
+}
+
 .directory-search {
   display: flex;
   align-items: center;
@@ -80,6 +92,12 @@
 
 .directory-table td {
   height: 61px;
+}
+
+@media (width > 700px) {
+  .directory-table .directory-phone {
+    padding-inline-start: 8px;
+  }
 }
 
 .directory-table .directory-actions {
@@ -157,6 +175,43 @@
   flex: 0 0 6px;
   background: currentColor;
   border-radius: 50%;
+}
+
+.directory-table .directory-view-only {
+  background: var(--raised);
+  color: var(--color-muted);
+}
+
+.directory-clickable {
+  cursor: pointer;
+}
+
+.directory-clickable:is(:hover, :focus-within) {
+  background: var(--raised);
+}
+
+.directory-employee-name {
+  min-height: 24px;
+  margin-block: -2px;
+  color: var(--color-brand);
+  font-weight: 650;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.directory-employee-name:hover {
+  text-decoration: underline;
+}
+
+.directory-view-only .directory-employee-name {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.directory-view-only .directory-avatar,
+.directory-view-only .badge {
+  background: var(--color-surface);
+  color: var(--color-muted);
 }
 
 .directory-positive {
@@ -406,7 +461,7 @@
 }
 
 app-employee-form .management-dialog > header {
-  padding-block: 12px;
+  padding-block: 36px;
 }
 
 .employee-form .management-body {
@@ -415,6 +470,10 @@ app-employee-form .management-dialog > header {
 
 .employee-form .management-body h3 {
   margin-bottom: 8px;
+}
+
+.employee-form #employee-details-heading {
+  margin-bottom: 14px;
 }
 
 .employee-form .form-grid {
@@ -427,6 +486,7 @@ app-employee-form .management-dialog > header {
 
 .employee-form .employee-access {
   margin-top: 10px;
+  padding-top: 8px;
 }
 
 .employee-form .field-hint-empty {
@@ -435,6 +495,16 @@ app-employee-form .management-dialog > header {
 
 .employee-form .management-footer {
   padding-block: 10px;
+}
+
+@media (max-width: 599px) {
+  .employee-form .management-body {
+    padding-block: 10px;
+  }
+
+  .employee-form .form-grid {
+    row-gap: 7px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -465,6 +535,10 @@ app-employee-form .management-dialog > header {
   }
 
   .directory-filters select {
+    width: 100%;
+  }
+
+  .directory-filters .directory-filter {
     width: 100%;
   }
 
@@ -511,6 +585,14 @@ app-employee-form .management-dialog > header {
 
   .directory-table td:not(.directory-identity) {
     text-align: end;
+  }
+
+  .directory-table .directory-empty-terminal {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
   }
 
   .directory-table .directory-identity {

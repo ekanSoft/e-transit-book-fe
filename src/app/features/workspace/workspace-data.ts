@@ -1,7 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Api } from '../../core/http/api';
 import { Address, EmployeeRole } from '../../core/http/api.models';
-import { Session } from '../../core/auth/session';
 export interface Page<T> {
   content: T[];
   currentPage: number;
@@ -22,8 +21,17 @@ export interface CreateBranch {
   name: string;
   phoneNumber: string;
   address: Omit<Address, 'country' | 'countryCode'>;
+  branchManager?: string;
 }
-export type UpdateBranch = Partial<CreateBranch> & { branchManager?: string | null };
+export type UpdateBranch = Partial<Omit<CreateBranch, 'branchManager'>> & {
+  branchManager?: string | null;
+};
+export interface Route {
+  _id: string;
+  originBranch: Pick<Branch, '_id' | 'name' | 'address'> | null;
+  destinationBranch: Pick<Branch, '_id' | 'name' | 'address'> | null;
+  status: 'ACTIVE' | 'INACTIVE';
+}
 export interface Departure {
   _id: string;
   departureTime: string;
@@ -78,11 +86,11 @@ export function addressLabel(address?: Address) {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceData {
   private readonly api = inject(Api);
-  private readonly session = inject(Session);
-  branches(page: number, search = '', limit = 12) {
-    return this.api.get<Page<Branch>>(
-      '/branch?' + new URLSearchParams({ page: String(page), limit: String(limit), search }),
-    );
+  branches() {
+    return this.api.get<Branch[]>('/branch');
+  }
+  routes() {
+    return this.api.get<Route[]>('/routes');
   }
   createBranch(body: CreateBranch) {
     return this.api.post<Branch>('/branch', body);
@@ -93,23 +101,10 @@ export class WorkspaceData {
   updateBranch(id: string, body: UpdateBranch) {
     return this.api.patch<Branch | null>('/branch/' + id, body);
   }
-  async allBranches(abort: AbortSignal) {
-    const token = this.session.token();
-    const branches: Branch[] = [];
-    for (let page = 1; !abort.aborted && this.session.token() === token; page++) {
-      const { data } = await this.branches(page, '', 100);
-      branches.push(...data.content);
-      if (!data.hasNext) break;
-    }
-    return branches;
+  async allBranches() {
+    return (await this.branches()).data;
   }
-  async primaryBranch(abort: AbortSignal) {
-    // The list is newest first. Only primeBranch identifies the registration branch.
-    for (let number = 1; !abort.aborted; number++) {
-      const { data } = await this.branches(number, '', 100);
-      const primary = data.content.find((branch) => branch.primeBranch);
-      if (primary || !data.hasNext) return primary ?? null;
-    }
-    return null;
+  async primaryBranch() {
+    return (await this.allBranches()).find((branch) => branch.primeBranch) ?? null;
   }
 }

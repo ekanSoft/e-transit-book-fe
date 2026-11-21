@@ -41,6 +41,7 @@ export class TerminalForm implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   readonly access = inject(WorkspaceAccess);
   readonly terminal = input<Branch>();
+  readonly quickCreate = input(false);
   readonly managers = input<EmployeeRow[]>();
   readonly managerLoadFailed = input(false);
   readonly trigger = input<HTMLElement>();
@@ -52,7 +53,7 @@ export class TerminalForm implements OnInit {
   readonly managerOptions = computed(() => {
     const terminal = this.terminal();
     const options = (this.managers() ?? [])
-      .filter((manager) => manager.branch === terminal?._id && manager.accountStatus === 'ACTIVE')
+      .filter((manager) => manager.accountStatus === 'ACTIVE')
       .map((manager) => ({ value: manager._id, label: employeeName(manager) }));
     if (terminal?.branchManager && !options.some(({ value }) => value === terminal.branchManager)) {
       options.unshift({ value: terminal.branchManager, label: 'Current manager unavailable' });
@@ -82,7 +83,7 @@ export class TerminalForm implements OnInit {
     };
   });
   readonly changed = computed(() => Object.values(this.changes()).some(Boolean));
-  readonly allowManager = computed(() => !!this.terminal() && this.access.canCreateTerminal());
+  readonly allowManager = computed(() => !this.quickCreate() && this.access.canCreateTerminal());
 
   ngOnInit() {
     const terminal = this.terminal();
@@ -125,6 +126,12 @@ export class TerminalForm implements OnInit {
       const value = this.form.getRawValue();
       const name = value.name.trim();
       const phoneNumber = normalizeNigerianPhone(value.phoneNumber);
+      if (
+        changes.branchManager &&
+        !this.managerOptions().some(({ value: id }) => id === value.branchManager)
+      ) {
+        throw new Error('Select an available Terminal Manager.');
+      }
       let result: Branch | null;
       if (terminal) {
         const body: UpdateBranch = {};
@@ -153,17 +160,16 @@ export class TerminalForm implements OnInit {
           body.address = addressPayload(merged);
         }
         if (changes.branchManager) {
-          if (
-            !this.managers() ||
-            !this.managerOptions().some(({ value: id }) => id === value.branchManager)
-          ) {
-            throw new Error('Select a manager assigned to this terminal.');
-          }
           body.branchManager = value.branchManager === unassigned ? null : value.branchManager;
         }
         result = (await this.api.updateBranch(terminal._id, body)).data;
       } else {
-        const body: CreateBranch = { name, phoneNumber, address: addressPayload(value.address) };
+        const body: CreateBranch = {
+          name,
+          phoneNumber,
+          address: addressPayload(value.address),
+          ...(changes.branchManager && { branchManager: value.branchManager }),
+        };
         result = (await this.api.createBranch(body)).data;
       }
       if (this.destroyRef.destroyed || scope !== this.access.scope()) return;

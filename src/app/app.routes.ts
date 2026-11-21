@@ -10,7 +10,6 @@ export const routes: Routes = [
       {
         path: 'login',
         title: 'Sign in · eTransitBook',
-        canActivate: [guestGuard],
         loadComponent: () => import('./features/auth/login').then((m) => m.Login),
       },
       {
@@ -38,13 +37,11 @@ export const routes: Routes = [
       {
         path: 'auth/access-status',
         title: 'Workspace access · eTransitBook',
-        canActivate: [guestGuard],
         loadComponent: () => import('./features/auth/access-status').then((m) => m.AccessStatus),
       },
       {
         path: 'auth/select-business',
         title: 'Choose business · eTransitBook',
-        canActivate: [guestGuard],
         loadComponent: () =>
           import('./features/auth/select-business').then((m) => m.SelectBusiness),
       },

@@ -1,3 +1,7 @@
+import type { EmployeeRole } from '../../shared/utilities/employee-role';
+
+export type { EmployeeRole } from '../../shared/utilities/employee-role';
+
 export interface ApiResponse<T = undefined> {
   success: true;
   statusCode: number;
@@ -21,8 +25,6 @@ export interface Address {
 export type AccountStatus = 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'INACTIVE' | 'REJECTED';
 export type RegistrationStage = 'PROFILE' | 'VERIFICATION' | 'BRANCH';
 export type BusinessType = 'TRANSPORTATION' | 'CAR_HIRE';
-export type EmployeeRole =
-  'ADMIN' | 'OPERATIONS_MANAGER' | 'BRANCH_MANAGER' | 'BOOKING_AGENT' | 'ACCOUNTANT' | 'DRIVER';
 export type DocumentKey = 'certificateOfIncorporation' | 'formCAC' | 'memorandumAndArticle';
 export interface Business {
   _id: string;

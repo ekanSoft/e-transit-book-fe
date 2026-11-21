@@ -1,0 +1,90 @@
+<label [id]="id() + '-label'" [for]="id()">{{ label() }}</label>
+<div
+  #container
+  class="picker"
+  [style.--picker-anchor]="useOverlay ? '--' + id() : null"
+  (focusout)="leave(container, $event.relatedTarget)"
+  (keydown.escape)="escape($event)"
+>
+  <button
+    #trigger
+    [id]="id()"
+    type="button"
+    class="picker-trigger"
+    [class.picker-anchor]="useOverlay"
+    [class.ng-invalid]="control().invalid"
+    [disabled]="control().disabled"
+    [attr.aria-expanded]="expanded()"
+    [attr.aria-controls]="expanded() ? id() + '-dropdown' : null"
+    [attr.aria-labelledby]="id() + '-label ' + id() + '-selection'"
+    [attr.aria-invalid]="invalid()"
+    [attr.aria-describedby]="id() + '-hint'"
+    (click)="expanded() ? close() : open()"
+    (keydown.arrowdown)="$event.preventDefault(); open()"
+  >
+    <span [id]="id() + '-selection'" [class.muted]="!selectedLabel()">
+      {{ selectedLabel() ?? placeholder() }}
+    </span>
+    <app-icon class="picker-chevron" name="down" />
+  </button>
+  @if (expanded()) {
+    <div
+      #panel
+      ngCombobox
+      [id]="id() + '-dropdown'"
+      [attr.popover]="useOverlay ? 'manual' : null"
+      class="picker-dropdown picker-search-panel"
+      (keydown.escape)="escape($event)"
+    >
+      <div class="picker-search-row">
+        <app-icon name="search" />
+        <input
+          #search
+          ngComboboxInput
+          autocomplete="off"
+          [value]="query()"
+          (valueChange)="query.set($event)"
+          [placeholder]="searchLabel()"
+          [attr.aria-label]="searchLabel()"
+          (keydown.enter)="enter($event, search)"
+        />
+      </div>
+      <div
+        ngListbox
+        class="picker-options"
+        [hidden]="!matches().length"
+        [attr.aria-label]="label()"
+        (valuesChange)="select($event)"
+      >
+        @for (option of matches(); track option.value) {
+          <div ngOption class="picker-option" [value]="option.value" [label]="option.label">
+            {{ option.label }}
+          </div>
+        }
+      </div>
+      @if (!matches().length) {
+        <p class="picker-empty small muted" role="status">
+          {{ options().length ? 'No matches found.' : 'No options available.' }}
+        </p>
+      }
+      @if (actionLabel()) {
+        <button
+          type="button"
+          class="text-button picker-search-action"
+          (keydown.enter)="$event.stopPropagation()"
+          (click)="activateAction()"
+        >
+          <app-icon name="plus" /> {{ actionLabel() }}
+        </button>
+      }
+    </div>
+  }
+</div>
+<div
+  [id]="id() + '-hint'"
+  class="field-hint"
+  [class.field-error]="invalid()"
+  [class.field-hint-empty]="!invalid() && !hint()"
+>
+  {{ invalid() ? validationMessage() : hint() }}
+</div>

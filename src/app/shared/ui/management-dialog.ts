@@ -21,15 +21,15 @@ import { Icon } from './icon';
       #dialog
       class="management-dialog"
       [class.management-drawer]="drawer()"
-      aria-labelledby="management-title"
-      [attr.aria-describedby]="description() ? 'management-description' : null"
+      [attr.aria-labelledby]="dialogId() + '-title'"
+      [attr.aria-describedby]="description() ? dialogId() + '-description' : null"
       (cancel)="cancel($event)"
     >
       <header>
         <div>
-          <h2 id="management-title" tabindex="-1" autofocus>{{ title() }}</h2>
+          <h2 [id]="dialogId() + '-title'" tabindex="-1" autofocus>{{ title() }}</h2>
           @if (description()) {
-            <p id="management-description">{{ description() }}</p>
+            <p [id]="dialogId() + '-description'">{{ description() }}</p>
           }
         </div>
         <button
@@ -48,6 +48,7 @@ import { Icon } from './icon';
 })
 export class ManagementDialog {
   readonly title = input.required<string>();
+  readonly dialogId = input('management');
   readonly description = input('');
   readonly drawer = input(false);
   readonly busy = input(false);
@@ -66,10 +67,12 @@ export class ManagementDialog {
       modal.addEventListener(
         'keydown',
         (event) => {
-          // Let an open picker consume Escape before allowing it to close the drawer.
+          // Let open field overlays handle Escape before it closes the drawer.
           if (
             event.key === 'Escape' &&
-            !modal?.querySelector('[role="combobox"][aria-expanded="true"]')
+            !modal?.querySelector(
+              '[role="combobox"][aria-expanded="true"], .picker-trigger[aria-expanded="true"], [role="tooltip"]:not([hidden])',
+            )
           ) {
             this.cancel(event);
           }
@@ -82,9 +85,11 @@ export class ManagementDialog {
       listeners.abort();
       modal?.close();
       queueMicrotask(() => {
-        if (document.querySelector('dialog[open]')) return;
-        if (returnFocus?.isConnected && !returnFocus.matches(':disabled')) returnFocus.focus();
-        else document.querySelector<HTMLElement>('main h1[tabindex]')?.focus();
+        if (returnFocus?.isConnected && !returnFocus.matches(':disabled')) {
+          returnFocus.focus();
+        } else if (!document.querySelector('dialog[open]')) {
+          document.querySelector<HTMLElement>('main h1[tabindex]')?.focus();
+        }
       });
     });
   }

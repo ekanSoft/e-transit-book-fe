@@ -73,7 +73,6 @@
     inline-size: anchor-size(inline);
     max-block-size: min(15rem, calc(100% - 8px));
     margin: 4px 0;
-    overscroll-behavior: contain;
     color: var(--color-ink);
   }
 
@@ -82,6 +81,56 @@
     border-radius: 4px;
     overflow-wrap: anywhere;
     cursor: pointer;
+  }
+  .picker-empty {
+    padding: 8px 10px;
+    color: var(--color-muted);
+  }
+
+  .picker-search-panel:popover-open,
+  .picker-search-panel:not([popover]) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .picker-search-panel:not([popover]) {
+    position: static;
+    margin-block-start: 4px;
+  }
+
+  .picker-search-panel .picker-options {
+    min-block-size: 0;
+  }
+
+  .picker-search-row {
+    position: relative;
+    flex-shrink: 0;
+    padding: 8px;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .picker-search-row app-icon {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 20px;
+    translate: 0 -50%;
+    pointer-events: none;
+    color: var(--color-muted);
+  }
+
+  .picker-search-row input {
+    min-height: 36px;
+    padding-inline-start: 36px;
+  }
+
+  .picker-search-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-top: 1px solid var(--color-line);
+    font-size: 12px;
   }
 
   .picker-option:hover,

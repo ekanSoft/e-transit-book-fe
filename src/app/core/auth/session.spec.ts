@@ -93,38 +93,61 @@ describe('Session and authenticated HTTP', () => {
     expect(session.authenticated()).toBe(true);
     expect(session.business()).toEqual(business);
   });
-  it('never persists a temporary selection token and completes the selected business', async () => {
+  it('keeps the stored session and its context when scoped credentials are rejected', async () => {
+    localStorage.setItem('etransitbook.session', 'current-jwt');
     const session = TestBed.inject(Session);
-    const pending = session.login(employee.email, 'password123');
-    http.expectOne(environment.apiBaseUrl + '/auth/login').flush(
-      envelope({
-        requiresAccountSelection: true,
-        token: 'temporary',
-        expiresAt: new Date(Date.now() + 600000).toISOString(),
-        businesses: [
-          {
-            business: business._id,
-            businessName: business.name,
-            slug: business.slug,
-            employee: employee._id,
-            role: 'ADMIN',
-            businessAccountStatus: 'PENDING',
-          },
-        ],
-      }),
-    );
-    await pending;
-    expect(session.authenticated()).toBe(false);
-    expect(localStorage.length).toBe(0);
-    const completing = session.chooseBusiness(business._id);
-    const request = http.expectOne(environment.apiBaseUrl + '/auth/complete-login');
-    expect(request.request.body).toEqual({ token: 'temporary', businessId: business._id });
-    request.flush(envelope(login));
+    const loading = session.loadContext();
+    const pending = session.login('new-staff@example.test', 'wrong-password', business.slug);
+    const assertion = expect(pending).rejects.toMatchObject({ status: 401 });
+    const request = http.expectOne(environment.apiBaseUrl + '/auth/login?slug=' + business.slug);
+    expect(request.request.headers.has('Authorization')).toBe(false);
     await flushContext();
-    await completing;
-    expect(session.selection()).toBeNull();
-    expect(session.token()).toBe(login.token);
+    await loading;
+    request.flush({ message: 'Invalid credentials' }, { status: 401, statusText: 'Unauthorized' });
+    await assertion;
+    expect(session.employee()).toEqual(employee);
+    expect(session.token()).toBe('current-jwt');
+    expect(localStorage.getItem('etransitbook.session')).toBe('current-jwt');
   });
+  it.each([null, 'current-jwt'])(
+    'keeps stored JWT %s until business selection succeeds',
+    async (currentToken) => {
+      if (currentToken) localStorage.setItem('etransitbook.session', currentToken);
+      const session = TestBed.inject(Session);
+      const pending = session.login(employee.email, 'password123');
+      http.expectOne(environment.apiBaseUrl + '/auth/login').flush(
+        envelope({
+          requiresAccountSelection: true,
+          token: 'temporary',
+          expiresAt: new Date(Date.now() + 600000).toISOString(),
+          businesses: [
+            {
+              business: business._id,
+              businessName: business.name,
+              slug: business.slug,
+              employee: employee._id,
+              role: 'ADMIN',
+              businessAccountStatus: 'PENDING',
+            },
+          ],
+        }),
+      );
+      await pending;
+      expect(session.token()).toBe(currentToken);
+      expect(localStorage.getItem('etransitbook.session')).toBe(currentToken);
+      const completing = session.chooseBusiness(business._id);
+      const request = http.expectOne(environment.apiBaseUrl + '/auth/complete-login');
+      expect(request.request.body).toEqual({ token: 'temporary', businessId: business._id });
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      expect(localStorage.getItem('etransitbook.session')).toBe(currentToken);
+      request.flush(envelope(login));
+      await flushContext();
+      await completing;
+      expect(session.selection()).toBeNull();
+      expect(session.token()).toBe(login.token);
+      expect(localStorage.getItem('etransitbook.session')).toBe(login.token);
+    },
+  );
   it('clears a consumed selection when the chosen account is unverified', async () => {
     const session = TestBed.inject(Session);
     session.selection.set({
