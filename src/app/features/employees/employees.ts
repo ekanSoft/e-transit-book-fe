@@ -301,5 +301,4 @@ export class Employees {
     }
     this.list.reload();
   }
-
 }
