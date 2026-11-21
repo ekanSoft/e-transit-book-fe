@@ -1,0 +1,106 @@
+<app-management-dialog
+  dialogId="add-route"
+  title="Add route"
+  description="Connect two terminals to create a reusable travel route."
+  [trigger]="trigger()"
+  [busy]="busy()"
+  (dismiss)="dismissed.emit()"
+>
+  <form [formGroup]="form" [attr.aria-busy]="busy()" (ngSubmit)="submit()">
+    <div class="management-body space-y-3">
+      @if (terminalError()) {
+        <app-errors [messages]="['Unable to load your terminals. Try loading them again.']" />
+        <button appButton variant="secondary" type="button" (click)="retryTerminals.emit()">
+          Retry terminals
+        </button>
+      } @else if (!terminals()) {
+        <p class="muted" role="status">Loading terminals…</p>
+      } @else if (terminalOptions().length < 2) {
+        <p><strong>At least two terminals are required</strong></p>
+        <p class="muted">Add another terminal before creating a route.</p>
+        @if (access.canCreateTerminal()) {
+          <a appButton variant="secondary" routerLink="/app/terminals">Go to terminals</a>
+        }
+      } @else {
+        <fieldset [disabled]="busy()">
+          <app-searchable-select
+            [id]="'route-origin'"
+            label="Origin terminal"
+            placeholder="Select origin terminal"
+            searchLabel="Search origin terminals"
+            hint="Where passengers begin this journey."
+            [control]="form.controls.originBranch"
+            [options]="terminalOptions()"
+          />
+          <app-icon class="mx-auto my-2 block rotate-90 text-(--color-brand)" name="arrow" />
+          <app-searchable-select
+            [id]="'route-destination'"
+            label="Destination terminal"
+            placeholder="Select destination terminal"
+            searchLabel="Search destination terminals"
+            hint="Where passengers arrive at the end of this journey."
+            [control]="form.controls.destinationBranch"
+            [options]="terminalOptions()"
+          />
+        </fieldset>
+        @if (sameTerminal()) {
+          <p class="field-error" role="alert">{{ sameTerminalMessage }}</p>
+        }
+      }
+      <app-errors [messages]="errors()" />
+      @if (conflict()) {
+        @let match = existing();
+        <div class="alert alert-error">
+          <div role="alert">
+            <strong>Route already exists</strong>
+            <p>A route in this direction already connects these terminals.</p>
+            @if (match?.status === 'INACTIVE') {
+              <p>You can reactivate the existing route from the directory.</p>
+            }
+          </div>
+          @if (match) {
+            <button
+              appButton
+              variant="secondary"
+              type="button"
+              class="mt-2"
+              (click)="viewExisting.emit(match._id)"
+            >
+              View existing route
+            </button>
+          } @else if (routesLoading()) {
+            <p role="status">Checking the route directory…</p>
+          } @else {
+            <button
+              appButton
+              variant="secondary"
+              type="button"
+              class="mt-2"
+              (click)="retryRoutes.emit()"
+            >
+              Refresh route directory
+            </button>
+          }
+        </div>
+      }
+    </div>
+    <footer class="management-footer">
+      <button
+        appButton
+        variant="secondary"
+        type="button"
+        [disabled]="busy()"
+        (click)="dismissed.emit()"
+      >
+        Cancel
+      </button>
+      <button appButton type="submit" [disabled]="!canSubmit()">
+        @if (busy()) {
+          <app-icon class="motion-safe:animate-spin" name="refresh" /> Saving…
+        } @else {
+          Add route
+        }
+      </button>
+    </footer>
+  </form>
+</app-management-dialog>

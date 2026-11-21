@@ -1,0 +1,224 @@
+<div class="page-heading directory-heading">
+  <div>
+    <h1 tabindex="-1">Routes</h1>
+    <p>Manage the travel routes connecting your terminals.</p>
+  </div>
+  @if (access.canCreateRoute()) {
+    <button #add appButton type="button" aria-haspopup="dialog" (click)="openCreate(add)">
+      <app-icon name="plus" /> Add route
+    </button>
+  }
+</div>
+
+<section class="panel directory" aria-labelledby="route-directory">
+  <div class="directory-toolbar">
+    <h2 id="route-directory">Route directory</h2>
+    <div class="directory-filters">
+      <app-directory-search
+        label="Search routes"
+        placeholder="Search terminals or locations"
+        [value]="query()"
+        (changed)="query.set($event)"
+      />
+      <app-field
+        class="directory-filter"
+        [id]="'route-status-filter'"
+        label="Filter routes by status"
+        [control]="statusFilter"
+        [options]="statusOptions"
+        [hideLabel]="true"
+        [optional]="true"
+        [overlayOptions]="true"
+      />
+      @if (hasFilters()) {
+        <button type="button" class="text-button" (click)="clearFilters(true)">
+          Clear filters
+        </button>
+      }
+    </div>
+  </div>
+
+  <div [attr.aria-busy]="list.isLoading()">
+    @if (list.error()) {
+      <div class="directory-message">
+        <app-errors [messages]="errors(list.error())" />
+        <button appButton variant="secondary" type="button" (click)="list.reload()">Retry</button>
+      </div>
+    } @else if (filteredRows().length) {
+      <table class="directory-table" role="table" aria-label="Routes">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">Route</th>
+            <th role="columnheader" scope="col" class="route-status">Status</th>
+            @if (access.canChangeRouteStatus()) {
+              <th role="columnheader" scope="col" class="directory-actions">Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          @for (row of filteredRows(); track row.route._id) {
+            @let active = row.route.status === 'ACTIVE';
+            <tr role="row" tabindex="-1" [id]="'route-row-' + row.route._id">
+              <td role="cell">
+                <div class="route-direction">
+                  <div>
+                    <span class="sr-only">Origin terminal</span>
+                    <strong>{{ row.origin.name }}</strong>
+                    @if (row.origin.location) {
+                      <span class="directory-detail">{{ row.origin.location }}</span>
+                    }
+                  </div>
+                  <app-icon name="arrow" />
+                  <div>
+                    <span class="sr-only">Destination terminal</span>
+                    <strong>{{ row.destination.name }}</strong>
+                    @if (row.destination.location) {
+                      <span class="directory-detail">{{ row.destination.location }}</span>
+                    }
+                  </div>
+                </div>
+              </td>
+              <td role="cell" class="route-status">
+                <span class="directory-mobile-label" aria-hidden="true">Status</span>
+                <span class="badge directory-status" [class.directory-positive]="active">
+                  {{ statusLabels[row.route.status] }}
+                </span>
+              </td>
+              @if (access.canChangeRouteStatus()) {
+                <td role="cell" class="directory-actions">
+                  <button
+                    #trigger
+                    class="icon-button directory-row-trigger"
+                    type="button"
+                    [disabled]="list.isLoading() || statusBusy()"
+                    [attr.popovertarget]="'route-actions-' + row.route._id"
+                    [attr.aria-label]="'Actions for ' + row.label"
+                  >
+                    <app-icon name="more" />
+                  </button>
+                  <div
+                    #popover
+                    popover
+                    class="directory-popover"
+                    [id]="'route-actions-' + row.route._id"
+                    role="group"
+                    [attr.aria-label]="'Actions for ' + row.label"
+                  >
+                    <button
+                      type="button"
+                      autofocus
+                      aria-haspopup="dialog"
+                      [class.directory-danger-text]="active"
+                      (click)="openStatus(row.route, trigger, popover)"
+                    >
+                      <app-icon [name]="active ? 'shield' : 'check'" />
+                      {{ active ? 'Deactivate route' : 'Activate route' }}
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (list.isLoading()) {
+      <div class="directory-loading">
+        <p role="status">Loading routes…</p>
+        <div class="directory-skeleton" aria-hidden="true"></div>
+      </div>
+    } @else if (list.hasValue()) {
+      <div class="empty-state directory-empty">
+        <app-icon name="route" />
+        @if (allRoutes().length) {
+          <strong>No matching routes</strong>
+          <p class="muted">No routes match your current search or filters.</p>
+        } @else {
+          <strong>No routes yet</strong>
+          @if (access.canCreateRoute()) {
+            <p class="muted">Create a route to connect two terminals.</p>
+            @if (terminals.hasValue() && terminals.value().length >= 2) {
+              <button
+                #first
+                appButton
+                type="button"
+                variant="secondary"
+                (click)="openCreate(first)"
+              >
+                <app-icon name="plus" /> Add route
+              </button>
+            }
+          } @else {
+            <p class="muted">Routes for this business will appear here once they’re added.</p>
+          }
+        }
+      </div>
+    }
+  </div>
+  @if (list.hasValue()) {
+    @let count = filteredRows().length;
+    <div class="pager" role="status">{{ count }} {{ count === 1 ? 'route' : 'routes' }}</div>
+  }
+</section>
+
+@if (action(); as current) {
+  @if (current.kind === 'create' && access.canCreateRoute()) {
+    <app-route-form
+      [trigger]="current.trigger"
+      [terminals]="terminals.hasValue() ? terminals.value() : undefined"
+      [terminalError]="terminals.error()"
+      [routes]="allRoutes()"
+      [routesLoading]="list.isLoading()"
+      (retryTerminals)="terminals.reload()"
+      (retryRoutes)="list.reload()"
+      (conflicted)="findDuplicate($event)"
+      (viewExisting)="showExisting($event)"
+      (dismissed)="action.set(null)"
+      (saved)="created()"
+    />
+  } @else if (current.kind === 'status' && access.canChangeRouteStatus()) {
+    @let active = current.route.status === 'ACTIVE';
+    <app-management-dialog
+      dialogId="route-status"
+      [title]="active ? 'Deactivate route?' : 'Activate route?'"
+      [description]="
+        active
+          ? 'This route will no longer be active. You can reactivate it later.'
+          : 'This route will become active again.'
+      "
+      [busy]="statusBusy()"
+      [trigger]="current.trigger"
+      (dismiss)="action.set(null)"
+    >
+      <div class="management-body">
+        <p>
+          <strong>{{ routeName(current.route) }}</strong>
+        </p>
+        <app-errors [messages]="statusErrors()" />
+      </div>
+      <footer class="management-footer">
+        <button
+          appButton
+          variant="secondary"
+          type="button"
+          [disabled]="statusBusy()"
+          (click)="action.set(null)"
+        >
+          Cancel
+        </button>
+        <button
+          appButton
+          type="button"
+          [class.directory-danger-button]="active"
+          [disabled]="statusBusy() || statusNeedsReview()"
+          (click)="toggle(current.route)"
+        >
+          @if (statusBusy()) {
+            <app-icon class="motion-safe:animate-spin" name="refresh" /> Updating…
+          } @else {
+            {{ active ? 'Deactivate route' : 'Activate route' }}
+          }
+        </button>
+      </footer>
+    </app-management-dialog>
+  }
+}

@@ -1,0 +1,45 @@
+.route-direction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(8px, 2vw, 20px);
+  width: min(100%, 44rem);
+  text-align: start;
+}
+
+.route-direction app-icon {
+  margin-top: 2px;
+  color: var(--color-brand);
+}
+
+.directory-table .route-status {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.directory-table tr:focus {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -2px;
+  background: var(--raised);
+}
+
+@media (max-width: 700px) {
+  .directory-table tbody tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .directory-table tbody td:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .directory-table .route-status {
+    width: auto;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .directory-table td.directory-actions {
+    position: static;
+  }
+}

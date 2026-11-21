@@ -27,10 +27,19 @@ export class WorkspaceAccess {
     },
     { equal: (a, b) => a?.token === b?.token && a?.business === b?.business },
   );
-  readonly canCreateTerminal = computed(() => {
+  private readonly canManageOperations = computed(() => {
     const role = this.employee()?.role;
     return role === 'ADMIN' || role === 'OPERATIONS_MANAGER';
   });
+  readonly canCreateTerminal = this.canManageOperations;
+  readonly canViewRoutes = computed(() => !!this.scope());
+  readonly canCreateRoute = computed(
+    () =>
+      this.canViewRoutes() &&
+      this.canManageOperations() &&
+      this.session.business()?.accountStatus === 'ACTIVE',
+  );
+  readonly canChangeRouteStatus = this.canCreateRoute;
   readonly canViewEmployees = computed(() => {
     const employee = this.employee();
     return this.canCreateTerminal() || (employee?.role === 'BRANCH_MANAGER' && !!employee.branch);

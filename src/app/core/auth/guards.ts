@@ -23,5 +23,8 @@ export const authGuard: CanActivateFn = async (_route, state) => {
 export const terminalsGuard: CanActivateFn = () =>
   inject(WorkspaceAccess).canViewTerminals() || inject(Router).parseUrl('/app/dashboard');
 
+export const routesGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canViewRoutes() || inject(Router).parseUrl('/app/dashboard');
+
 export const employeesGuard: CanActivateFn = () =>
   inject(WorkspaceAccess).canViewEmployees() || inject(Router).parseUrl('/app/dashboard');

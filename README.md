@@ -50,6 +50,7 @@ Static hosting is also possible using `dist/e-transit-book-fe/browser`. Configur
 | `/pending-approval`       | Pending review, restricted account, or recoverable context error                 |
 | `/app/dashboard`          | Operational dashboard for the selected business (also the destination of `/app`) |
 | `/app/terminals`          | Searchable terminal directory with permission-aware creation and editing         |
+| `/app/routes`             | Business-wide route directory with creation and status management               |
 | `/app/employees`          | Searchable employee directory, assignments, and account status management        |
 | `/app/business-profile`   | Read-only registration details and primary terminal                              |
 | `/app/account`            | Employee profile, workspace role, and appearance                                 |
@@ -69,10 +70,12 @@ The dashboard uses `GET /reports/dashboard` for totals, payment mix and upcoming
 Switching workspaces signs out the current membership and opens sign-in with the employee email prefilled. A fresh login issues the selection token or session JWT. There is no authenticated token-exchange endpoint. Company verification links are displayed to administrators and operations managers. The backend currently includes those fields in its business response to other authenticated roles too.
 
 - **Terminals** loads the full business list, including the original onboarding terminal, and searches it locally by name. Admins and Operations Managers can add and edit terminals and designate an active Terminal Manager. Terminal Managers can edit their assigned terminal. The backend stores the designation separately from the employee’s terminal assignment.
+- **Routes** shows the selected business’s Active and Inactive routes, newest first. All staff roles can view the business-wide directory and filter it locally by terminal name, city, state, and status. Admins and Operations Managers in an active business can add routes and change their status. The Add Route dialog searches the business’s terminal list and requires distinct origin and destination terminals. Same-city routes and the reverse direction are valid. If a route already exists, the dialog helps staff find it in the directory and reactivate it explicitly if needed.
+- The Routes directory reads the populated array from `GET /routes`. Creation uses `POST /routes` with the two selected branch IDs. Activation and confirmed deactivation use `PATCH /routes/:id/toggle-status` with an empty body. The directory refreshes after each successful change. The toggle flips the current server status, so the directory also refreshes after an uncertain result before another attempt.
 - **Employees** includes server-side search, pagination, and role and terminal filters. Filtering by account status would require a backend API change. Admins and Operations Managers can manage non-admin employees across the selected business. Terminal Managers can view employees at their own terminal, add Booking Agents, and manage existing Booking Agents and Drivers. The server assigns their terminal automatically. Driver is temporarily unavailable for role assignment. Admin accounts are read-only in the directory.
 - Employee creation requires an Initial staff password. The backend activates the account and attempts to email sign-in details. Sign-in email is read-only after creation. Operations Manager is company-wide, while Terminal Managers, Booking Agents, Accountants and Drivers require a terminal assignment. Moving an employee to Operations Manager clears their previous assignment.
 - The employee form searches the business’s terminal list. Admins and Operations Managers can add a missing terminal in a dialog, which selects it and keeps the employee draft open.
-- Both directories use the configured API base URL and current authenticated business. Employee navigation, deep links, and row actions use the same workspace permissions. No new environment settings are required.
+- The directories use the configured API base URL and current authenticated business. Navigation, deep links, and management actions use shared workspace permissions. No new environment settings are required.
 
 ## Onboarding contracts
 
@@ -114,5 +117,6 @@ See `docs/VERIFICATION.md` for observed evidence and limits.
 - `features/onboarding`: step forms, API payload builders, wizard and account status.
 - `features/workspace`: dashboard, terminal management, read-only business profile and account settings.
 - `features/employees`: employee directory, forms and API integration.
+- `features/routes`: route directory, creation form and status actions.
 
 Typed Reactive Forms follow the repository conventions; signals own application/feature state. Native controls and a modal `<dialog>` provide keyboard behavior without a large UI framework. No backend source files were changed.

@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, provideRouter, RouterStateSnapshot } from '@angular/router';
 import type { Business, Employee, EmployeeRole } from '../http/api.models';
-import { employeesGuard, terminalsGuard } from './guards';
+import { employeesGuard, routesGuard, terminalsGuard } from './guards';
 import { Session } from './session';
 import { WorkspaceAccess } from './workspace-access';
 
@@ -98,6 +98,29 @@ describe('workspace directory access', () => {
     expect(access.canManageEmployee(target)).toBe(false);
   });
 
+  it.each([
+    ['ADMIN', true],
+    ['OPERATIONS_MANAGER', true],
+    ['BRANCH_MANAGER', false],
+    ['BOOKING_AGENT', false],
+    ['ACCOUNTANT', false],
+    ['DRIVER', false],
+  ] as const)(
+    'allows %s to read business routes and applies the write policy',
+    (role, canWrite) => {
+      employee.set(membership(role, 'terminal-a'));
+      const access = TestBed.inject(WorkspaceAccess);
+      const route = {} as ActivatedRouteSnapshot;
+      const state = {} as RouterStateSnapshot;
+      expect(TestBed.runInInjectionContext(() => routesGuard(route, state))).toBe(true);
+      expect(access.canCreateRoute()).toBe(canWrite);
+      expect(access.canChangeRouteStatus()).toBe(canWrite);
+      selectedBusiness.set({ ...business, accountStatus: 'SUSPENDED' });
+      expect(access.canCreateRoute()).toBe(false);
+      expect(access.canChangeRouteStatus()).toBe(false);
+    },
+  );
+
   it('blocks unauthorized deep links and clears permissions when the workspace changes', () => {
     employee.set(membership('DRIVER', 'terminal-a'));
     const access = TestBed.inject(WorkspaceAccess);
@@ -113,6 +136,10 @@ describe('workspace directory access', () => {
     expect(access.scope()).toBeUndefined();
     expect(access.canViewEmployees()).toBe(false);
     expect(access.canViewTerminals()).toBe(false);
+    expect(access.canViewRoutes()).toBe(false);
+    expect(TestBed.runInInjectionContext(() => routesGuard(route, state)).toString()).toBe(
+      '/app/dashboard',
+    );
     expect(access.canManageEmployee(target)).toBe(false);
   });
 });

@@ -11,11 +11,27 @@ import { Brand } from '../../../shared/ui/brand';
 import { Icon, IconName } from '../../../shared/ui/icon';
 import { employeeRoleLabel } from '../../../shared/utilities/employee-role';
 
-type NavItem = { label: string; url: string; icon: IconName };
+type NavItem = {
+  label: string;
+  url: string;
+  icon: IconName;
+  permission?: 'canViewTerminals' | 'canViewRoutes' | 'canViewEmployees';
+};
 const navigation: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [{ label: 'Dashboard', url: '/app/dashboard', icon: 'overview' }] },
-  { group: 'Operations', items: [{ label: 'Terminals', url: '/app/terminals', icon: 'pin' }] },
-  { group: 'Management', items: [{ label: 'Employees', url: '/app/employees', icon: 'users' }] },
+  {
+    group: 'Operations',
+    items: [
+      { label: 'Terminals', url: '/app/terminals', icon: 'pin', permission: 'canViewTerminals' },
+      { label: 'Routes', url: '/app/routes', icon: 'route', permission: 'canViewRoutes' },
+    ],
+  },
+  {
+    group: 'Management',
+    items: [
+      { label: 'Employees', url: '/app/employees', icon: 'users', permission: 'canViewEmployees' },
+    ],
+  },
   {
     group: 'Workspace',
     items: [
@@ -46,10 +62,12 @@ export class OperatorShell {
   readonly groups = computed(() => {
     const dest = this.session.destination();
     if (dest === '/app/dashboard') {
-      return navigation.filter(({ group }) =>
-        (group !== 'Management' || this.access.canViewEmployees()) &&
-        (group !== 'Operations' || this.access.canViewTerminals()),
-      );
+      return navigation
+        .map(({ group, items }) => ({
+          group,
+          items: items.filter(({ permission }) => !permission || this.access[permission]()),
+        }))
+        .filter(({ items }) => items.length > 0);
     }
     const setup = dest === '/onboarding';
     return [

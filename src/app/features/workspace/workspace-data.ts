@@ -26,11 +26,25 @@ export interface CreateBranch {
 export type UpdateBranch = Partial<Omit<CreateBranch, 'branchManager'>> & {
   branchManager?: string | null;
 };
+export type RouteStatus = 'ACTIVE' | 'INACTIVE';
+export interface RouteTerminal {
+  _id: string;
+  name?: string;
+  address?: Partial<Address> | null;
+}
 export interface Route {
   _id: string;
-  originBranch: Pick<Branch, '_id' | 'name' | 'address'> | null;
-  destinationBranch: Pick<Branch, '_id' | 'name' | 'address'> | null;
-  status: 'ACTIVE' | 'INACTIVE';
+  originBranch: RouteTerminal | null;
+  destinationBranch: RouteTerminal | null;
+  status: RouteStatus;
+}
+export interface CreateRoute {
+  originBranch: string;
+  destinationBranch: string;
+}
+interface RouteMutation extends CreateRoute {
+  _id: string;
+  status: RouteStatus;
 }
 export interface Departure {
   _id: string;
@@ -91,6 +105,12 @@ export class WorkspaceData {
   }
   routes() {
     return this.api.get<Route[]>('/routes');
+  }
+  createRoute(body: CreateRoute) {
+    return this.api.post<RouteMutation>('/routes', body);
+  }
+  toggleRouteStatus(id: string) {
+    return this.api.patch<RouteMutation>(`/routes/${id}/toggle-status`, null);
   }
   createBranch(body: CreateBranch) {
     return this.api.post<Branch>('/branch', body);
