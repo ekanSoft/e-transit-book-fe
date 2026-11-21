@@ -1,0 +1,158 @@
+<nav class="steps" aria-label="Layout setup">
+  <button
+    type="button"
+    [attr.aria-current]="step() === 'details' ? 'step' : null"
+    (click)="details()"
+    [disabled]="busy()"
+  >
+    Vehicle details
+  </button>
+  <app-icon name="arrow" /><button
+    type="button"
+    [attr.aria-current]="step() === 'seating' ? 'step' : null"
+    (click)="next()"
+    [disabled]="busy()"
+  >
+    Seat layout
+  </button>
+</nav>
+<form (submit)="$event.preventDefault(); step() === 'details' ? next() : save()" novalidate>
+  <fieldset [disabled]="busy()" class="form-body">
+    @if (step() === 'details') {
+      <section class="panel details" aria-labelledby="details-title">
+        <h2 id="details-title">Vehicle details</h2>
+        <app-field
+          [id]="'layout-name'"
+          label="Layout name"
+          [control]="name"
+          placeholder="e.g. Toyota Hiace 14-seater"
+        />
+        <fieldset class="vehicle-types">
+          <legend>Vehicle type</legend>
+          <div role="presentation">
+            @for (t of types; track t.value) {
+              <label class="type-card"
+                ><input
+                  type="radio"
+                  name="vehicle-type"
+                  [value]="t.value"
+                  [checked]="type() === t.value"
+                  (change)="setType(t.value)"
+                  required
+                  [attr.aria-invalid]="attempted() && !type()"
+                  [attr.aria-describedby]="attempted() && !type() ? 'type-error' : null"
+                /><app-icon [name]="t.icon" />{{ t.label }}</label
+              >
+            }
+          </div>
+          @if (attempted() && !type()) {
+            <p class="field-error" id="type-error">Select a vehicle type.</p>
+          }
+        </fieldset>
+        @if (type() === 'OTHER') {
+          <app-field
+            [id]="'custom-type'"
+            label="Custom vehicle type"
+            [control]="customType"
+            placeholder="e.g. Sprinter"
+          />
+        }
+      </section>
+    } @else {
+      <section class="panel arrangements" aria-labelledby="arrangements">
+        <div class="section-heading">
+          <div>
+            <h2 id="arrangements" tabindex="-1">Starting arrangement</h2>
+            <p>
+              {{
+                saved()
+                  ? 'Keep the saved arrangement or choose a new starting point.'
+                  : 'Choose an example and adjust it to match your vehicle.'
+              }}
+            </p>
+          </div>
+          <button class="text-button" type="button" (click)="details()">
+            {{ name.value }} <app-icon name="edit" /><span class="sr-only"
+              >Edit vehicle details</span
+            >
+          </button>
+        </div>
+        <div class="presets">
+          @for (p of options(); track p.name) {
+            <button
+              type="button"
+              class="preset"
+              [attr.aria-pressed]="selected() === p"
+              (click)="choose(p)"
+            >
+              <span class="mini-stage"><app-seat-map [grid]="p.grid" mode="miniature" /></span>
+              <span
+                ><strong>{{ p.name }}</strong
+                ><small>{{
+                  p.type ? p.capacity + ' passenger seats' : '0 seats · Empty grid'
+                }}</small></span
+              >
+              @if (selected() === p) {
+                <app-icon class="tick" name="check" />
+              }
+            </button>
+          }
+        </div>
+      </section>
+      @if (grid(); as current) {
+        @if (baseline(); as original) {
+          <section class="panel editor-panel">
+            <app-seat-editor
+              [grid]="current"
+              (gridChange)="grid.set($event)"
+              [baseline]="original"
+              [startInPreview]="previewFirst()"
+              [singleDriver]="singleDriver()"
+            />
+          </section>
+        }
+      }
+      @if (checkedGrid() && problems().length) {
+        <div tabindex="-1" id="grid-problems"><app-errors [messages]="problems()" /></div>
+      }
+    }
+    @if (errors().length) {
+      <div tabindex="-1" id="save-errors"><app-errors [messages]="errors()" /></div>
+    }
+    <footer class="form-footer">
+      <a appButton variant="quiet" routerLink="/app/vehicle-layouts">Cancel</a>
+      @if (step() === 'details') {
+        <button appButton type="submit">Choose seat layout <app-icon name="arrow" /></button>
+      } @else {
+        <button appButton type="submit">{{ busy() ? 'Saving…' : 'Save layout' }}</button>
+      }
+    </footer>
+  </fieldset>
+</form>
+@if (pendingPreset(); as p) {
+  <app-management-dialog
+    dialogId="replace-layout"
+    title="Replace the seating arrangement?"
+    [description]="'Use ' + p.name + ' and replace the current positions and seat numbers.'"
+    (dismiss)="pendingPreset.set(null)"
+    ><footer class="management-footer">
+      <button appButton variant="secondary" type="button" (click)="pendingPreset.set(null)">
+        Keep arrangement</button
+      ><button appButton type="button" (click)="start(p)">Use arrangement</button>
+    </footer></app-management-dialog
+  >
+}
+@if (discard()) {
+  <app-management-dialog
+    dialogId="discard-layout"
+    title="Discard unsaved changes?"
+    description="Leaving will discard your edits to this vehicle layout."
+    (dismiss)="answer(false)"
+    ><footer class="management-footer">
+      <button appButton variant="secondary" type="button" (click)="answer(false)">Stay here</button
+      ><button appButton class="directory-danger-button" type="button" (click)="answer(true)">
+        Discard changes
+      </button>
+    </footer></app-management-dialog
+  >
+}

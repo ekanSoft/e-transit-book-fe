@@ -15,7 +15,7 @@ type NavItem = {
   label: string;
   url: string;
   icon: IconName;
-  permission?: 'canViewTerminals' | 'canViewRoutes' | 'canViewEmployees';
+  permission?: 'canViewTerminals' | 'canViewRoutes' | 'canViewLayouts' | 'canViewEmployees';
 };
 const navigation: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [{ label: 'Dashboard', url: '/app/dashboard', icon: 'overview' }] },
@@ -24,6 +24,12 @@ const navigation: { group: string; items: NavItem[] }[] = [
     items: [
       { label: 'Terminals', url: '/app/terminals', icon: 'pin', permission: 'canViewTerminals' },
       { label: 'Routes', url: '/app/routes', icon: 'route', permission: 'canViewRoutes' },
+      {
+        label: 'Vehicle layouts',
+        url: '/app/vehicle-layouts',
+        icon: 'seat',
+        permission: 'canViewLayouts',
+      },
     ],
   },
   {
@@ -92,7 +98,8 @@ export class OperatorShell {
     () =>
       this.groups()
         .flatMap((g) => g.items)
-        .find((i) => i.url === this.url())?.label || 'Workspace',
+        .find((i) => i.url === this.url() || this.url().startsWith(i.url + '/'))?.label ||
+      'Workspace',
   );
   readonly initials = computed(
     () =>

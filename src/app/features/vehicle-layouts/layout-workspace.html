@@ -1,0 +1,56 @@
+<a class="back" routerLink="/app/vehicle-layouts"><app-icon name="chevron" /> Vehicle layouts</a>
+<div class="page-heading directory-heading">
+  <div>
+    <h1 tabindex="-1">{{ title() }}</h1>
+    <p>
+      @if (readOnly) {
+        Saved seating arrangement
+      } @else if (id()) {
+        Changes apply to future trips. Existing trips keep their saved seating arrangements.
+      } @else {
+        Set up the seating arrangement for your vehicle.
+      }
+    </p>
+  </div>
+  @if (readOnly && access.canWriteLayouts() && detail.hasValue()) {
+    <a appButton [routerLink]="['/app/vehicle-layouts', id(), 'edit']"
+      ><app-icon name="edit" />Edit layout</a
+    >
+  }
+</div>
+@if (access.canViewLayouts()) {
+  @if (id() && detail.error()) {
+    <div class="panel directory-message">
+      <app-errors [messages]="errors(detail.error())" /><button
+        appButton
+        variant="secondary"
+        (click)="detail.reload()"
+      >
+        Retry
+      </button>
+    </div>
+  } @else if (id() && !detail.hasValue()) {
+    <div class="panel directory-loading" role="status">Loading vehicle layout…</div>
+  } @else if (readOnly && detail.hasValue()) {
+    @let item = detail.value();
+    <section class="panel saved">
+      <header>
+        <div>
+          <h2>{{ item.customType || typeLabels[item.type] }}</h2>
+          <p>{{ item.capacity }} passenger {{ item.capacity === 1 ? 'seat' : 'seats' }}</p>
+        </div>
+        <span
+          class="badge directory-status"
+          [class.directory-positive]="item.status === 'ACTIVE'"
+          >{{ item.status === 'ACTIVE' ? 'Active' : 'Inactive' }}</span
+        >
+      </header>
+      <div class="saved-map"><app-seat-map [grid]="item.seatLayout" /></div>
+      <p class="map-key">
+        <app-icon name="wheel" />Driver <span>·</span> Numbered positions are passenger seats.
+      </p>
+    </section>
+  } @else if (access.canWriteLayouts()) {
+    <app-layout-form [saved]="detail.hasValue() ? detail.value() : null" />
+  }
+}

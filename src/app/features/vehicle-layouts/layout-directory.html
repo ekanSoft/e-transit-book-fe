@@ -1,0 +1,208 @@
+<div class="page-heading directory-heading">
+  <div>
+    <h1 tabindex="-1">Vehicle layouts</h1>
+    <p>Create and manage reusable seating arrangements for your trips.</p>
+  </div>
+  @if (access.canWriteLayouts()) {
+    <a appButton routerLink="new"><app-icon name="plus" /> Create layout</a>
+  }
+</div>
+@if (access.canViewLayouts()) {
+  <section class="panel directory" aria-labelledby="catalog-heading">
+    <div class="directory-toolbar">
+      <h2 id="catalog-heading">Layout directory</h2>
+      <div class="directory-filters">
+        <app-directory-search
+          label="Search vehicle layouts"
+          placeholder="Search name or custom type"
+          [value]="query().search"
+          (changed)="filter({ search: $event })"
+        />
+        <app-field
+          class="directory-filter"
+          [id]="'layout-type-filter'"
+          label="Filter by vehicle type"
+          [options]="types"
+          [control]="typeFilter"
+          [hideLabel]="true"
+          [optional]="true"
+          [overlayOptions]="true"
+        />
+        <app-field
+          class="directory-filter"
+          [id]="'layout-status-filter'"
+          label="Filter by status"
+          [options]="statuses"
+          [control]="statusFilter"
+          [hideLabel]="true"
+          [optional]="true"
+          [overlayOptions]="true"
+        />
+        @if (filtered()) {
+          <button type="button" class="text-button" (click)="clear()">Clear filters</button>
+        }
+      </div>
+    </div>
+    <div [attr.aria-busy]="list.isLoading()">
+      @if (list.error()) {
+        <div class="directory-message">
+          <app-errors [messages]="errors(list.error())" /><button
+            appButton
+            variant="secondary"
+            (click)="list.reload()"
+          >
+            Retry
+          </button>
+        </div>
+      } @else if (list.hasValue() && list.value().content.length) {
+        <table class="directory-table" role="table" aria-label="Vehicle layouts">
+          <thead role="rowgroup">
+            <tr role="row">
+              @for (
+                label of ['Layout name', 'Vehicle type', 'Passenger capacity', 'Status', 'Actions'];
+                track label
+              ) {
+                <th role="columnheader" scope="col" [class.directory-actions]="label === 'Actions'">
+                  {{ label }}
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            @for (layout of list.value().content; track layout._id) {
+              @let active = layout.status === 'ACTIVE';
+              <tr role="row">
+                <td role="cell" class="directory-identity">
+                  <span class="directory-avatar"><app-icon name="seat" /></span
+                  ><a class="directory-employee-name" [routerLink]="[layout._id]">{{
+                    layout.name
+                  }}</a>
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Vehicle type</span
+                  >{{ layout.customType || typeLabels[layout.type] }}
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Capacity</span>{{ layout.capacity }}
+                  {{ layout.capacity === 1 ? 'seat' : 'seats' }}
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Status</span
+                  ><span class="badge directory-status" [class.directory-positive]="active">{{
+                    active ? 'Active' : 'Inactive'
+                  }}</span>
+                </td>
+                <td role="cell" class="directory-actions">
+                  <button
+                    #trigger
+                    class="icon-button directory-row-trigger"
+                    [disabled]="list.isLoading() || busy()"
+                    [attr.popovertarget]="'layout-actions-' + layout._id"
+                    [attr.aria-label]="'Actions for ' + layout.name"
+                  >
+                    <app-icon name="more" />
+                  </button>
+                  <div
+                    popover
+                    #menu
+                    class="directory-popover"
+                    role="group"
+                    [id]="'layout-actions-' + layout._id"
+                    [attr.aria-label]="'Actions for ' + layout.name"
+                  >
+                    <a [routerLink]="[layout._id]"><app-icon name="seat" /> View layout</a>
+                    @if (access.canWriteLayouts()) {
+                      <a [routerLink]="[layout._id, 'edit']"
+                        ><app-icon name="edit" /> Edit layout</a
+                      >
+                      <button
+                        aria-haspopup="dialog"
+                        [class.directory-danger-text]="active"
+                        (click)="confirm(layout, trigger, menu)"
+                      >
+                        <app-icon [name]="active ? 'shield' : 'check'" />
+                        {{ active ? 'Deactivate' : 'Activate' }} layout
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else if (list.isLoading()) {
+        <div class="directory-loading">
+          <p role="status">Loading vehicle layouts…</p>
+          <div class="directory-skeleton" aria-hidden="true"></div>
+        </div>
+      } @else if (list.hasValue()) {
+        <div class="empty-state directory-empty">
+          <app-icon name="seat" />
+          @if (filtered()) {
+            <strong>No matching layouts</strong>
+            <p class="muted">Try a different name or clear the filters.</p>
+          } @else {
+            <strong>No vehicle layouts yet</strong>
+            <p class="muted">Create a seating arrangement to use when scheduling trips.</p>
+            @if (access.canWriteLayouts()) {
+              <a appButton variant="secondary" routerLink="new">Create layout</a>
+            }
+          }
+        </div>
+      }
+    </div>
+    @if (list.isLoading() || (list.hasValue() && list.value().total)) {
+      <div class="directory-footer">
+        <app-directory-pager
+          [page]="list.hasValue() ? list.value() : undefined"
+          [waiting]="list.isLoading()"
+          singular="layout"
+          plural="layouts"
+          (pageChange)="page($event)"
+        /><app-field
+          class="page-size"
+          [id]="'layout-page-size'"
+          label="Layouts per page"
+          [control]="sizeFilter"
+          [options]="sizes"
+          [hideLabel]="true"
+          [overlayOptions]="true"
+        />
+      </div>
+    }
+  </section>
+}
+@if (action(); as item) {
+  @if (access.canWriteLayouts()) {
+    @let active = item.layout.status === 'ACTIVE';
+    <app-management-dialog
+      dialogId="layout-status"
+      [title]="active ? 'Deactivate vehicle layout?' : 'Activate vehicle layout?'"
+      [trigger]="item.trigger"
+      [busy]="busy()"
+      [description]="
+        active
+          ? 'This layout will be unavailable for new trips. Existing trips will keep their saved seat arrangements.'
+          : 'This layout will be available when scheduling new trips.'
+      "
+      (dismiss)="action.set(null)"
+    >
+      <div class="management-body">
+        <strong>{{ item.layout.name }}</strong
+        ><app-errors [messages]="messages()" />
+      </div>
+      <footer class="management-footer">
+        <button appButton variant="secondary" [disabled]="busy()" (click)="action.set(null)">
+          Cancel</button
+        ><button
+          appButton
+          [class.directory-danger-button]="active"
+          [disabled]="busy() || review()"
+          (click)="toggle()"
+        >
+          {{ busy() ? 'Updating…' : active ? 'Deactivate layout' : 'Activate layout' }}
+        </button>
+      </footer>
+    </app-management-dialog>
+  }
+}

@@ -28,3 +28,9 @@ export const routesGuard: CanActivateFn = () =>
 
 export const employeesGuard: CanActivateFn = () =>
   inject(WorkspaceAccess).canViewEmployees() || inject(Router).parseUrl('/app/dashboard');
+
+export const layoutsGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canViewLayouts() || inject(Router).parseUrl('/app/dashboard');
+
+export const layoutWriteGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canWriteLayouts() || inject(Router).parseUrl('/app/vehicle-layouts');

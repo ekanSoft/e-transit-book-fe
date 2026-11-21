@@ -114,8 +114,11 @@ describe('workspace directory access', () => {
       const state = {} as RouterStateSnapshot;
       expect(TestBed.runInInjectionContext(() => routesGuard(route, state))).toBe(true);
       expect(access.canCreateRoute()).toBe(canWrite);
+      expect(access.canViewLayouts()).toBe(canWrite);
+      expect(access.canWriteLayouts()).toBe(canWrite);
       expect(access.canChangeRouteStatus()).toBe(canWrite);
       selectedBusiness.set({ ...business, accountStatus: 'SUSPENDED' });
+      expect(access.canWriteLayouts()).toBe(false);
       expect(access.canCreateRoute()).toBe(false);
       expect(access.canChangeRouteStatus()).toBe(false);
     },

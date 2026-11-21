@@ -1,0 +1,155 @@
+<div class="editor-heading">
+  <div>
+    <h2>Seat layout</h2>
+    <p class="muted">
+      {{
+        preview()
+          ? 'Review the arrangement from front to rear.'
+          : 'Choose a tool, then tap a position in the vehicle.'
+      }}
+    </p>
+  </div>
+  <button
+    appButton
+    variant="secondary"
+    type="button"
+    [attr.aria-pressed]="preview()"
+    (click)="preview.set(!preview())"
+  >
+    <app-icon [name]="preview() ? 'edit' : 'seat'" />{{
+      preview() ? 'Edit seats' : 'Preview layout'
+    }}
+  </button>
+</div>
+<div class="workbench" [class.preview]="preview()">
+  @if (!preview()) {
+    <div class="controls">
+      <h3>Editing tool</h3>
+      <div class="tools" role="group" aria-label="Editing tool">
+        @for (t of tools; track t.type) {
+          <button type="button" [attr.aria-pressed]="t.type === tool()" (click)="tool.set(t.type)">
+            <app-icon [name]="t.icon" />{{ t.name }}
+          </button>
+        }
+      </div>
+      <p class="help">
+        @switch (tool()) {
+          @case ('SEAT') {
+            Tap a seat to edit its number, or a gap to add a seat.
+          }
+          @case ('AISLE') {
+            Tap a position to leave it empty.
+          }
+          @case ('DRIVER') {
+            {{
+              singleDriver()
+                ? 'Moving the driver leaves the previous position empty.'
+                : 'Tap a position to place the driver.'
+            }}
+          }
+        }
+      </p>
+      @if (selectedSeat(); as s) {
+        <div class="seat-label">
+          <label for="seat-number">Seat number</label
+          ><input
+            id="seat-number"
+            #number
+            [value]="s.label"
+            (input)="rename(number.value)"
+            (keydown.enter)="$event.preventDefault(); finishLabel()"
+            [attr.aria-invalid]="!!s.error"
+            aria-describedby="seat-number-hint"
+          /><small id="seat-number-hint" [class.field-error]="s.error">{{
+            s.error || 'Row ' + s.row + ' · Position ' + (s.column + 1)
+          }}</small>
+        </div>
+      }
+      <div class="dimensions">
+        <h3>Grid size</h3>
+        <div>
+          <span>Rows</span
+          ><button
+            class="icon-button"
+            type="button"
+            aria-label="Remove last row"
+            [disabled]="grid().rows.length <= 1"
+            (click)="adjust('removeRow')"
+          >
+            <app-icon name="minus" /></button
+          ><b>{{ grid().rows.length }}</b
+          ><button
+            class="icon-button"
+            type="button"
+            aria-label="Add row"
+            (click)="adjust('addRow')"
+          >
+            <app-icon name="plus" />
+          </button>
+        </div>
+        <div>
+          <span>Columns</span
+          ><button
+            class="icon-button"
+            type="button"
+            aria-label="Remove rightmost column"
+            [disabled]="width() <= 1"
+            (click)="adjust('removeColumn')"
+          >
+            <app-icon name="minus" /></button
+          ><b>{{ width() }}</b
+          ><button
+            class="icon-button"
+            type="button"
+            aria-label="Add column"
+            (click)="adjust('addColumn')"
+          >
+            <app-icon name="plus" />
+          </button>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="text-button" [disabled]="!capacity()" (click)="renumber()">
+          Renumber seats</button
+        ><button type="button" class="text-button" (click)="reset()">Reset arrangement</button>
+      </div>
+    </div>
+  }
+  <div class="diagram">
+    <div class="capacity" role="status">
+      <app-icon name="users" /><span>Passenger capacity</span
+      ><strong>{{ capacity() }} {{ capacity() === 1 ? 'seat' : 'seats' }}</strong>
+    </div>
+    <app-seat-map
+      [grid]="grid()"
+      [mode]="preview() ? 'view' : 'edit'"
+      [selected]="selected()"
+      [errors]="issues().cells"
+      (cellPress)="apply($event)"
+    />
+    <div class="legend">
+      <span><i class="seat-key"></i>Seat</span><span><i class="gap-key"></i>Aisle</span
+      ><span><app-icon name="wheel" />Driver</span>
+    </div>
+  </div>
+</div>
+@if (messages().length) {
+  <div class="field-error" aria-live="polite">
+    @for (message of messages(); track message) {
+      <p>{{ message }}</p>
+    }
+  </div>
+}
+@if (confirmation(); as item) {
+  <app-management-dialog
+    dialogId="seat-change"
+    [title]="item.title"
+    [description]="item.message"
+    (dismiss)="confirmation.set(null)"
+    ><footer class="management-footer">
+      <button appButton variant="secondary" type="button" (click)="confirmation.set(null)">
+        Cancel</button
+      ><button appButton type="button" (click)="commit(item.grid)">{{ item.verb }}</button>
+    </footer></app-management-dialog
+  >
+}

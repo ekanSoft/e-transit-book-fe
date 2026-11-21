@@ -1,0 +1,52 @@
+<div class="map-scroll">
+  <div class="vehicle" [style.--columns]="width()">
+    <div class="end front" aria-hidden="true">Front</div>
+    <div
+      class="cabin"
+      [attr.role]="mode() === 'miniature' ? null : 'group'"
+      [attr.aria-label]="mode() === 'miniature' ? null : 'Seating arrangement, front to rear'"
+    >
+      @for (row of rows(); track row.row) {
+        <div class="seat-row">
+          @for (cell of row.cells; track $index; let col = $index) {
+            @let key = row.row + '-' + col;
+            @let error = errors().get(key);
+            @let selectedHere = selected()?.row === row.row && selected()?.column === col;
+            @if (mode() === 'edit') {
+              <button
+                type="button"
+                class="cell"
+                [attr.data-type]="cell.type"
+                [class.marked]="selectedHere"
+                [class.invalid]="error"
+                [attr.aria-label]="describe(row.row, col, cell, error)"
+                (click)="cellPress.emit({ row: row.row, column: col })"
+              >
+                <ng-container *ngTemplateOutlet="face; context: { $implicit: cell }" />
+                @if (error) {
+                  <b class="problem" aria-hidden="true">!</b>
+                }
+              </button>
+            } @else {
+              <span class="cell" [attr.data-type]="cell.type"
+                ><span class="sr-only">{{ describe(row.row, col, cell) }}</span
+                ><ng-container *ngTemplateOutlet="face; context: { $implicit: cell }"
+              /></span>
+            }
+          }
+        </div>
+      }
+    </div>
+    <div class="end rear" aria-hidden="true">Rear</div>
+  </div>
+</div>
+<ng-template #face let-cell>
+  @if (cell.type === 'DRIVER') {
+    <app-icon name="wheel" />
+  } @else if (cell.type === 'SEAT') {
+    <span aria-hidden="true" class="number">{{ cell.seatNumber || '—' }}</span>
+    @if (annotation(); as note) {
+      <ng-container *ngTemplateOutlet="note; context: { $implicit: cell }" />
+    }
+  }
+</ng-template>

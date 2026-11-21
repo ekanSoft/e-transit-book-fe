@@ -1,0 +1,162 @@
+:host {
+  display: block;
+  min-width: 0;
+  --cell: 48px;
+  --space: 7px;
+}
+.map-scroll {
+  overflow-x: auto;
+  padding: 12px 5px;
+}
+.vehicle {
+  width: max-content;
+  margin-inline: auto;
+  border: 2px solid var(--control-line);
+  background: var(--color-surface);
+  border-radius: 34px 34px 20px 20px;
+  padding: 8px 12px 6px;
+  box-shadow: inset 0 0 0 4px var(--raised);
+}
+.end {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.17em;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+.front {
+  border-bottom: 2px solid var(--color-line);
+  margin: 2px 2px 13px;
+  padding-bottom: 5px;
+}
+.rear {
+  margin-top: 8px;
+}
+.cabin {
+  display: grid;
+  gap: var(--space);
+}
+.seat-row {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), var(--cell));
+  gap: var(--space);
+}
+.cell {
+  min-width: 0;
+  min-height: var(--cell);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  position: relative;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+.cell[data-type='SEAT'] {
+  border-radius: 9px 9px 6px 6px;
+  background: var(--tint);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  border-bottom-width: 4px;
+}
+.cell[data-type='SEAT']::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
+}
+.number {
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  padding: 4px 3px;
+}
+.cell[data-type='DRIVER'] {
+  border: 1px solid var(--control-line);
+  border-radius: 50%;
+  color: var(--color-ink);
+  background: var(--raised);
+}
+.cell app-icon {
+  width: 24px;
+  height: 24px;
+}
+button[data-type='AISLE'] {
+  border: 1px dashed var(--control-line);
+  border-radius: 6px;
+}
+button:hover,
+button.marked {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+button:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+.cell.invalid {
+  border-color: var(--error);
+  background: var(--error-bg);
+  color: var(--error);
+}
+.problem {
+  position: absolute;
+  right: -3px;
+  top: -5px;
+  background: var(--error);
+  color: var(--error-bg);
+  border-radius: 50%;
+  width: 15px;
+  font-size: 11px;
+  line-height: 15px;
+}
+:host(.mini) {
+  --cell: 7px;
+  --space: 2px;
+}
+:host(.mini) .cell[data-type='AISLE'] {
+  border: 1px dotted var(--control-line);
+}
+:host(.mini) .map-scroll {
+  padding: 0;
+  overflow: visible;
+}
+:host(.mini) .vehicle {
+  padding: 5px;
+  border-width: 1px;
+  border-radius: 9px 9px 6px 6px;
+  box-shadow: none;
+}
+:host(.mini) .end,
+:host(.mini) .number,
+:host(.mini) app-icon {
+  display: none;
+}
+:host(.mini) .cell {
+  border-radius: 2px;
+  border-width: 1px;
+}
+:host(.mini) .cell::after {
+  display: none;
+}
+:host(.mini) .cell[data-type='DRIVER'] {
+  border-radius: 50%;
+  background: var(--color-muted);
+}
+@media (max-width: 480px) {
+  :host {
+    --cell: 44px;
+    --space: 4px;
+  }
+  .vehicle {
+    padding-inline: 8px;
+  }
+}

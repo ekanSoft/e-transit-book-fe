@@ -1,0 +1,42 @@
+.back,
+.map-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.back {
+  margin-bottom: 12px;
+  min-height: 28px;
+}
+.back app-icon {
+  width: 15px;
+  height: 15px;
+}
+.saved {
+  max-width: 900px;
+}
+.saved header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+.saved p {
+  color: var(--color-muted);
+}
+.saved-map {
+  background: var(--raised);
+  border-block: 1px solid var(--color-line);
+}
+.map-key {
+  padding: 12px 20px;
+}
+.map-key app-icon {
+  width: 16px;
+  height: 16px;
+}
+.page-heading h1 {
+  overflow-wrap: anywhere;
+}

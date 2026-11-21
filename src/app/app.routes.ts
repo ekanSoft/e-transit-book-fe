@@ -3,6 +3,7 @@ import {
   authGuard,
   employeesGuard,
   guestGuard,
+  layoutsGuard,
   routesGuard,
   terminalsGuard,
 } from './core/auth/guards';
@@ -88,6 +89,13 @@ export const routes: Routes = [
         title: 'Routes · eTransitBook',
         canActivate: [routesGuard],
         loadComponent: () => import('./features/routes/routes').then((m) => m.Routes),
+      },
+      {
+        path: 'app/vehicle-layouts',
+        title: 'Vehicle layouts · eTransitBook',
+        canActivate: [layoutsGuard],
+        loadChildren: () =>
+          import('./features/vehicle-layouts/layout-routes').then((m) => m.layoutRoutes),
       },
       {
         path: 'app/employees',

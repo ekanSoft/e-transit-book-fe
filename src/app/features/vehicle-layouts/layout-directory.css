@@ -1,0 +1,24 @@
+.directory-popover a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  min-height: 36px;
+  border-radius: 5px;
+  color: inherit;
+  font-size: 13px;
+  text-decoration: none;
+}
+.directory-popover a:hover {
+  background: var(--raised);
+}
+.page-size {
+  display: block;
+  width: 140px;
+  margin: 8px 0;
+}
+@media (max-width: 700px) {
+  .page-size {
+    margin: 0 0 12px 15px;
+  }
+}

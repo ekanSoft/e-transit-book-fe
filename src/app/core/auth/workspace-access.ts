@@ -40,6 +40,10 @@ export class WorkspaceAccess {
       this.session.business()?.accountStatus === 'ACTIVE',
   );
   readonly canChangeRouteStatus = this.canCreateRoute;
+  readonly canViewLayouts = computed(() => !!this.scope() && this.canManageOperations());
+  readonly canWriteLayouts = computed(
+    () => this.canViewLayouts() && this.session.business()?.accountStatus === 'ACTIVE',
+  );
   readonly canViewEmployees = computed(() => {
     const employee = this.employee();
     return this.canCreateTerminal() || (employee?.role === 'BRANCH_MANAGER' && !!employee.branch);
