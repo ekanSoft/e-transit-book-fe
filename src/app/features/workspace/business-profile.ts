@@ -6,6 +6,7 @@ import { errorMessages } from '../../core/http/errors';
 import { SettlementBankApi } from '../../core/http/settlement-bank-api';
 import { Errors } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
+import { publicUrl } from '../../shared/utilities/public-url';
 import { WorkspaceData, addressLabel } from './workspace-data';
 
 const settlementAccountViewRoles: readonly EmployeeRole[] = ['ADMIN'];
@@ -15,17 +16,6 @@ const documentLabels: Record<DocumentKey, string> = {
   formCAC: 'CAC form',
   memorandumAndArticle: 'Memorandum and Articles of Association',
 };
-function publicUrl(value?: string) {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password
-      ? url.href
-      : null;
-  } catch {
-    return null;
-  }
-}
 @Component({
   selector: 'app-business-profile',
   imports: [Icon, Errors, TitleCasePipe, NgOptimizedImage],

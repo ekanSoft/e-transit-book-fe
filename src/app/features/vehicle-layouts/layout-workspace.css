@@ -14,6 +14,11 @@
   width: 15px;
   height: 15px;
 }
+.heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .saved {
   max-width: 900px;
 }

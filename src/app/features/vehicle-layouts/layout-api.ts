@@ -1,7 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { computed, Injectable, inject } from '@angular/core';
+import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import { Api } from '../../core/http/api';
+import type { ApiResponse } from '../../core/http/api.models';
 import type { SeatLayout } from '../../shared/seat-map/seat-layout';
-import type { Page } from '../workspace/workspace-data';
 
 export const typeLabels = {
   CAR: 'Car',
@@ -25,12 +26,9 @@ export interface VehicleLayout extends LayoutInput {
   capacity: number;
   status: LayoutStatus;
 }
-export interface LayoutQuery {
-  page: number;
-  limit: number;
-  search: string;
-  type: string;
-  status: string;
+interface LayoutCache {
+  list?: Promise<ApiResponse<VehicleLayout[]>>;
+  details: Map<string, Promise<ApiResponse<VehicleLayout>>>;
 }
 
 export function layoutChanges(saved: LayoutInput, draft: LayoutInput): Partial<LayoutInput> {
@@ -47,24 +45,80 @@ export function layoutChanges(saved: LayoutInput, draft: LayoutInput): Partial<L
 @Injectable({ providedIn: 'root' })
 export class LayoutApi {
   private readonly api = inject(Api);
+  private readonly access = inject(WorkspaceAccess);
   private readonly path = '/vehicle-layouts';
-  list({ page, limit, search, type, status }: LayoutQuery) {
-    const query = new URLSearchParams({ page: String(page), limit: String(limit) });
-    if (search) query.set('search', search);
-    if (type) query.set('type', type);
-    if (status) query.set('status', status);
-    return this.api.get<Page<VehicleLayout>>(this.path + '?' + query);
+  private readonly cache = computed<LayoutCache | undefined>(() => {
+    const scope = this.access.scope();
+    return scope && this.access.canViewLayouts() ? { details: new Map() } : undefined;
+  });
+
+  private currentCache() {
+    const cache = this.cache();
+    if (!cache) throw new Error('Vehicle layouts are unavailable in this workspace.');
+    return cache;
   }
-  detail(id: string) {
-    return this.api.get<VehicleLayout>(this.path + '/' + id);
+
+  async list() {
+    const cache = this.currentCache();
+    if (cache.list) return cache.list;
+
+    const request = this.api.get<VehicleLayout[]>(this.path).catch((error: unknown) => {
+      if (cache.list === request) delete cache.list;
+      throw error;
+    });
+    cache.list = request;
+    return request;
   }
+
+  async detail(id: string) {
+    const cache = this.currentCache();
+    const catalog = cache.list;
+    if (catalog) {
+      const response = await catalog.catch(() => undefined);
+      if (cache !== this.cache()) throw new Error('The workspace changed.');
+      if (response && cache.list === catalog) {
+        const layout = response.data.find((item) => item._id === id);
+        if (layout) return { ...response, data: layout };
+      }
+    }
+    const existing = cache.details.get(id);
+    if (existing) return existing;
+
+    const request = this.api.get<VehicleLayout>(this.path + '/' + id).catch((error: unknown) => {
+      if (cache.details.get(id) === request) cache.details.delete(id);
+      throw error;
+    });
+    cache.details.set(id, request);
+    return request;
+  }
+
   create(body: LayoutInput) {
-    return this.api.post<VehicleLayout>(this.path, body);
+    return this.write(() => this.api.post<VehicleLayout>(this.path, body));
   }
   update(id: string, body: Partial<LayoutInput>) {
-    return this.api.patch<VehicleLayout>(this.path + '/' + id, body);
+    return this.write(() => this.api.patch<VehicleLayout>(this.path + '/' + id, body));
   }
   toggle(id: string) {
-    return this.api.patch<VehicleLayout>(this.path + '/' + id + '/toggle-status', null);
+    return this.write(
+      () => this.api.patch<VehicleLayout>(this.path + '/' + id + '/toggle-status', null),
+      id,
+    );
+  }
+
+  private async write(send: () => Promise<ApiResponse<VehicleLayout>>, toggleId?: string) {
+    const cache = this.currentCache();
+    try {
+      const response = await send();
+      delete cache.list;
+      cache.details.set(response.data._id, Promise.resolve(response));
+      return response;
+    } catch (error) {
+      // A failed status response may follow a successful flip on the server.
+      if (toggleId) {
+        delete cache.list;
+        cache.details.delete(toggleId);
+      }
+      throw error;
+    }
   }
 }

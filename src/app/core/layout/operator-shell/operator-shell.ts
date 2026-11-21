@@ -1,4 +1,4 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { NgOptimizedImage, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -10,6 +10,7 @@ import { Theme, ThemeToggle } from '../theme';
 import { Brand } from '../../../shared/ui/brand';
 import { Icon, IconName } from '../../../shared/ui/icon';
 import { employeeRoleLabel } from '../../../shared/utilities/employee-role';
+import { publicUrl } from '../../../shared/utilities/public-url';
 
 type NavItem = {
   label: string;
@@ -48,7 +49,16 @@ const navigation: { group: string; items: NavItem[] }[] = [
 ];
 @Component({
   selector: 'app-operator-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NgTemplateOutlet, Icon, Brand, ThemeToggle],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    NgTemplateOutlet,
+    NgOptimizedImage,
+    Icon,
+    Brand,
+    ThemeToggle,
+  ],
   templateUrl: './operator-shell.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -101,6 +111,7 @@ export class OperatorShell {
         .find((i) => i.url === this.url() || this.url().startsWith(i.url + '/'))?.label ||
       'Workspace',
   );
+  readonly logo = computed(() => publicUrl(this.session.business()?.logo));
   readonly initials = computed(
     () =>
       (this.session.employee()?.firstName?.[0] || '') +

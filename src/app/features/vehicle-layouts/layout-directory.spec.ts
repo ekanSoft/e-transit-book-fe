@@ -16,16 +16,15 @@ describe('layout directory', () => {
     status: 'INACTIVE',
     seatLayout: presets[3].grid,
   };
-  const result = {
-    data: {
-      content: [item],
-      currentPage: 1,
-      totalPages: 3,
-      total: 25,
-      hasPrev: false,
-      hasNext: true,
-    },
+  const van: VehicleLayout = {
+    ...item,
+    _id: 'van',
+    name: 'Shuttle',
+    type: 'OTHER',
+    customType: 'Sprinter',
+    status: 'ACTIVE',
   };
+  const result = { data: [item, van] };
   const api = { list: vi.fn(), toggle: vi.fn() };
   const allowed = signal(true);
   beforeEach(() => {
@@ -48,32 +47,36 @@ describe('layout directory', () => {
       ],
     });
   });
-  it('loads all statuses, pages on the server, and restarts filters on page one', async () => {
+  it('filters by name, custom type, vehicle type and status using one catalog request', async () => {
     const f = TestBed.createComponent(LayoutDirectory),
       c = f.componentInstance;
     await f.whenStable();
     expect(f.nativeElement.textContent).toContain('Inactive');
-    expect(api.list).toHaveBeenLastCalledWith({
-      page: 1,
-      limit: 10,
-      search: '',
-      type: '',
-      status: '',
-    });
-    c.page(2);
+    expect(api.list).toHaveBeenCalledExactlyOnceWith();
+    expect(c.layouts()).toEqual([item, van]);
+    expect(f.nativeElement.querySelector('app-directory-pager')).toBeNull();
+
+    c.filter({ search: ' COACH ' });
+    expect(c.layouts()).toEqual([item]);
+    c.filter({ search: 'sPrInTeR' });
+    expect(c.layouts()).toEqual([van]);
     await f.whenStable();
-    expect(api.list.mock.lastCall?.[0].page).toBe(2);
-    c.typeFilter.setValue('BUS');
+    expect(f.nativeElement.querySelector('a.directory-employee-name').getAttribute('href')).toBe(
+      '/van',
+    );
+
+    c.typeFilter.setValue('OTHER');
     c.statusFilter.setValue('INACTIVE');
-    c.filter({ search: 'coach' });
     await f.whenStable();
-    expect(api.list).toHaveBeenLastCalledWith({
-      page: 1,
-      limit: 10,
-      search: 'coach',
-      type: 'BUS',
-      status: 'INACTIVE',
-    });
+    expect(f.nativeElement.textContent).toContain('No matching layouts');
+    c.statusFilter.setValue('ACTIVE');
+    expect(c.layouts()).toEqual([van]);
+    c.typeFilter.setValue('BUS');
+    expect(c.layouts()).toEqual([]);
+    c.clear();
+    await f.whenStable();
+    expect(c.layouts()).toEqual([item, van]);
+    expect(api.list).toHaveBeenCalledTimes(1);
   });
   it('requires confirmation and refreshes once after a pending toggle', async () => {
     const f = TestBed.createComponent(LayoutDirectory),
@@ -98,7 +101,7 @@ describe('layout directory', () => {
   it('renders empty, failure and retry states', async () => {
     api.list
       .mockRejectedValueOnce(new Error('Unable to load layouts'))
-      .mockResolvedValueOnce({ data: { ...result.data, total: 0, content: [] } });
+      .mockResolvedValueOnce({ data: [] });
     const f = TestBed.createComponent(LayoutDirectory);
     await f.whenStable();
     expect(f.nativeElement.textContent).toContain('Unable to load layouts');

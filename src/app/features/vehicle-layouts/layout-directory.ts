@@ -4,7 +4,6 @@ import {
   Component,
   computed,
   DestroyRef,
-  effect,
   inject,
   linkedSignal,
   resource,
@@ -19,25 +18,18 @@ import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import { errorMessages } from '../../core/http/errors';
 import { Field } from '../../shared/forms/field';
 import { Button } from '../../shared/ui/button';
-import { DirectorySearch, DirectoryPager } from '../../shared/ui/directory-controls';
+import { DirectorySearch } from '../../shared/ui/directory-controls';
 import { Errors, Notifications } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
 import { ManagementDialog } from '../../shared/ui/management-dialog';
-import { LayoutApi, type LayoutQuery, typeLabels, type VehicleLayout } from './layout-api';
+import { LayoutApi, typeLabels, type VehicleLayout } from './layout-api';
+
+type LayoutFilters = { search: string; type: string; status: string };
 
 @Component({
   selector: 'app-layout-directory',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    Button,
-    DirectorySearch,
-    DirectoryPager,
-    Errors,
-    Icon,
-    Field,
-    ManagementDialog,
-    RouterLink,
-  ],
+  imports: [Button, DirectorySearch, Errors, Icon, Field, ManagementDialog, RouterLink],
   templateUrl: './layout-directory.html',
   styleUrl: './layout-directory.css',
 })
@@ -48,13 +40,12 @@ export class LayoutDirectory {
   private readonly notify = inject(Notifications);
   private readonly destroy = inject(DestroyRef);
   private readonly search = viewChild(DirectorySearch);
-  readonly query = signal<LayoutQuery>({ page: 1, limit: 10, search: '', type: '', status: '' });
+  readonly query = signal<LayoutFilters>({ search: '', type: '', status: '' });
   readonly filtered = computed(
     () => !!(this.query().type || this.query().status || this.query().search),
   );
   readonly typeFilter = new FormControl('', { nonNullable: true });
   readonly statusFilter = new FormControl('', { nonNullable: true });
-  readonly sizeFilter = new FormControl('10', { nonNullable: true });
   readonly types = [
     { value: '', label: 'All vehicle types' },
     ...Object.entries(typeLabels).map(([value, label]) => ({ value, label })),
@@ -64,24 +55,34 @@ export class LayoutDirectory {
     { value: 'ACTIVE', label: 'Active' },
     { value: 'INACTIVE', label: 'Inactive' },
   ];
-  readonly sizes = ['10', '25', '50'].map((value) => ({ value, label: value + ' per page' }));
   readonly typeLabels = typeLabels;
   readonly errors = errorMessages;
-  private readonly revision = signal(0);
   readonly list = resource({
-    params: () =>
-      this.access.canViewLayouts()
-        ? { scope: this.access.scope(), query: this.query(), revision: this.revision() }
-        : undefined,
-    loader: async ({ params, abortSignal }) => {
+    params: () => (this.access.canViewLayouts() ? this.access.scope() : undefined),
+    loader: async ({ abortSignal }) => {
       try {
-        return (await this.api.list(params.query)).data;
+        return (await this.api.list()).data;
       } catch (error) {
         if (!abortSignal.aborted && error instanceof HttpErrorResponse && error.status === 403)
           void this.session.loadContext();
         throw error;
       }
     },
+  });
+  readonly layouts = computed(() => {
+    if (!this.list.hasValue()) return [];
+    const { search, type, status } = this.query();
+    const term = search.trim().toLowerCase();
+    return this.list
+      .value()
+      .filter(
+        (layout) =>
+          (!type || layout.type === type) &&
+          (!status || layout.status === status) &&
+          (!term ||
+            layout.name.toLowerCase().includes(term) ||
+            layout.customType?.toLowerCase().includes(term)),
+      );
   });
   readonly action = linkedSignal({
     source: this.access.scope,
@@ -97,20 +98,9 @@ export class LayoutDirectory {
     this.statusFilter.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((status) => this.filter({ status }));
-    this.sizeFilter.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe((limit) => this.filter({ limit: Number(limit) }));
-    effect(() => {
-      const result = this.list.hasValue() && this.list.value();
-      if (result && this.query().page > Math.max(1, result.totalPages))
-        this.page(Math.max(1, result.totalPages));
-    });
   }
-  page(page: number) {
-    this.query.update((query) => ({ ...query, page }));
-  }
-  filter(change: Partial<Omit<LayoutQuery, 'page'>>) {
-    this.query.update((query) => ({ ...query, ...change, page: 1 }));
+  filter(change: Partial<LayoutFilters>) {
+    this.query.update((query) => ({ ...query, ...change }));
   }
   clear() {
     this.typeFilter.reset();
@@ -136,18 +126,19 @@ export class LayoutDirectory {
         data.status === 'ACTIVE' ? 'Vehicle layout activated.' : 'Vehicle layout deactivated.',
       );
       this.action.set(null);
-      this.revision.update((n) => n + 1);
     } catch (error) {
       if (this.destroy.destroyed || scope !== this.access.scope()) return;
       const messages = errorMessages(error);
       this.review.set(true);
       messages.push('Close this dialog and review the refreshed directory before trying again.');
       this.messages.set(messages);
-      this.revision.update((n) => n + 1);
       if (error instanceof HttpErrorResponse && error.status === 403)
         void this.session.loadContext();
     } finally {
-      if (!this.destroy.destroyed) this.busy.set(false);
+      if (!this.destroy.destroyed) {
+        if (scope === this.access.scope()) this.list.reload();
+        this.busy.set(false);
+      }
     }
   }
 }

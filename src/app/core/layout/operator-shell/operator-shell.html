@@ -25,12 +25,19 @@
       title="Sign in to switch business"
       (click)="drawer.close(); session.switchBusiness()"
     >
-      <span class="workspace-initial">{{ session.business()?.name?.charAt(0) || '•' }}</span><span
-        class="sidebar-label"
-        ><small>Current business</small
-        ><strong>{{ session.business()?.name || 'Business workspace' }}</strong></span
-      ><span class="sr-only">Sign in to switch business</span
-      ><app-icon class="switch-icon" name="switch" />
+      <span class="workspace-initial">
+        @if (logo(); as image) {
+          <img [ngSrc]="image" width="31" height="34" alt="" />
+        } @else {
+          {{ session.business()?.name?.charAt(0) || '•' }}
+        }
+      </span>
+      <span class="sidebar-label">
+        <!-- <small>Current business</small> -->
+        <strong>{{ session.business()?.name || 'Business workspace' }}</strong>
+      </span>
+      <span class="sr-only">Sign in to switch business</span>
+      <app-icon class="switch-icon" name="switch" />
     </button>
     <nav aria-label="Workspace navigation">
       @for (group of groups(); track group.group) {

@@ -93,11 +93,12 @@ standard error handling.
 - Errors have `success: false`, `statusCode`, `error`, and `message`. `message`
   can be a string or an array. Show specific validation messages alongside the
   affected fields or in the screen's error summary.
-- Layouts and trips paginate. `data` contains `content`, `total`, `pageSize`,
+- Trips paginate. `data` contains `content`, `total`, `pageSize`,
   `currentPage`, `totalPages`, `hasNext`, `hasPrev`, and optional `nextPage`
   and `previousPage`. `page` starts at 1 and `limit` defaults to 10. `pageSize`
   is the actual number of rows returned on that page. Reset to page 1 when
   filters or the page limit change.
+- `GET /api/v1/vehicle-layouts` returns the complete catalog in `data` as an array.
 - `GET /api/v1/branch` and `GET /api/v1/routes` return complete arrays in
   `data`. Reuse the existing route and terminal clients for lookups. See
   [branch and route lists](FRONTEND_BRANCH_ROUTE_LISTS.md).
@@ -112,18 +113,31 @@ standard error handling.
 
 | Request                                           | Input                                                           | `data` on success                                                     |
 | ------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `GET /api/v1/vehicle-layouts`                     | `page`, `limit`, `search`, `type`, `status`                     | Page of full layout records, including `seatLayout`.                  |
+| `GET /api/v1/vehicle-layouts`                     | None                                                            | Full layout records for the authenticated business, newest first, including `seatLayout`. |
 | `GET /api/v1/vehicle-layouts/:id`                 | Layout ID                                                       | One full layout.                                                      |
 | `POST /api/v1/vehicle-layouts`                    | `name`, `type`, `seatLayout`, and `customType` for `OTHER`      | New layout with `status: "ACTIVE"` and calculated `capacity` (`201`). |
 | `PATCH /api/v1/vehicle-layouts/:id`               | Changed `name`, `type`, `customType`, `seatLayout`, or `status` | Saved layout (`200`). Send the full grid if changing `seatLayout`.    |
 | `PATCH /api/v1/vehicle-layouts/:id/toggle-status` | Layout ID                                                       | Saved layout with `ACTIVE` and `INACTIVE` flipped (`200`).            |
 
-The directory can show name, type, passenger capacity, and status with a
-create action and per-row view/edit and activate/deactivate actions. Search
-matches name or custom type case-insensitively and combines with filters.
-Default the directory to all statuses so inactive records can be reactivated.
-For trip pickers, query `status=ACTIVE` and support pagination or search across
-the catalog. A first page with ten results is only one page of options.
+### Directory and layout data
+
+The directory reads the array directly from `data`, with `[]` for an empty
+catalog. It shows name, type, passenger capacity, and status. Case-insensitive
+name and custom-type search combines with the local vehicle-type and status
+filters. All statuses are visible by default. For trip pickers with catalog
+access, filter the array locally to `ACTIVE`.
+
+Each row links to its detail page and supports native link behavior, including
+Ctrl+Click and opening in a new tab. The separate **Actions** menu provides view,
+edit, and activate or deactivate actions according to workspace permissions.
+
+`LayoutApi` keeps an in-memory cache scoped to the authenticated session and
+business. View and edit reuse complete records from the catalog. When a record
+is missing from memory, such as after a refresh or in a new tab, the frontend
+fetches it by ID. Successful creates, edits, and status changes invalidate the
+catalog and cache the returned record for subsequent detail reads. The
+directory refreshes after a status change or an uncertain toggle result.
+Switching businesses starts with a fresh cache.
 
 ### Editor behavior
 
@@ -132,6 +146,9 @@ keep the preview visible beside the editor. On mobile, use sequential steps
 and give the seat grid enough room for touch. Keep the same renderer for
 presets, editing, trip previews, pricing, and read-only seat views.
 
+- **Back** returns from **Preview layout** to the seat editor, then from the
+  editor to **Vehicle details**. The seating draft survives both transitions.
+  **Cancel** leaves the workspace after confirmation if there are unsaved changes.
 - Name and vehicle type are required. Trim the name and limit it to 120
   characters. Names are unique within the company after trimming and are
   case-sensitive. Put the `409` duplicate message on the name field.
@@ -403,7 +420,7 @@ Bookings, reservations, and actual status from the source never carry over.
 
 | Build order                             | Verify                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1. Layout directory and editor          | Create an active layout from a preset or custom grid, check the returned capacity, reject duplicate seat labels ignoring case, and find/reactivate an inactive layout. A duplicate name surfaces the `409` next to the field.                                                                                                              |
+| 1. Layout directory and editor          | Create an active layout from a preset or custom grid and check its returned capacity. Verify create, edit, and reactivation refresh the directory. Check that filters reuse one catalog read, row links and Actions work independently, view and edit reuse cached seat grids, and a refreshed detail page fetches by ID. Confirm duplicate seat labels are rejected regardless of case and a duplicate name surfaces the `409` next to the field. |
 | 2. Trip directory, detail, and creation | Schedule with an active route and layout. Test empty setup, later-today and overnight departures, a WAT date near UTC midnight, and preservation of a trip snapshot after editing its template. Check pagination and that an inactive route remains usable as a historical list filter.                                                    |
 | 3. Editing, layout and status           | Clear the arrival estimate, retain or clear seat prices, and show the `409` recovery path. Verify replacing a layout fails when a booked seat is missing and reports dropped prices after a valid save. Verify cancellation with bookings is refused and departure moves unchecked passengers to the missed list.                          |
 | 4. Copy and manifest                    | Preview both errors and dropped prices, save a corrected batch, and confirm correct WAT dates and zero bookings on copies. Exercise terminal manager and booking agent access with one departure from their branch and one arriving there. Test manifest access for drivers and accountants and verify an empty manifest renders normally. |
@@ -414,9 +431,9 @@ Bookings, reservations, and actual status from the source never carry over.
 
 | Question                                     | Start here                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| What layout endpoints can my role call?      | [Vehicle layouts controller](../src/transport/vehicle-layouts/vehicle-layouts.controller.ts), [role guards](../src/common/guards/employee-role.guard.ts)                                                                                                                                                                                               |
-| What do we send for a layout?                | [Create DTO and seat types](../src/transport/vehicle-layouts/dto/create-vehicle-layout.dto.ts), [update DTO](../src/transport/vehicle-layouts/dto/update-vehicle-layout.dto.ts), [list filters](../src/transport/vehicle-layouts/dto/list-vehicle-layouts.dto.ts), [example grid](../src/transport/vehicle-layouts/dto/vehicle-seat-layout.example.ts) |
-| How are capacity and lifecycle enforced?     | [Layout service](../src/transport/vehicle-layouts/vehicle-layouts.service.ts), [layout schema](../src/transport/vehicle-layouts/schema/vehicle-layout.schema.ts)                                                                                                                                                                                       |
+| What layout endpoints can my role call?      | [Vehicle layouts controller](../../../e-transit-book/src/transport/vehicle-layouts/vehicle-layouts.controller.ts), [role guards](../../../e-transit-book/src/common/guards/employee-role.guard.ts) |
+| What do we send for a layout?                | [Create DTO and seat types](../../../e-transit-book/src/transport/vehicle-layouts/dto/create-vehicle-layout.dto.ts), [update DTO](../../../e-transit-book/src/transport/vehicle-layouts/dto/update-vehicle-layout.dto.ts), [example grid](../../../e-transit-book/src/transport/vehicle-layouts/dto/vehicle-seat-layout.example.ts) |
+| How are capacity and lifecycle enforced?     | [Layout service](../../../e-transit-book/src/transport/vehicle-layouts/vehicle-layouts.service.ts), [layout schema](../../../e-transit-book/src/transport/vehicle-layouts/schema/vehicle-layout.schema.ts) |
 | How do we pick terminals and routes?         | [Branch controller](../src/branch/branch.controller.ts), [routes controller](../src/transport/routes/routes.controller.ts), [routes service](../src/transport/routes/routes.service.ts)                                                                                                                                                                |
 | Which trip actions and request fields exist? | [Trips controller](../src/transport/trips/trips.controller.ts), [create and pricing DTO](../src/transport/trips/dto/create-trip.dto.ts), [list filters](../src/transport/trips/dto/list-trips.dto.ts), [update DTO](../src/transport/trips/dto/update-trip.dto.ts), [copy DTO](../src/transport/trips/dto/copy-trips-day.dto.ts)                       |
 | How do trip reads and writes behave?         | [Trips service](../src/transport/trips/trips.service.ts), [trip schema and status transitions](../src/transport/trips/schema/trip.schema.ts), [branch access helper](../src/utils/helpers.ts)                                                                                                                                                          |
@@ -437,4 +454,5 @@ Paths below are relative to the `e-transit-book-fe` repository.
 | Role checks, tenant scope, and authenticated session  | `src/app/core/auth/workspace-access.ts`, `src/app/core/auth/routing.ts`, `src/app/core/auth/session.ts`                             |
 | API envelopes and error summaries                     | `src/app/core/http/api.ts`, `src/app/core/http/api.models.ts`, `src/app/core/http/errors.ts`                                        |
 | Existing terminal and route data                      | `src/app/features/workspace/workspace-data.ts`, `src/app/features/routes/routes.ts`, `src/app/features/routes/route-form.ts`        |
+| Vehicle layout directory, cache, and workspace        | `src/app/features/vehicle-layouts/layout-directory.ts`, `src/app/features/vehicle-layouts/layout-api.ts`, `src/app/features/vehicle-layouts/layout-workspace.ts` |
 | Directory search, filters, and pagination conventions | `src/app/shared/ui/directory-controls.ts`, `src/app/features/employees/employees.ts`, `src/app/features/employees/employees-api.ts` |

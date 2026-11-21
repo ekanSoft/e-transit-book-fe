@@ -54,7 +54,7 @@
             Retry
           </button>
         </div>
-      } @else if (list.hasValue() && list.value().content.length) {
+      } @else if (layouts().length) {
         <table class="directory-table" role="table" aria-label="Vehicle layouts">
           <thead role="rowgroup">
             <tr role="row">
@@ -69,9 +69,9 @@
             </tr>
           </thead>
           <tbody role="rowgroup">
-            @for (layout of list.value().content; track layout._id) {
+            @for (layout of layouts(); track layout._id) {
               @let active = layout.status === 'ACTIVE';
-              <tr role="row">
+              <tr role="row" class="layout-row directory-clickable">
                 <td role="cell" class="directory-identity">
                   <span class="directory-avatar"><app-icon name="seat" /></span
                   ><a class="directory-employee-name" [routerLink]="[layout._id]">{{
@@ -151,25 +151,6 @@
         </div>
       }
     </div>
-    @if (list.isLoading() || (list.hasValue() && list.value().total)) {
-      <div class="directory-footer">
-        <app-directory-pager
-          [page]="list.hasValue() ? list.value() : undefined"
-          [waiting]="list.isLoading()"
-          singular="layout"
-          plural="layouts"
-          (pageChange)="page($event)"
-        /><app-field
-          class="page-size"
-          [id]="'layout-page-size'"
-          label="Layouts per page"
-          [control]="sizeFilter"
-          [options]="sizes"
-          [hideLabel]="true"
-          [overlayOptions]="true"
-        />
-      </div>
-    }
   </section>
 }
 @if (action(); as item) {

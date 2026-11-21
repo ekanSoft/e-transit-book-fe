@@ -12,13 +12,28 @@
 .directory-popover a:hover {
   background: var(--raised);
 }
-.page-size {
-  display: block;
-  width: 140px;
-  margin: 8px 0;
+.layout-row {
+  position: relative;
 }
+
+.layout-row .directory-identity {
+  position: static;
+}
+
+.layout-row .directory-employee-name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.layout-row .directory-row-trigger {
+  position: relative;
+  z-index: 1;
+}
+
 @media (max-width: 700px) {
-  .page-size {
-    margin: 0 0 12px 15px;
+  .layout-row .directory-avatar {
+    inset: 14px auto auto 15px;
+    translate: none;
   }
 }

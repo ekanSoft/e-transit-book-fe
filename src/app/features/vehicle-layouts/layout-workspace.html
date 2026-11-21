@@ -12,10 +12,21 @@
       }
     </p>
   </div>
-  @if (readOnly && access.canWriteLayouts() && detail.hasValue()) {
-    <a appButton [routerLink]="['/app/vehicle-layouts', id(), 'edit']"
-      ><app-icon name="edit" />Edit layout</a
-    >
+  @if (readOnly) {
+    <div class="heading-actions">
+      <a
+        appButton
+        variant="secondary"
+        routerLink="/app/vehicle-layouts"
+        aria-label="Back to vehicle layouts"
+        >Back</a
+      >
+      @if (access.canWriteLayouts() && detail.hasValue()) {
+        <a appButton [routerLink]="['/app/vehicle-layouts', id(), 'edit']"
+          ><app-icon name="edit" />Edit layout</a
+        >
+      }
+    </div>
   }
 </div>
 @if (access.canViewLayouts()) {
