@@ -1,0 +1,152 @@
+<app-management-dialog
+  [title]="employee() ? 'Edit employee' : 'Add employee'"
+  [description]="employee() ? name(employee()!) : ''"
+  [trigger]="trigger()"
+  [busy]="busy()"
+  [drawer]="true"
+  (dismiss)="dismissed.emit()"
+>
+  <form
+    #element
+    class="employee-form"
+    [formGroup]="form"
+    (ngSubmit)="submit(element)"
+    [attr.aria-busy]="busy()"
+    novalidate
+  >
+    <div class="management-body">
+      <app-errors [messages]="errors()" />
+      <fieldset [disabled]="busy()">
+        <section aria-labelledby="employee-details-heading">
+          <h3 id="employee-details-heading">Personal details</h3>
+          <div class="form-grid">
+            <app-field
+              [id]="'employee-first-name'"
+              label="First name"
+              [control]="form.controls.firstName"
+              autocomplete="off"
+              [maxLength]="100"
+            />
+            <app-field
+              [id]="'employee-last-name'"
+              label="Last name"
+              [control]="form.controls.lastName"
+              autocomplete="off"
+              [maxLength]="100"
+            />
+            @if (employee(); as current) {
+              <div>
+                <label for="employee-email-saved">Sign-in email</label>
+                <input id="employee-email-saved" type="email" [value]="current.email" readonly />
+              </div>
+            } @else {
+              <app-field
+                [id]="'employee-email'"
+                label="Email address"
+                [control]="form.controls.email"
+                type="email"
+                [maxLength]="150"
+              />
+            }
+            <app-field
+              [id]="'employee-phone'"
+              label="Phone number"
+              [control]="form.controls.phoneNumber"
+              type="tel"
+              placeholder="08012345678"
+            />
+            <app-field
+              [id]="'employee-gender'"
+              label="Gender"
+              [control]="form.controls.gender"
+              [options]="genderOptions"
+              [overlayOptions]="true"
+              [optional]="true"
+            />
+          </div>
+        </section>
+        <div class="employee-access">
+          <div class="form-grid">
+            <app-field
+              [id]="'employee-role'"
+              label="Role"
+              [control]="form.controls.role"
+              [options]="roleOptions()"
+              [overlayOptions]="true"
+              placeholder="Select a role"
+            />
+            @if (showTerminal()) {
+              @if (terminalOptions().length) {
+                <app-field
+                  [id]="'employee-terminal'"
+                  label="Assigned terminal"
+                  [control]="form.controls.branch"
+                  [options]="terminalOptions()"
+                  [overlayOptions]="true"
+                  placeholder="Select a terminal"
+                  [hint]="
+                    terminalMissing()
+                      ? 'The current terminal is unavailable. Select a terminal from the list.'
+                      : ''
+                  "
+                />
+              } @else {
+                <div>
+                  <p class="field-hint" role="status">
+                    @if (terminalLoadFailed()) {
+                      Terminal choices could not be loaded.
+                    } @else if (terminals()) {
+                      Add a terminal before assigning this role.
+                    } @else {
+                      Loading terminals…
+                    }
+                  </p>
+                  @if (terminalLoadFailed()) {
+                    <button class="text-button" type="button" (click)="retryTerminals.emit()">
+                      Retry loading terminals
+                    </button>
+                  }
+                </div>
+              }
+            }
+            <app-field
+              class="full-width"
+              [id]="'employee-password'"
+              [label]="employee() ? 'New password' : 'Initial password'"
+              [control]="form.controls.password"
+              type="password"
+              autocomplete="new-password"
+              [maxLength]="100"
+              [optional]="!!employee()"
+              [hint]="
+                employee()
+                  ? 'Leave blank to keep the current password.'
+                  : 'Use at least 8 characters. The system sends sign-in details to the address above.'
+              "
+            />
+          </div>
+        </div>
+      </fieldset>
+    </div>
+    <footer class="management-footer">
+      <button
+        appButton
+        variant="secondary"
+        type="button"
+        [disabled]="busy()"
+        (click)="dismissed.emit()"
+      >
+        Cancel
+      </button>
+      <button
+        appButton
+        type="submit"
+        [disabled]="
+          busy() || (!!employee() && !changed()) || (showTerminal() && !terminalOptions().length)
+        "
+      >
+        {{ busy() ? 'Saving…' : employee() ? 'Save changes' : 'Add employee' }}
+      </button>
+    </footer>
+  </form>
+</app-management-dialog>

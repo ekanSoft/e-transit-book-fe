@@ -7,7 +7,6 @@ describe('Backend multipart contract', () => {
         email: 'TEST@EXAMPLE.COM ',
         contactPhoneNumber: '08012345678',
         supportContact: '2348098765432',
-        businessType: 'TRANSPORTATION',
         address: {
           street: ' 12 Allen Avenue ',
           city: 'Ikeja',
@@ -19,6 +18,7 @@ describe('Backend multipart contract', () => {
     expect(data.get('contactPhoneNumber')).toBe('+2348012345678');
     expect(data.get('supportContact')).toBe('+2348098765432');
     expect(data.has('supportPhoneNumber')).toBe(false);
+    expect(data.has('businessType')).toBe(false);
     expect(data.get('email')).toBe('test@example.com');
     expect(JSON.parse(String(data.get('address')))).toEqual({
       street: '12 Allen Avenue',

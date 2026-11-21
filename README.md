@@ -1,6 +1,6 @@
 # eTransitBook operator portal
 
-Angular 21.2, TypeScript, and Tailwind CSS 4. The portal includes employee authentication, business registration, approval status, operational reporting, a terminal directory, and separate company and employee profiles.
+Angular 21.2, TypeScript, and Tailwind CSS 4. The portal includes employee authentication, business registration, approval status, operational reporting, terminal and employee management, and separate company and employee profiles.
 
 ## Local setup
 
@@ -11,7 +11,7 @@ npm ci
 npm start
 ```
 
-The frontend opens at `http://localhost:4200`. The backend must run at `http://localhost:4000/api/v1`, with its MongoDB replica set, Redis, email, and upload configuration available.
+The frontend opens at `http://localhost:4200`. The backend must run at `http://localhost:4500/api/v1`, with its MongoDB replica set, Redis, email, and upload configuration available.
 
 **Email links:** set the backend's `FRONTEND_URL` to the frontend's origin, e.g. `http://localhost:4200`, and restart the backend after changing it. Alternatively, run `npm start -- --port 3000` if the backend uses that origin. The local backend inspected during implementation had `FRONTEND_URL=http://localhost:3000`; that does not match Angular's default port.
 
@@ -21,7 +21,7 @@ Angular uses build-time environment files, not automatic `.env` loading:
 
 | Configuration | File                                          | API base URL                   |
 | ------------- | --------------------------------------------- | ------------------------------ |
-| Development   | `src/environments/environment.development.ts` | `http://localhost:4000/api/v1` |
+| Development   | `src/environments/environment.development.ts` | `http://localhost:4500/api/v1` |
 | Production    | `src/environments/environment.ts`             | `/api/v1`                      |
 
 Production intentionally uses a same-origin relative URL. Configure the deployment reverse proxy to forward `/api/v1` to the backend. For a separate API origin, set `apiBaseUrl` in the appropriate build environment before building and configure backend CORS accordingly. No API keys, Swagger credentials, or production hostnames belong in these files.
@@ -37,25 +37,26 @@ Static hosting is also possible using `dist/e-transit-book-fe/browser`. Configur
 
 ## Routes and behavior
 
-| Route                     | Purpose                                                          |
-| ------------------------- | ---------------------------------------------------------------- |
-| `/login`                  | Sign in; optional `?slug=…` scopes a business                    |
-| `/signup`                 | Create a business/admin, then show check-email confirmation      |
-| `/verify-signup?token=…`  | Confirm the email token; request another verification email      |
-| `/forgot-password`        | Request a reset link; choose a business if required              |
-| `/reset-password?token=…` | Set and confirm a new password                                   |
-| `/auth/access-status`     | Backend explanation for a denied sign-in                          |
-| `/auth/select-business`   | Complete a temporary multi-business login                        |
-| `/onboarding`             | Resume the first missing registration stage                      |
-| `/pending-approval`       | Pending review, restricted account, or recoverable context error |
+| Route                     | Purpose                                                                          |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `/login`                  | Sign in even with an active session. An optional `?slug=…` scopes the business.  |
+| `/signup`                 | Create a business/admin, then show check-email confirmation                      |
+| `/verify-signup?token=…`  | Confirm the email token; request another verification email                      |
+| `/forgot-password`        | Request a reset link; choose a business if required                              |
+| `/reset-password?token=…` | Set and confirm a new password                                                   |
+| `/auth/access-status`     | Backend explanation for a denied sign-in                                         |
+| `/auth/select-business`   | Complete a temporary multi-business login                                        |
+| `/onboarding`             | Resume the first missing registration stage                                      |
+| `/pending-approval`       | Pending review, restricted account, or recoverable context error                 |
 | `/app/dashboard`          | Operational dashboard for the selected business (also the destination of `/app`) |
-| `/app/terminals`           | Searchable, paginated terminal directory |
-| `/app/business-profile`   | Read-only registration details and primary terminal |
-| `/app/account`            | Employee profile, workspace role, and appearance |
+| `/app/terminals`          | Searchable terminal directory with permission-aware creation and editing         |
+| `/app/employees`          | Searchable employee directory, assignments, and account status management        |
+| `/app/business-profile`   | Read-only registration details and primary terminal                              |
+| `/app/account`            | Employee profile, workspace role, and appearance                                 |
 
 The session service owns JWT storage under `etransitbook.session`. It reloads `/employees/me` and `/business` after refresh. There is no refresh-token flow because the backend does not provide one. Protected API `401` responses clear authenticated state and redirect to sign-in; rejected login credentials remain inline. Bearer tokens are attached only to the configured API's protected endpoints, never to public auth calls or third-party URLs.
 
-Temporary login-selection tokens remain in memory, separate from the JWT, and expire after the backend-specified time. Refreshing that selection screen requires signing in again. Email resend/reset selection uses a business slug and does not reuse a login-selection token. Logout clears all session and selection state; stale requests cannot restore a logged-out session.
+The sign-in form stays available with an existing session. A successful new sign-in replaces the stored JWT after any required business selection. Temporary login-selection tokens remain in memory, separate from the JWT, and expire after the backend-specified time. Refreshing that selection screen requires signing in again. Email resend/reset selection uses a business slug and does not reuse a login-selection token. Logout clears all session and selection state; stale requests cannot restore a logged-out session.
 
 Routing uses both `accountStatus` and `registrationComplete`. Pending incomplete businesses resume setup; pending complete businesses see manual-review status. Completed active businesses open the dashboard. If an active business has incomplete records, or the completion flag disagrees with the saved stages, the status page offers a recheck. The backend locks registration edits for active businesses. Suspended, rejected, and inactive businesses are shown status information; backend eligibility errors are preserved. The backend remains the authorization authority.
 
@@ -67,9 +68,15 @@ The dashboard uses `GET /reports/dashboard` for totals, payment mix and upcoming
 
 Switching workspaces signs out the current membership and opens sign-in with the employee email prefilled. A fresh login issues the selection token or session JWT. There is no authenticated token-exchange endpoint. Company verification links are displayed to administrators and operations managers. The backend currently includes those fields in its business response to other authenticated roles too.
 
+- **Terminals** loads the full business list, including the original onboarding terminal, and searches it locally by name. Admins and Operations Managers can add and edit terminals and designate an active Terminal Manager. Terminal Managers can edit their assigned terminal. The backend stores the designation separately from the employee’s terminal assignment.
+- **Employees** includes server-side search, pagination, and role and terminal filters. Filtering by account status would require a backend API change. Admins and Operations Managers can manage non-admin employees across the selected business. Terminal Managers can view employees at their own terminal, add Booking Agents, and manage existing Booking Agents and Drivers. The server assigns their terminal automatically. Driver is temporarily unavailable for role assignment. Admin accounts are read-only in the directory.
+- Employee creation requires an Initial staff password. The backend activates the account and attempts to email sign-in details. Sign-in email is read-only after creation. Operations Manager is company-wide, while Terminal Managers, Booking Agents, Accountants and Drivers require a terminal assignment. Moving an employee to Operations Manager clears their previous assignment.
+- The employee form searches the business’s terminal list. Admins and Operations Managers can add a missing terminal in a dialog, which selects it and keeps the employee draft open.
+- Both directories use the configured API base URL and current authenticated business. Employee navigation, deep links, and row actions use the same workspace permissions. No new environment settings are required.
+
 ## Onboarding contracts
 
-The wizard orders Business Profile → Primary Terminal → Business Verification. Each successful PATCH is followed by a fresh business and employee read. Saved steps can be reopened while registration is editable. The terminal lookup follows the paginated directory until it finds the backend's `primeBranch` flag. Editing an existing primary terminal requires the account assigned to it because the backend upsert targets the signed-in employee's branch.
+The wizard orders Business Profile → Primary Terminal → Business Verification. Each successful PATCH is followed by a fresh business and employee read. Saved steps can be reopened while registration is editable. The terminal lookup finds the backend's `primeBranch` flag in the full terminal list. Editing an existing primary terminal requires the account assigned to it because the backend upsert targets the signed-in employee's branch.
 
 - Profile uses multipart data with an address JSON string and optional `logo`. The request field for support phone is `supportContact`; the returned field is `supportPhoneNumber`.
 - Business and terminal addresses send street, city, state and its two-letter code. The API supplies Nigeria and NG. The dropdown uses a bundled copy of the backend’s `src/common/data/nigeria-states.json`. After changing that file, run `npm run sync:states` with the two repositories checked out side by side and commit the updated copy. Frontend builds use the checked-in file.
@@ -90,7 +97,7 @@ npm run build
 
 Tests cover session persistence, selected-business login, expiry/401 handling, logout races, status routing, stage resume, multipart payloads, phone normalization, email business selection, token links, password confirmation, and field/file validation.
 
-`check:api` performs non-mutating requests against all twelve integrated endpoints, checking validation/authentication envelopes. Optional process environment variables `API_BASE_URL`, `TEST_EMAIL`, and `TEST_PASSWORD` enable authenticated login and context checks. Supply credentials through your terminal environment; do not commit them. The script does not print credentials or tokens.
+`check:api` performs non-mutating requests that check validation and authentication envelopes, including the terminal and employee management endpoints. Optional process environment variables `API_BASE_URL`, `TEST_EMAIL`, and `TEST_PASSWORD` enable authenticated login and context checks. Supply credentials through your terminal environment and keep them out of version control. The script keeps credentials and tokens out of its output.
 
 Manual browser checks should include 360, 768, and 1440 px widths; keyboard traversal; password visibility; inline errors; mobile dialog focus/Escape behavior; sidebar collapse; account menu; refresh after login; direct token links; each registration stage; and pending approval. Live write tests need a disposable unapproved business. Do not edit active business data to manufacture an onboarding state.
 
@@ -105,6 +112,7 @@ See `docs/VERIFICATION.md` for observed evidence and limits.
 - `shared/ui`: buttons, icons, brand, notifications and error feedback.
 - `features/auth`: lazy authentication pages and shared email request flow.
 - `features/onboarding`: step forms, API payload builders, wizard and account status.
-- `features/workspace`: dashboard, terminal directory, read-only business profile and account settings.
+- `features/workspace`: dashboard, terminal management, read-only business profile and account settings.
+- `features/employees`: employee directory, forms and API integration.
 
 Typed Reactive Forms follow the repository conventions; signals own application/feature state. Native controls and a modal `<dialog>` provide keyboard behavior without a large UI framework. No backend source files were changed.

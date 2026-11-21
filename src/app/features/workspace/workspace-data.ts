@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Api } from '../../core/http/api';
 import { Address, EmployeeRole } from '../../core/http/api.models';
+import { Session } from '../../core/auth/session';
 export interface Page<T> {
   content: T[];
   currentPage: number;
@@ -15,7 +16,14 @@ export interface Branch {
   phoneNumber?: string;
   address?: Address;
   primeBranch?: boolean;
+  branchManager?: string | null;
 }
+export interface CreateBranch {
+  name: string;
+  phoneNumber: string;
+  address: Omit<Address, 'country' | 'countryCode'>;
+}
+export type UpdateBranch = Partial<CreateBranch> & { branchManager?: string | null };
 export interface Departure {
   _id: string;
   departureTime: string;
@@ -70,10 +78,30 @@ export function addressLabel(address?: Address) {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceData {
   private readonly api = inject(Api);
+  private readonly session = inject(Session);
   branches(page: number, search = '', limit = 12) {
     return this.api.get<Page<Branch>>(
       '/branch?' + new URLSearchParams({ page: String(page), limit: String(limit), search }),
     );
+  }
+  createBranch(body: CreateBranch) {
+    return this.api.post<Branch>('/branch', body);
+  }
+  branch(id: string) {
+    return this.api.get<Branch | null>('/branch/' + id);
+  }
+  updateBranch(id: string, body: UpdateBranch) {
+    return this.api.patch<Branch | null>('/branch/' + id, body);
+  }
+  async allBranches(abort: AbortSignal) {
+    const token = this.session.token();
+    const branches: Branch[] = [];
+    for (let page = 1; !abort.aborted && this.session.token() === token; page++) {
+      const { data } = await this.branches(page, '', 100);
+      branches.push(...data.content);
+      if (!data.hasNext) break;
+    }
+    return branches;
   }
   async primaryBranch(abort: AbortSignal) {
     // The list is newest first. Only primeBranch identifies the registration branch.

@@ -1,0 +1,96 @@
+@layer components {
+  .picker {
+    position: relative;
+  }
+
+  .picker-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    border: 1px solid var(--control-line);
+    border-radius: 7px;
+    background: var(--control);
+    color: var(--color-ink);
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+
+  .picker-trigger[aria-invalid='true'] {
+    border-color: var(--error);
+  }
+
+  .picker-trigger[readonly] {
+    padding-inline-end: 36px;
+    cursor: pointer;
+  }
+
+  .picker-chevron {
+    flex: none;
+    color: var(--color-muted);
+  }
+
+  .picker-input-chevron {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-end: 12px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .picker-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    inset-inline: 0;
+    z-index: 2;
+    border: 1px solid var(--control-line);
+    border-radius: 8px;
+    background: var(--control);
+    box-shadow: 0 8px 20px #0003;
+  }
+
+  .picker-options {
+    max-height: min(15rem, 40dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px;
+  }
+
+  .picker-anchor {
+    anchor-name: var(--picker-anchor);
+  }
+
+  .picker-dropdown:popover-open {
+    position: fixed;
+    inset: auto;
+    position-anchor: var(--picker-anchor);
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block;
+    position-try-order: most-height;
+    inline-size: anchor-size(inline);
+    max-block-size: min(15rem, calc(100% - 8px));
+    margin: 4px 0;
+    overscroll-behavior: contain;
+    color: var(--color-ink);
+  }
+
+  .picker-option {
+    padding: 8px 10px;
+    border-radius: 4px;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+
+  .picker-option:hover,
+  .picker-option[aria-selected='true'] {
+    background: var(--tint);
+  }
+
+  .picker-option[data-active='true'] {
+    outline: 2px solid var(--color-brand);
+    outline-offset: -2px;
+  }
+}

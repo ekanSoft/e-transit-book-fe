@@ -2,17 +2,27 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { EmailRequest } from './email-request';
 import { VerifySignup } from './verify-signup';
 import { ResetPassword } from './reset-password';
+import { AccessStatus } from './access-status';
+import { Login } from './login';
+import { SelectBusiness } from './select-business';
+import { Signup } from './signup';
 
 describe('Email authentication flows', () => {
   let http: HttpTestingController;
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([]),
+        provideRouter([
+          { path: 'login', component: Login },
+          { path: 'verify-signup', component: VerifySignup },
+          { path: 'auth/access-status', component: AccessStatus },
+          { path: 'auth/select-business', component: SelectBusiness },
+        ]),
         provideHttpClient(),
         provideHttpClientTesting(),
         {
@@ -26,6 +36,145 @@ describe('Email authentication flows', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
+  const resendUrl = environment.apiBaseUrl + '/auth/resend-token';
+  const verifyUrl = environment.apiBaseUrl + '/auth/verify-signup';
+  const loginUrl = environment.apiBaseUrl + '/auth/login';
+  const submitElement = () => document.createElement('form');
+  function resendButton(screen: HTMLElement) {
+    return screen.querySelector<HTMLButtonElement>('app-email-request .auth-switch button')!;
+  }
+  function denyUnverifiedLogin(url: string) {
+    http
+      .expectOne(url)
+      .flush(
+        { message: 'Please verify your email before logging in' },
+        { status: 403, statusText: 'Forbidden' },
+      );
+  }
+
+  it('resends from signup confirmation using the submitted email and the new business slug', async () => {
+    const fixture = TestBed.createComponent(Signup);
+    fixture.componentInstance.form.setValue({
+      firstName: 'Test',
+      lastName: 'Operator',
+      businessName: 'Test Transport',
+      email: 'Test@Example.com',
+      phoneNumber: '08012345678',
+      password: 'test-password123',
+    });
+    const signup = fixture.componentInstance.submit(submitElement());
+    http.expectOne(environment.apiBaseUrl + '/auth/signup').flush({
+      success: true,
+      data: { business: { slug: 'new-business' } },
+    });
+    await signup;
+    await fixture.whenStable();
+
+    const screen: HTMLElement = fixture.nativeElement;
+    expect(screen.textContent).toContain('test@example.com');
+    expect(screen.querySelector('input')).toBeNull();
+    resendButton(screen).click();
+    resendButton(screen).click();
+    const resend = http.expectOne({ method: 'POST', url: resendUrl + '?slug=new-business' });
+    expect(resend.request.body).toEqual({ email: 'test@example.com' });
+    resend.flush({ success: true, data: { verificationEmailSent: false } });
+    await fixture.whenStable();
+    expect(screen.textContent).toContain('The email could not be sent');
+
+    resendButton(screen).click();
+    http.expectOne(resendUrl + '?slug=new-business').flush({
+      success: true,
+      data: { verificationEmailSent: true },
+    });
+    await fixture.whenStable();
+    expect(screen.textContent).toContain('Verification email resent');
+  });
+
+  it('resends from sign-in with the entered email and lets the user pick a matching business', async () => {
+    const fixture = TestBed.createComponent(Login);
+    await fixture.whenStable();
+    const screen: HTMLElement = fixture.nativeElement;
+    expect(screen.querySelector('a[href="/verify-signup"]')).toBeTruthy();
+    http.expectNone(resendUrl);
+
+    fixture.componentInstance.form.controls.email.setValue('Test@Example.com');
+    await fixture.whenStable();
+    expect(screen.querySelector('app-email-request input')).toBeNull();
+    resendButton(screen).click();
+    const resend = http.expectOne(resendUrl);
+    expect(resend.request.body).toEqual({ email: 'test@example.com' });
+    resend.flush({
+      success: true,
+      data: {
+        requiresAccountSelection: true,
+        businesses: [{ businessName: 'Test Transport', slug: 'test-transport' }],
+      },
+    });
+    await fixture.whenStable();
+    screen.querySelector<HTMLButtonElement>('.business-choice')!.click();
+    const selected = http.expectOne(resendUrl + '?slug=test-transport');
+    expect(selected.request.body).toEqual({ email: 'test@example.com' });
+    selected.flush({ success: true, data: { verificationEmailSent: true } });
+    await fixture.whenStable();
+    expect(screen.textContent).toContain('Verification email resent');
+  });
+
+  it.each([false, true])(
+    'resends after an unverified sign-in with business selection %s',
+    async (selectBusiness) => {
+      const harness = await RouterTestingHarness.create();
+      const login = await harness.navigateByUrl(
+        selectBusiness ? '/login' : '/login?slug=test-transport',
+        Login,
+      );
+      login.form.setValue({ email: 'test@example.com', password: 'test-password123' });
+      const pending = login.submit(submitElement());
+      if (selectBusiness) {
+        http.expectOne(loginUrl).flush({
+          success: true,
+          data: {
+            requiresAccountSelection: true,
+            token: 'temporary-selection-token',
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            businesses: [
+              {
+                business: 'test-business-id',
+                businessName: 'Test Transport',
+                slug: 'test-transport',
+                businessAccountStatus: 'ACTIVE',
+                role: 'ADMIN',
+              },
+            ],
+          },
+        });
+        await pending;
+        const selection = harness.routeDebugElement!.componentInstance as SelectBusiness;
+        const selecting = selection.select('test-business-id');
+        denyUnverifiedLogin(environment.apiBaseUrl + '/auth/complete-login');
+        await selecting;
+      } else {
+        denyUnverifiedLogin(loginUrl + '?slug=test-transport');
+        await pending;
+      }
+      await harness.fixture.whenStable();
+      const screen = harness.routeNativeElement!;
+      expect(screen.textContent).toContain('Please verify your email before logging in');
+      resendButton(screen).click();
+      const resend = http.expectOne(resendUrl + '?slug=test-transport');
+      expect(resend.request.body).toEqual({ email: 'test@example.com' });
+      resend.flush({ success: true, data: { verificationEmailSent: true } });
+      await harness.fixture.whenStable();
+    },
+  );
+
+  it('keeps email entry available when the verification page is opened directly', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/verify-signup', VerifySignup);
+    expect(harness.routeNativeElement?.querySelector('input[type="email"]')).toBeTruthy();
+    http.expectNone(verifyUrl);
+    http.expectNone(resendUrl);
+  });
+
   for (const mode of ['verify', 'reset'] as const) {
     it(`supports slug-scoped ${mode} requests without reusing a login token`, async () => {
       const fixture = TestBed.createComponent(EmailRequest);
@@ -62,15 +211,68 @@ describe('Email authentication flows', () => {
       expect(component.choices()).toEqual([]);
     });
   }
-  it('reads a verification token from a directly opened URL', async () => {
-    const component = TestBed.createComponent(VerifySignup).componentInstance;
-    expect(component.token).toBe('link-token-from-email');
-    const pending = component.verify();
-    const request = http.expectOne(environment.apiBaseUrl + '/auth/verify-signup');
+  it('verifies a directly opened email link and shows the sign-in action after success', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/verify-signup?token=link-token-from-email', VerifySignup);
+    const screen = harness.routeNativeElement!;
+    expect(screen.textContent).toContain('Verifying your email');
+    expect(screen.querySelector('button, form, a[href="/login"]')).toBeNull();
+    const request = http.expectOne({ method: 'POST', url: verifyUrl });
     expect(request.request.body).toEqual({ token: 'link-token-from-email' });
     request.flush({ success: true, data: { message: 'Signup verified successfully' } });
-    await pending;
-    expect(component.verified()).toBe(true);
+    await vi.waitFor(() => expect(screen.textContent).toContain('Your email is verified'));
+    expect(screen.querySelector('a[href="/login"]')?.textContent).toContain('Continue to sign in');
+    expect(screen.querySelector('app-email-request')).toBeNull();
+  });
+
+  it('offers a new verification email when the link has expired', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/verify-signup?token=expired-link', VerifySignup);
+    http
+      .expectOne(verifyUrl)
+      .flush(
+        { message: 'Verification token has expired' },
+        { status: 400, statusText: 'Bad Request' },
+      );
+    const screen = harness.routeNativeElement!;
+    await vi.waitFor(() => expect(screen.textContent).toContain('Verification token has expired'));
+    expect(screen.querySelector('input[type="email"]')).toBeTruthy();
+    expect(screen.textContent).not.toContain('Your email is verified');
+    expect(screen.textContent).not.toContain('Try again');
+  });
+
+  it('retries the same token after a temporary failure', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/verify-signup?token=retry-link', VerifySignup);
+    http
+      .expectOne(verifyUrl)
+      .flush(
+        { message: 'Temporarily unavailable' },
+        { status: 503, statusText: 'Service Unavailable' },
+      );
+    const screen = harness.routeNativeElement!;
+    await vi.waitFor(() => expect(screen.textContent).toContain('Temporarily unavailable'));
+    screen.querySelector<HTMLButtonElement>('button[type="button"]')!.click();
+    const retry = http.expectOne(verifyUrl);
+    expect(retry.request.body).toEqual({ token: 'retry-link' });
+    retry.flush({ success: true, data: { message: 'Signup verified successfully' } });
+    await vi.waitFor(() => expect(screen.textContent).toContain('Your email is verified'));
+  });
+
+  it('ignores a completed response once a different verification link is open', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/verify-signup?token=first-link', VerifySignup);
+    const first = http.expectOne(verifyUrl);
+    await harness.navigateByUrl('/verify-signup?token=second-link', VerifySignup);
+    const second = http.expectOne(verifyUrl);
+    expect(second.request.body).toEqual({ token: 'second-link' });
+    first.flush({ success: true, data: { message: 'Signup verified successfully' } });
+    await harness.fixture.whenStable();
+    expect(harness.routeNativeElement?.textContent).toContain('Verifying your email');
+    second.flush({ success: true, data: { message: 'Signup verified successfully' } });
+    await vi.waitFor(() =>
+      expect(harness.routeNativeElement?.textContent).toContain('Your email is verified'),
+    );
   });
   it('uses the reset link token after refresh and excludes confirmation from the request', async () => {
     const component = TestBed.createComponent(ResetPassword).componentInstance;

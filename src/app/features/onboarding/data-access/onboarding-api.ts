@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { Api } from '../../../core/http/api';
-import { Business, BusinessType, DocumentKey } from '../../../core/http/api.models';
+import { Business, DocumentKey } from '../../../core/http/api.models';
+// import type { BusinessType } from '../../../core/http/api.models';
+import type { SettlementBankRequest } from '../../../core/http/settlement-bank-api';
 import { addressPayload, type AddressFormValue } from '../../../shared/utilities/nigerian-address';
 import { normalizeNigerianPhone } from '../../../shared/utilities/phone';
 export interface ProfileRequest {
@@ -8,19 +10,24 @@ export interface ProfileRequest {
   email: string;
   contactPhoneNumber: string;
   supportContact: string;
-  businessType: BusinessType;
+  // businessType: BusinessType;
   address: AddressFormValue;
+  bankDetails?: SettlementBankRequest;
 }
 export function profileFormData(value: ProfileRequest, logo: File | null): FormData {
   const body = new FormData();
   body.set('name', value.name.trim());
   body.set('email', value.email.trim().toLowerCase());
   body.set('contactPhoneNumber', normalizeNigerianPhone(value.contactPhoneNumber));
-  body.set('businessType', value.businessType);
+  // body.set('businessType', value.businessType);
   body.set('address', JSON.stringify(addressPayload(value.address)));
   if (value.supportContact.trim())
     body.set('supportContact', normalizeNigerianPhone(value.supportContact));
   if (logo) body.set('logo', logo);
+  if (value.bankDetails) {
+    const { accountNumber, bankCode } = value.bankDetails;
+    body.append('bankDetails', JSON.stringify({ accountNumber, bankCode }));
+  }
   return body;
 }
 export function verificationFormData(

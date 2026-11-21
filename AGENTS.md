@@ -48,8 +48,32 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Use the async pipe to handle observables
 - Do not assume globals like (`new Date()`) are available.
 
+### Dropdowns
+
+- Use the portal’s shared picker style for dropdowns in forms and filters. For selection-only controls, reuse `app-field` with options and the overlay, as in the employee Role and terminal State fields.
+- For searchable dropdowns, use `app-searchable-select` with a search field inside the open menu, following the Business Profile bank picker. Use selection-only dropdowns for simple filters.
+
 ## Services
 
 - Design services around a single responsibility
 - Use the `providedIn: 'root'` option for singleton services
 - Use the `inject()` function instead of constructor injection
+
+## Backend
+swagger will be running on: http://localhost:4500/docs/v1
+SWAGGER_USERNAME=swagger
+SWAGGER_PASSWORD=swagger123
+
+swagger will help u see all the api, documents and their contract
+
+repo: Backend reference: C:\Users\PC\Documents\source-codes\e-transit-book
+
+Make sure to read: C:\Users\PC\Documents\source-codes\e-transit-book/docs/FRONTEND_IMPLEMENTATION_NOTES.md when introducing new features so you can see the notes that backend decided for the frontend during implementation.
+
+if you also need to get full context of the project as a whole, u can also take a look at the C:\Users\PC\Documents\source-codes\e-transit-book\AGENTS.md to get the full business context
+
+## Backend reference
+
+- Backend repository at `../e-transit-book`, with [architecture](../e-transit-book/ARCHITECTURE.md) and [frontend implementation notes](../e-transit-book/docs/FRONTEND_IMPLEMENTATION_NOTES.md).
+- The portal calls the backend's **Branch** a **Terminal**. Keep backend field and enum names in API requests.
+- Validate API-dependent changes against the backend source and documentation. Keep shared API contracts and product rules documented in the backend repository.

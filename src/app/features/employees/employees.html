@@ -1,0 +1,247 @@
+<div class="page-heading directory-heading">
+  <div>
+    <h1 tabindex="-1">Employees</h1>
+    <p>Manage your team, roles, and terminal assignments.</p>
+  </div>
+  @if (access.canViewEmployees()) {
+    <button #add appButton type="button" (click)="open({ kind: 'create', trigger: add })">
+      <app-icon name="plus" /> Add employee
+    </button>
+  }
+</div>
+
+@if (access.canViewEmployees()) {
+  <section class="panel directory" aria-labelledby="employee-directory">
+    <div class="directory-toolbar">
+      <h2 id="employee-directory">Employee directory</h2>
+      <div class="directory-filters">
+        <app-directory-search
+          label="Search employees"
+          placeholder="Search name, email or phone"
+          [value]="query().search"
+          (changed)="search($event)"
+        />
+        <select
+          #role
+          aria-label="Filter by role"
+          [value]="query().role"
+          (change)="filterRole(role.value)"
+        >
+          <option value="">All roles</option>
+          @for (option of roles; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        @if (access.canCreateTerminal() && terminals.hasValue() && terminals.value().length) {
+          <select
+            #terminal
+            aria-label="Filter by terminal"
+            [value]="query().branch ?? ''"
+            (change)="filterTerminal(terminal.value)"
+          >
+            <option value="">All terminals</option>
+            @for (branch of terminals.value(); track branch._id) {
+              <option [value]="branch._id">{{ branch.name }}</option>
+            }
+          </select>
+        }
+        @if (filtered()) {
+          <button type="button" class="text-button" (click)="clear(true)">Clear filters</button>
+        }
+      </div>
+    </div>
+
+    <div [attr.aria-busy]="list.isLoading()">
+      @if (list.error()) {
+        <div class="directory-message">
+          <app-errors [messages]="errors(list.error())" />
+          <button appButton variant="secondary" type="button" (click)="list.reload()">Retry</button>
+        </div>
+      } @else if (list.hasValue() && list.value().content.length) {
+        <table class="directory-table" role="table" aria-label="Employees">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th role="columnheader" scope="col">Employee</th>
+              <th role="columnheader" scope="col">Role</th>
+              <th role="columnheader" scope="col">Terminal</th>
+              <th role="columnheader" scope="col">Status</th>
+              <th role="columnheader" scope="col" class="directory-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            @for (employee of list.value().content; track employee._id) {
+              <tr role="row">
+                <td role="cell" class="directory-identity">
+                  <span class="directory-avatar directory-initials" aria-hidden="true"
+                    >{{ employee.firstName[0] }}{{ employee.lastName[0] }}</span
+                  >
+                  <div class="directory-identity-text">
+                    <strong>{{ name(employee) }}</strong>
+                    <span class="directory-detail">{{
+                      employee.email || employee.phoneNumber
+                    }}</span>
+                  </div>
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label" aria-hidden="true">Role</span>
+                  <span class="badge">{{ roleLabel(employee) }}</span>
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label" aria-hidden="true">Terminal</span>
+                  <span>{{ terminalLabel(employee) }}</span>
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label" aria-hidden="true">Status</span>
+                  <span
+                    class="badge directory-status"
+                    [class.directory-positive]="employee.accountStatus === 'ACTIVE'"
+                    [class.directory-restricted]="employee.accountStatus === 'SUSPENDED'"
+                  >
+                    {{ status[employee.accountStatus] }}
+                  </span>
+                </td>
+                <td role="cell" class="directory-actions">
+                  @if (access.canManageEmployee(employee)) {
+                    <button
+                      #trigger
+                      class="icon-button directory-row-trigger"
+                      type="button"
+                      [attr.popovertarget]="'employee-actions-' + employee._id"
+                      [attr.aria-label]="'Actions for ' + name(employee)"
+                    >
+                      <app-icon name="more" />
+                    </button>
+                    <div
+                      #popover
+                      popover
+                      class="directory-popover"
+                      [id]="'employee-actions-' + employee._id"
+                      role="group"
+                      [attr.aria-label]="'Actions for ' + name(employee)"
+                    >
+                      <button
+                        type="button"
+                        autofocus
+                        (click)="open({ kind: 'edit', employee, trigger }, popover)"
+                      >
+                        <app-icon name="edit" /> Edit employee
+                      </button>
+                      <button
+                        type="button"
+                        [class.directory-danger-text]="employee.accountStatus === 'ACTIVE'"
+                        (click)="open({ kind: 'status', employee, trigger }, popover)"
+                      >
+                        <app-icon
+                          [name]="employee.accountStatus === 'ACTIVE' ? 'shield' : 'check'"
+                        />
+                        {{
+                          employee.accountStatus === 'ACTIVE'
+                            ? 'Suspend employee'
+                            : 'Reactivate employee'
+                        }}
+                      </button>
+                    </div>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else if (list.isLoading()) {
+        <div class="directory-loading">
+          <p role="status">Loading employees…</p>
+          <div class="directory-skeleton" aria-hidden="true"></div>
+        </div>
+      } @else if (list.hasValue()) {
+        <div class="empty-state directory-empty">
+          <app-icon name="users" />
+          <strong>{{ filtered() ? 'No matching employees' : 'No employees to display' }}</strong>
+          @if (filtered()) {
+            <p class="muted">Try a different search or clear the filters.</p>
+          }
+        </div>
+      }
+    </div>
+    <div class="directory-footer">
+      <app-directory-pager
+        singular="employee"
+        plural="employees"
+        [waiting]="list.isLoading()"
+        [page]="list.hasValue() ? list.value() : undefined"
+        (pageChange)="go($event)"
+      />
+      <label class="directory-page-size">
+        Rows per page
+        <select #pageSize [value]="query().limit" (change)="changeLimit(pageSize.value)">
+          @for (size of pageSizes; track size) {
+            <option [value]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  </section>
+
+  @if (action(); as current) {
+    @if (current.kind === 'status') {
+      @let suspending = current.employee.accountStatus === 'ACTIVE';
+      <app-management-dialog
+        [title]="suspending ? 'Suspend employee' : 'Reactivate employee'"
+        [busy]="statusBusy()"
+        [trigger]="current.trigger"
+        (dismiss)="action.set(null)"
+      >
+        <div class="management-body">
+          <p>
+            @if (suspending) {
+              <strong>{{ name(current.employee) }}</strong> will lose access to this workspace until
+              reactivated.
+            } @else {
+              <strong>{{ name(current.employee) }}</strong> will be able to sign in to this
+              workspace again.
+            }
+          </p>
+          <app-errors [messages]="statusErrors()" />
+        </div>
+        <footer class="management-footer">
+          <button
+            appButton
+            variant="secondary"
+            type="button"
+            [disabled]="statusBusy()"
+            (click)="action.set(null)"
+          >
+            Cancel
+          </button>
+          <button
+            appButton
+            type="button"
+            [class.directory-danger-button]="suspending"
+            [disabled]="statusBusy() || statusUncertain()"
+            (click)="toggle(current.employee)"
+          >
+            {{
+              statusBusy() ? 'Updating…' : suspending ? 'Suspend employee' : 'Reactivate employee'
+            }}
+          </button>
+        </footer>
+      </app-management-dialog>
+    } @else {
+      <app-employee-form
+        [employee]="current.kind === 'edit' ? current.employee : undefined"
+        [trigger]="current.trigger"
+        [terminals]="terminals.hasValue() ? terminals.value() : undefined"
+        [terminalLoadFailed]="!!terminals.error()"
+        (retryTerminals)="terminals.reload()"
+        (dismissed)="action.set(null)"
+        (saved)="saved($event)"
+      />
+    }
+  }
+} @else {
+  <div class="panel directory-message">
+    <p>Your current role cannot access employee management.</p>
+    <a appButton variant="secondary" routerLink="/app/dashboard">Back to dashboard</a>
+  </div>
+}

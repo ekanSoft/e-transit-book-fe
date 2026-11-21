@@ -93,10 +93,14 @@ export class SelectBusiness {
     this.busy.set(true);
     this.pendingId.set(id);
     this.errors.set([]);
+    const selection = this.session.selection();
+    const business = selection?.businesses.find((item) => item.business === id);
+    const recipient =
+      selection?.email && business ? { email: selection.email, slug: business.slug } : undefined;
     try {
       await this.session.chooseBusiness(id);
     } catch (error) {
-      this.errors.set(await this.session.signInError(error));
+      this.errors.set(await this.session.signInError(error, recipient));
     } finally {
       this.busy.set(false);
       this.pendingId.set('');

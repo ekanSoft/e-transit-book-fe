@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import './styles/shell.css';
 @import './styles/portal.css';
+@import './styles/picker.css';
+@import './styles/directory.css';
 @font-face {
   font-family: 'DM Sans';
   src: url('/fonts/dm-sans-latin-wght-normal.woff2') format('woff2');

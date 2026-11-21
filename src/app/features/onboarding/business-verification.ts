@@ -106,7 +106,7 @@ export class BusinessVerification {
     this.rcNumber.markAsTouched();
     if (this.rcNumber.invalid) return;
     if (!this.rcNumber.value.trim() && !Object.keys(this.files()).length) {
-      this.errors.set(['Enter your RC number or upload one document to continue.']);
+      this.errors.set(['Enter your RC number or upload at least one document to continue.']);
       return;
     }
     this.busy.set(true);

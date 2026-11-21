@@ -1,21 +1,42 @@
-import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Session } from '../../core/auth/session';
-import { Business, BusinessType } from '../../core/http/api.models';
+import { Business } from '../../core/http/api.models';
+// import type { BusinessType } from '../../core/http/api.models';
 import { errorMessages } from '../../core/http/errors';
 import { AddressFields, addressForm } from '../../shared/forms/address-fields';
 import { savedAddressValue } from '../../shared/utilities/nigerian-address';
 import { Field } from '../../shared/forms/field';
 import { FileUpload } from '../../shared/forms/file-upload';
 import { emailValidators, focusInvalid, requiredText } from '../../shared/forms/validators';
+import { canManageSettlementBank } from '../../shared/utilities/employee-role';
 import { nigerianPhone } from '../../shared/utilities/phone';
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
 import { OnboardingApi } from './data-access/onboarding-api';
+import { SettlementBankFields } from './settlement-bank-fields';
 @Component({
   selector: 'app-company-profile',
-  imports: [ReactiveFormsModule, AddressFields, Field, FileUpload, Button, Errors, Icon],
+  imports: [
+    ReactiveFormsModule,
+    AddressFields,
+    Field,
+    FileUpload,
+    Button,
+    Errors,
+    Icon,
+    SettlementBankFields,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="panel-heading">
@@ -62,12 +83,12 @@ import { OnboardingApi } from './data-access/onboarding-api';
               autocomplete="tel"
               placeholder="08012345678"
             />
-            <app-field
+            <!-- <app-field
               id="business-type"
               label="Business type"
               [control]="form.controls.businessType"
               [options]="businessTypes"
-            />
+            /> -->
             <app-field
               id="support-phone"
               label="Support phone"
@@ -79,8 +100,16 @@ import { OnboardingApi } from './data-access/onboarding-api';
           </div>
           <div class="form-section">
             <h3>Business address</h3>
-            <app-address-fields [group]="form.controls.address" prefix="company" />
+            <app-address-fields [group]="form.controls.address" prefix="company">
+              <!-- <div>
+                <label style="font-weight: 700">Country</label>
+                Nigeria
+              </div> -->
+            </app-address-fields>
           </div>
+          @if (showSettlementBank()) {
+            <app-settlement-bank-fields [saving]="busy()" />
+          }
           <div class="form-section">
             <app-file-upload
               id="company-logo"
@@ -108,20 +137,26 @@ export class CompanyProfile {
   readonly session = inject(Session);
   private readonly api = inject(OnboardingApi);
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly settlementBank = viewChild(SettlementBankFields);
+  readonly showSettlementBank = computed(
+    () =>
+      this.session.business()?.accountStatus === 'PENDING' &&
+      canManageSettlementBank(this.session.employee()?.role),
+  );
   readonly saved = output<Business>();
   readonly busy = signal(false);
   readonly errors = signal<string[]>([]);
   readonly logo = signal<File | null>(null);
   readonly fileValid = signal(true);
-  readonly businessTypes = [
-    { value: 'TRANSPORTATION', label: 'Transportation' },
-    { value: 'CAR_HIRE', label: 'Car hire' },
-  ];
+  // readonly businessTypes = [
+  //   { value: 'TRANSPORTATION', label: 'Transportation' },
+  //   { value: 'CAR_HIRE', label: 'Car hire' },
+  // ];
   readonly form = this.fb.group({
     name: ['', requiredText(120)],
     email: ['', emailValidators],
     contactPhoneNumber: ['', [Validators.required, nigerianPhone]],
-    businessType: this.fb.control<BusinessType>('TRANSPORTATION', Validators.required),
+    // businessType: this.fb.control<BusinessType>('TRANSPORTATION', Validators.required),
     supportContact: ['', nigerianPhone],
     address: addressForm(),
   });
@@ -141,13 +176,29 @@ export class CompanyProfile {
       focusInvalid(element);
       return;
     }
+    const settlementBank = this.settlementBank();
+    const bankDetails = this.showSettlementBank()
+      ? settlementBank?.detailsForSubmission()
+      : undefined;
+    if (bankDetails === null || (this.showSettlementBank() && !settlementBank)) return;
+
     this.busy.set(true);
     this.errors.set([]);
     try {
-      const response = await this.api.profile(this.form.getRawValue(), this.logo());
+      const response = await this.api.profile(
+        { ...this.form.getRawValue(), bankDetails },
+        this.logo(),
+      );
       this.saved.emit(response.data);
     } catch (error) {
-      this.errors.set(errorMessages(error));
+      if (bankDetails && error instanceof HttpErrorResponse && error.status === 409) {
+        settlementBank?.reloadSavedDetails();
+        this.errors.set([
+          'A settlement account is already configured. Review the saved account and submit your business profile again.',
+        ]);
+      } else {
+        this.errors.set(errorMessages(error));
+      }
     } finally {
       this.busy.set(false);
     }

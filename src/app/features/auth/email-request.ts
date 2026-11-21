@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Api } from '../../core/http/api';
-import { BusinessChoice, EmailResult } from '../../core/http/api.models';
+import { BusinessChoice, EmailRecipient, EmailResult } from '../../core/http/api.models';
 import { errorMessages } from '../../core/http/errors';
 import { Field } from '../../shared/forms/field';
 import { emailValidators } from '../../shared/forms/validators';
@@ -14,7 +14,19 @@ import { Icon } from '../../shared/ui/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-errors [messages]="errors()" />
-    @if (sent()) {
+    @if (recipient()) {
+      <div role="status">
+        @if (sent()) {
+          <p class="alert alert-success">
+            {{
+              mode() === 'reset'
+                ? 'If this email exists, a password reset link will be sent.'
+                : 'Verification email resent.'
+            }}
+          </p>
+        }
+      </div>
+    } @else if (sent()) {
       <div class="alert alert-success" role="status">
         <strong>Check your inbox</strong>
         <p>
@@ -46,8 +58,22 @@ import { Icon } from '../../shared/ui/icon';
         }
       </div>
       <button type="button" class="text-button" [disabled]="busy()" (click)="choices.set([])">
-        Use a different email
+        {{ recipient() ? 'Back' : 'Use a different email' }}
       </button>
+    } @else if (recipient()) {
+      <p class="auth-switch">
+        Didn't get the email?
+        <button
+          type="button"
+          class="text-button min-h-6"
+          [attr.aria-disabled]="busy()"
+          (click)="send()"
+        >
+          {{
+            busy() ? 'Sending…' : mode() === 'reset' ? 'Resend reset link' : 'Resend verification'
+          }}
+        </button>
+      </p>
     } @else {
       <form (submit)="$event.preventDefault(); send()" novalidate [attr.aria-busy]="busy()">
         <fieldset [disabled]="busy()">
@@ -76,6 +102,7 @@ import { Icon } from '../../shared/ui/icon';
 })
 export class EmailRequest {
   readonly mode = input<'reset' | 'verify'>('verify');
+  readonly recipient = input<EmailRecipient>();
   private readonly api = inject(Api);
   readonly email = new FormControl('', { nonNullable: true, validators: emailValidators });
   readonly busy = signal(false);
@@ -83,19 +110,24 @@ export class EmailRequest {
   readonly errors = signal<string[]>([]);
   readonly choices = signal<BusinessChoice[]>([]);
   private requestEmail = '';
-  async send(slug?: string) {
+  async send(selectedSlug?: string) {
     if (this.busy()) return;
-    this.email.markAsTouched();
-    if (this.email.invalid && !slug) return;
+    const recipient = this.recipient();
+    if (!selectedSlug) {
+      if (!recipient) {
+        this.email.markAsTouched();
+        if (this.email.invalid) return;
+      }
+      this.requestEmail = (recipient?.email ?? this.email.value).trim().toLowerCase();
+    }
     this.busy.set(true);
     this.errors.set([]);
     this.sent.set(false);
-    if (!slug) this.requestEmail = this.email.value.trim().toLowerCase();
     try {
       const { data } = await this.api.post<EmailResult | undefined>(
         this.mode() === 'reset' ? '/auth/initiate-password-reset' : '/auth/resend-token',
         { email: this.requestEmail },
-        slug,
+        selectedSlug ?? recipient?.slug,
       );
       if (data?.requiresAccountSelection && data.businesses?.length)
         this.choices.set(data.businesses);

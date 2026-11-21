@@ -107,4 +107,43 @@
       </section>
     }
   </div>
+  @if (showSettlementAccount()) {
+    <section class="panel mt-4" aria-labelledby="settlement-account-heading">
+      <div class="panel-heading">
+        <h2 id="settlement-account-heading" tabindex="-1" #heading>Settlement Account</h2>
+        <app-icon name="wallet" />
+      </div>
+      @if (settlementAccount.isLoading()) {
+        <p class="loading" role="status">Loading settlement account…</p>
+      } @else if (settlementAccount.error()) {
+        <app-errors [messages]="errors(settlementAccount.error())" />
+        <button
+          type="button"
+          class="text-button inset"
+          (click)="heading.focus(); settlementAccount.reload()"
+        >
+          Try loading the settlement account again
+        </button>
+      } @else if (settlementAccount.hasValue()) {
+        @if (settlementAccount.value(); as account) {
+          <dl class="details-grid">
+            <div>
+              <dt>Bank</dt>
+              <dd>{{ account.bankName }}</dd>
+            </div>
+            <div>
+              <dt>Account number</dt>
+              <dd>{{ account.accountNumber }}</dd>
+            </div>
+            <div class="full-width">
+              <dt>Account name</dt>
+              <dd>{{ account.accountName }}</dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="loading">Not configured</p>
+        }
+      }
+    </section>
+  }
 }

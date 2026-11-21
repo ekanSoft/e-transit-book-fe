@@ -1,0 +1,171 @@
+<section class="form-section" aria-labelledby="settlement-bank-heading">
+  <h3 id="settlement-bank-heading" tabindex="-1" #heading>Settlement Bank Account</h3>
+  @if (details.isLoading()) {
+    <p class="small" role="status">Checking for a saved settlement account…</p>
+  } @else if (details.error()) {
+    <app-errors [messages]="errors(details.error())" />
+    <button type="button" class="text-button" (click)="heading.focus(); details.reload()">
+      Try loading the settlement account again
+    </button>
+  } @else if (details.hasValue()) {
+    @if (details.value(); as account) {
+      <dl class="form-grid gap-y-3">
+        <div>
+          <dt>Bank</dt>
+          <dd>{{ account.bankName }}</dd>
+        </div>
+        <div>
+          <dt>Account number</dt>
+          <dd>{{ account.accountNumber }}</dd>
+        </div>
+        <div class="full-width">
+          <dt>Account name</dt>
+          <dd>{{ account.accountName }}</dd>
+        </div>
+      </dl>
+    } @else {
+      <p class="muted">
+        Add the bank account where your business will receive payments from customers who book
+        tickets online.
+      </p>
+      @if (banks.isLoading()) {
+        <p class="small" role="status">Loading banks…</p>
+      } @else if (banks.error()) {
+        <app-errors [messages]="errors(banks.error())" />
+        <button type="button" class="text-button" (click)="heading.focus(); banks.reload()">
+          Try loading banks again
+        </button>
+      } @else if (banks.hasValue()) {
+        @if (banks.value().length === 0) {
+          <p class="small">No banks are currently available.</p>
+          <button type="button" class="text-button" (click)="heading.focus(); banks.reload()">
+            Try loading banks again
+          </button>
+        } @else {
+          <div class="form-grid gap-y-4">
+            <div>
+              <label id="settlement-bank-label" for="settlement-bank-code">Bank</label>
+              <div
+                #bankPickerElement
+                class="picker"
+                (focusout)="dismissBankPicker($event.relatedTarget)"
+              >
+                <button
+                  #bankTrigger
+                  id="settlement-bank-code"
+                  type="button"
+                  class="picker-trigger"
+                  [disabled]="saving()"
+                  [attr.aria-expanded]="bankPickerOpen() && !saving()"
+                  [attr.aria-controls]="
+                    bankPickerOpen() && !saving() ? 'settlement-bank-dropdown' : null
+                  "
+                  aria-labelledby="settlement-bank-label settlement-bank-selection"
+                  [attr.aria-invalid]="attempted() && bankMissing()"
+                  aria-describedby="settlement-bank-hint"
+                  (click)="bankPickerOpen() ? closeBankPicker() : openBankPicker()"
+                  (keydown.arrowdown)="$event.preventDefault(); openBankPicker()"
+                >
+                  <span id="settlement-bank-selection" [class.muted]="bankMissing()">
+                    {{ selectedBankName() ?? 'Select a bank' }}
+                  </span>
+                  <app-icon class="picker-chevron" name="down" />
+                </button>
+                @if (bankPickerOpen() && !saving()) {
+                  <div ngCombobox id="settlement-bank-dropdown" class="picker-dropdown">
+                    <div class="bank-search">
+                      <app-icon name="search" />
+                      <input
+                        #bankSearch
+                        ngComboboxInput
+                        [value]="bankQuery()"
+                        (valueChange)="bankQuery.set($event)"
+                        (focusout)="dismissBankPicker($event.relatedTarget)"
+                        (keydown.escape)="$event.preventDefault(); closeBankPicker()"
+                        (keydown.enter)="$event.preventDefault()"
+                        autocomplete="off"
+                        placeholder="Search banks"
+                        aria-label="Search banks"
+                      />
+                    </div>
+                    <div
+                      ngListbox
+                      class="picker-options"
+                      [hidden]="bankOptions().length === 0"
+                      (valuesChange)="selectBank($event)"
+                      aria-label="Banks"
+                    >
+                      @for (bank of bankOptions(); track bank.code) {
+                        <div ngOption class="picker-option" [value]="bank.code" [label]="bank.name">
+                          {{ bank.name }}
+                        </div>
+                      }
+                    </div>
+                    @if (bankOptions().length === 0) {
+                      <p class="bank-empty small muted" role="status">
+                        No banks match your search.
+                      </p>
+                    }
+                  </div>
+                }
+              </div>
+              <p id="settlement-bank-hint" class="field-hint" aria-live="polite">
+                @if (attempted() && bankMissing()) {
+                  <span class="field-error">Select your bank.</span>
+                }
+              </p>
+            </div>
+            <div>
+              <label for="settlement-account-number">Account number</label>
+              <input
+                #accountInput
+                id="settlement-account-number"
+                [formControl]="form.controls.accountNumber"
+                inputmode="numeric"
+                maxlength="10"
+                autocomplete="off"
+                aria-required="true"
+                (input)="normalizeAccountNumber(accountInput)"
+                [attr.aria-invalid]="(attempted() && !accountNumberValid()) || statusCode() === 400"
+                aria-describedby="settlement-account-hint settlement-verification-feedback"
+              />
+              <p id="settlement-account-hint" class="field-hint">
+                <span [class.field-error]="attempted() && !accountNumberValid()"
+                  >Enter 10 digits.</span
+                >
+              </p>
+            </div>
+          </div>
+          <div id="settlement-verification-feedback" class="verification-feedback" role="status">
+            @if (verification.isLoading()) {
+              <p class="small">Verifying account…</p>
+            } @else if (statusCode() === 400) {
+              <span class="field-error"
+                >This account could not be verified. Check the bank and account number.</span
+              >
+            } @else if (statusCode() === 502 || statusCode() === 503) {
+              <span class="field-error"
+                >Bank verification is temporarily unavailable. Try again.</span
+              >
+            } @else if (verification.error()) {
+              <span class="field-error">{{ errors(verification.error()).join(' ') }}</span>
+            } @else if (accountName(); as name) {
+              <div class="verified-account">
+                <app-icon name="user" />
+                <div class="min-w-0">
+                  <p class="small">Account holder</p>
+                  <strong>{{ name }}</strong>
+                </div>
+              </div>
+            }
+          </div>
+          @if (canRetry()) {
+            <button type="button" class="text-button" (click)="retryVerification()">
+              Retry verification
+            </button>
+          }
+        }
+      }
+    }
+  }
+</section>

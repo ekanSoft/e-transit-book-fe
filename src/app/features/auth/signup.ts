@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../../core/http/api';
-import { SignupResult } from '../../core/http/api.models';
+import { EmailRecipient, SignupResult } from '../../core/http/api.models';
 import { errorMessages } from '../../core/http/errors';
 import { Field } from '../../shared/forms/field';
 import {
@@ -15,25 +15,34 @@ import { nigerianPhone, normalizeNigerianPhone } from '../../shared/utilities/ph
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
+import { EmailRequest } from './email-request';
 @Component({
   selector: 'app-signup',
-  imports: [ReactiveFormsModule, RouterLink, Field, Button, Errors, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Field, Button, Errors, Icon, EmailRequest],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    @media (min-width: 900px) {
+      .signup-confirmation {
+        transform: translateY(-38px);
+      }
+    }
+  `,
   template: `
-    @if (sent()) {
-      <span class="status-symbol"><app-icon name="mail" /></span>
-      <h1>Check your email</h1>
-      <p class="muted">
-        We sent a verification link to <strong>{{ sent() }}</strong>. Open it to verify your
-        account, then sign in to finish setting up your business.
-      </p>
-      <div class="alert">
-        The verification link is valid for 24 hours. Check your spam folder if you don't see it.
+    @if (sent(); as recipient) {
+      <div class="signup-confirmation">
+        <span class="status-symbol"><app-icon name="mail" /></span>
+        <h1>Check your email</h1>
+        <p class="muted">
+          <!-- We sent a verification link to <strong>{{ recipient.email }}</strong>.
+          Open the link to verify your email so you can sign in. -->
+        </p>
+        <div class="alert">
+          We sent a verification link to <strong>{{ recipient.email }}</strong>.
+          Open the link to verify your email so you can sign in.
+          <!-- The verification link is valid for 24 hours. Check your spam folder if you don't see it. -->
+        </div>
+        <app-email-request [recipient]="recipient" />
       </div>
-      <a appButton class="w-full" routerLink="/login">Back to sign in</a>
-      <p class="auth-switch">
-        Didn't get the email? <a routerLink="/verify-signup">Resend verification</a>
-      </p>
     } @else {
       <div class="auth-heading">
         <span class="eyebrow">LET'S GET STARTED</span>
@@ -119,7 +128,7 @@ export class Signup {
   });
   readonly busy = signal(false);
   readonly errors = signal<string[]>([]);
-  readonly sent = signal('');
+  readonly sent = signal<EmailRecipient | null>(null);
   async submit(element: HTMLFormElement) {
     if (this.busy()) return;
     this.form.markAllAsTouched();
@@ -131,15 +140,16 @@ export class Signup {
     this.errors.set([]);
     try {
       const value = this.form.getRawValue();
-      await this.api.post<SignupResult>('/auth/signup', {
+      const email = value.email.trim().toLowerCase();
+      const { data } = await this.api.post<SignupResult>('/auth/signup', {
         ...value,
         firstName: value.firstName.trim(),
         lastName: value.lastName.trim(),
         businessName: value.businessName.trim(),
-        email: value.email.trim().toLowerCase(),
+        email,
         phoneNumber: normalizeNigerianPhone(value.phoneNumber),
       });
-      this.sent.set(value.email.trim());
+      this.sent.set({ email, slug: data?.business?.slug });
       this.form.controls.password.reset();
     } catch (error) {
       this.errors.set(errorMessages(error));

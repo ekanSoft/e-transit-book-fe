@@ -1,0 +1,43 @@
+.bank-search {
+  position: relative;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.bank-search input {
+  padding-inline-start: 34px;
+}
+
+.bank-search app-icon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 18px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-muted);
+}
+
+.bank-empty {
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.verification-feedback:not(:empty) {
+  margin-block-start: 12px;
+}
+
+.verified-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--raised);
+  overflow-wrap: anywhere;
+}
+
+.verified-account app-icon {
+  flex: none;
+  color: var(--color-brand);
+}

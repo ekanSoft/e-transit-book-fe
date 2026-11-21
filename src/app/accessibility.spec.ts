@@ -1,10 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Type, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import axe from 'axe-core';
+import { environment } from '../environments/environment';
 import { Session } from './core/auth/session';
 import { Business, Employee } from './core/http/api.models';
+import { SettlementBankApi } from './core/http/settlement-bank-api';
 import { WorkspaceData } from './features/workspace/workspace-data';
 import { BusinessProfile } from './features/workspace/business-profile';
 import { AccountProfile } from './features/workspace/account-profile';
@@ -48,15 +52,25 @@ describe('AXE structural accessibility of rendered Angular screens', () => {
   let fixture: ComponentFixture<unknown> | undefined;
   let wrapper: HTMLElement | undefined;
   beforeEach(() => {
+    const queryParamMap = convertToParamMap({ token: 'test-link-token' });
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: WorkspaceData, useValue: { primaryBranch: async () => null } },
+        {
+          provide: SettlementBankApi,
+          useValue: {
+            savedDetails: async () => null,
+            banks: async () => [{ name: 'Test Bank', code: '001' }],
+          },
+        },
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { queryParamMap: convertToParamMap({ token: 'test-link-token' }) },
+            snapshot: { queryParamMap },
+            queryParamMap: of(queryParamMap),
           },
         },
         {
@@ -104,6 +118,14 @@ describe('AXE structural accessibility of rendered Angular screens', () => {
     it(`${component.name} has no detectable WCAG A/AA structural violations`, async () => {
       fixture = TestBed.createComponent(component);
       await fixture.whenStable();
+      if (component === VerifySignup) {
+        TestBed.inject(HttpTestingController)
+          .expectOne(environment.apiBaseUrl + '/auth/verify-signup')
+          .flush({ success: true, data: { message: 'Signup verified successfully' } });
+        await vi.waitFor(() =>
+          expect(fixture?.nativeElement.textContent).toContain('Your email is verified'),
+        );
+      }
       wrapper = document.createElement(fragment ? 'main' : 'div');
       wrapper.append(fixture.nativeElement as HTMLElement);
       document.body.append(wrapper);
@@ -118,5 +140,5 @@ describe('AXE structural accessibility of rendered Angular screens', () => {
           nodes: violation.nodes.map((node) => node.html),
         })),
       ).toEqual([]);
-    });
+    }, 15_000);
 });

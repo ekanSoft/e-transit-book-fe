@@ -1,6 +1,6 @@
 // Non-mutating contract smoke checks against the running API. No credentials are logged.
 import assert from 'node:assert/strict';
-const base = process.env.API_BASE_URL || 'http://localhost:4000/api/v1';
+const base = process.env.API_BASE_URL || 'http://localhost:4500/api/v1';
 const paths = [
   ['POST', '/auth/signup', 400],
   ['POST', '/auth/login', 400],
@@ -12,6 +12,13 @@ const paths = [
   ['GET', '/employees/me', 401],
   ['GET', '/business', 401],
   ['GET', '/branch', 401],
+  ['GET', '/branch/000000000000000000000000', 401],
+  ['POST', '/branch', 401],
+  ['PATCH', '/branch/000000000000000000000000', 401],
+  ['GET', '/employees', 401],
+  ['POST', '/employees', 401],
+  ['PATCH', '/employees/000000000000000000000000', 401],
+  ['PATCH', '/employees/000000000000000000000000/toggle-status', 401],
   ['GET', '/trips', 401],
   ['GET', '/reports/dashboard', 401],
   ['GET', '/reports/sales', 401],

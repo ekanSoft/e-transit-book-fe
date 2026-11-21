@@ -1,0 +1,79 @@
+<app-management-dialog
+  [title]="terminal() ? 'Edit terminal' : 'Add terminal'"
+  [description]="terminal() ? terminal()!.name : 'Set up a motor park or passenger pickup point.'"
+  [trigger]="trigger()"
+  [busy]="busy()"
+  [drawer]="true"
+  (dismiss)="dismissed.emit()"
+>
+  <form
+    #element
+    [formGroup]="form"
+    (ngSubmit)="submit(element)"
+    [attr.aria-busy]="busy()"
+    novalidate
+  >
+    <div class="management-body">
+      <app-errors [messages]="errors()" />
+      <fieldset [disabled]="busy()">
+        <div class="form-grid">
+          <app-field
+            [id]="'terminal-name'"
+            label="Terminal name"
+            [control]="form.controls.name"
+            placeholder="e.g. Jibowu Terminal"
+            [maxLength]="120"
+          />
+          <app-field
+            [id]="'terminal-phone'"
+            label="Contact phone"
+            [control]="form.controls.phoneNumber"
+            type="tel"
+            autocomplete="tel"
+            placeholder="08012345678"
+          />
+        </div>
+        <section class="management-section" aria-labelledby="terminal-address-heading">
+          <h3 id="terminal-address-heading">Terminal address</h3>
+          <app-address-fields [group]="form.controls.address" prefix="terminal" />
+        </section>
+        @if (allowManager()) {
+          <section class="management-section" aria-labelledby="terminal-manager-heading">
+            <h3 id="terminal-manager-heading">Management</h3>
+            @if (managers()) {
+              <app-field
+                [id]="'terminal-manager'"
+                label="Designated manager"
+                [control]="form.controls.branchManager"
+                [options]="managerOptions()"
+                [optional]="true"
+                hint="Assign the Terminal Manager role and this terminal in Employees to make someone eligible."
+              />
+            } @else if (managerLoadFailed()) {
+              <p class="muted small">Manager choices could not be loaded.</p>
+              <button type="button" class="text-button" (click)="retryManagers.emit()">
+                Retry loading managers
+              </button>
+            } @else {
+              <p class="muted small" role="status">Loading managers…</p>
+            }
+          </section>
+        }
+      </fieldset>
+    </div>
+    <footer class="management-footer">
+      <button
+        appButton
+        variant="secondary"
+        type="button"
+        [disabled]="busy()"
+        (click)="dismissed.emit()"
+      >
+        Cancel
+      </button>
+      <button appButton type="submit" [disabled]="busy() || (!!terminal() && !changed())">
+        {{ busy() ? 'Saving…' : terminal() ? 'Save changes' : 'Add terminal' }}
+      </button>
+    </footer>
+  </form>
+</app-management-dialog>

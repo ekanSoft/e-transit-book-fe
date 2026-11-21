@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/guards';
+import { authGuard, employeesGuard, guestGuard, terminalsGuard } from './core/auth/guards';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -77,7 +77,14 @@ export const routes: Routes = [
       {
         path: 'app/terminals',
         title: 'Terminals · eTransitBook',
+        canActivate: [terminalsGuard],
         loadComponent: () => import('./features/workspace/branches').then((m) => m.Branches),
+      },
+      {
+        path: 'app/employees',
+        title: 'Employees · eTransitBook',
+        canActivate: [employeesGuard],
+        loadComponent: () => import('./features/employees/employees').then((m) => m.Employees),
       },
       {
         path: 'app/business-profile',

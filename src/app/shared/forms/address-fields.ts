@@ -44,10 +44,7 @@ export function addressForm() {
       placeholder="Select your state"
       autocomplete="address-level1"
     />
-    <div>
-      <label style="font-weight: 700">Country</label>
-      Nigeria
-    </div>
+    <ng-content />
   </div>`,
 })
 export class AddressFields {

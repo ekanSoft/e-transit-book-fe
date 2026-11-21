@@ -97,6 +97,10 @@ export interface SignupResult {
   business: { id: string; name: string; slug: string };
   employee: { id: string; email: string; role: EmployeeRole };
 }
+export interface EmailRecipient {
+  email: string;
+  slug?: string;
+}
 export interface EmailResult {
   requiresAccountSelection?: boolean;
   businesses?: BusinessChoice[];

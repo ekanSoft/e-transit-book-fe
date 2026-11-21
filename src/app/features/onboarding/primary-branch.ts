@@ -77,7 +77,12 @@ import { OnboardingApi } from './data-access/onboarding-api';
             </div>
             <div class="form-section">
               <h3>Terminal address</h3>
-              <app-address-fields [group]="form.controls.address" prefix="branch" />
+              <app-address-fields [group]="form.controls.address" prefix="branch">
+                <div>
+                  <label style="font-weight: 700">Country</label>
+                  Nigeria
+                </div>
+              </app-address-fields>
             </div>
           </fieldset>
         </div>

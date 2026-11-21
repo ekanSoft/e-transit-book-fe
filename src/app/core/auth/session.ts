@@ -2,7 +2,14 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Api } from '../http/api';
-import { Business, Employee, LoginResult, LoginSelection, LoginSuccess } from '../http/api.models';
+import {
+  Business,
+  EmailRecipient,
+  Employee,
+  LoginResult,
+  LoginSelection,
+  LoginSuccess,
+} from '../http/api.models';
 import { errorMessages } from '../http/errors';
 import { businessDestination } from './routing';
 
@@ -15,7 +22,7 @@ export class Session {
   readonly token = this.tokenState.asReadonly();
   readonly employee = signal<Employee | null>(null);
   readonly business = signal<Business | null>(null);
-  readonly selection = signal<LoginSelection | null>(null);
+  readonly selection = signal<(LoginSelection & { email?: string }) | null>(null);
   readonly contextError = signal<string[]>([]);
   readonly contextStatus = signal(0);
   readonly loading = signal(false);
@@ -59,7 +66,7 @@ export class Session {
     const { data } = await this.api.post<LoginResult>('/auth/login', { email, password }, slug);
     if (generation !== this.generation) return;
     if (data.requiresAccountSelection) {
-      this.selection.set(data);
+      this.selection.set({ ...data, email });
       await this.router.navigateByUrl('/auth/select-business');
     } else await this.acceptLogin(data);
   }
@@ -159,11 +166,12 @@ export class Session {
         /* Storage can be disabled. */
       }
   }
-  async signInError(error: unknown): Promise<string[]> {
+  async signInError(error: unknown, recipient?: EmailRecipient): Promise<string[]> {
     const messages = errorMessages(error);
     if (error instanceof HttpErrorResponse && error.status === 403) {
       await this.router.navigateByUrl('/auth/access-status', {
         state: { reason: messages.join(' ') },
+        info: recipient,
       });
       return [];
     }

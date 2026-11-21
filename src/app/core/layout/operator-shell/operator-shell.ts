@@ -5,6 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { permitsWorkspaceRoute } from '../../auth/routing';
 import { Session } from '../../auth/session';
+import { WorkspaceAccess } from '../../auth/workspace-access';
 import { Theme, ThemeToggle } from '../theme';
 import { Brand } from '../../../shared/ui/brand';
 import { Icon, IconName } from '../../../shared/ui/icon';
@@ -14,6 +15,7 @@ type NavItem = { label: string; url: string; icon: IconName };
 const navigation: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [{ label: 'Dashboard', url: '/app/dashboard', icon: 'overview' }] },
   { group: 'Operations', items: [{ label: 'Terminals', url: '/app/terminals', icon: 'pin' }] },
+  { group: 'Management', items: [{ label: 'Employees', url: '/app/employees', icon: 'users' }] },
   {
     group: 'Workspace',
     items: [
@@ -30,6 +32,7 @@ const navigation: { group: string; items: NavItem[] }[] = [
 })
 export class OperatorShell {
   readonly session = inject(Session);
+  private readonly access = inject(WorkspaceAccess);
   readonly theme = inject(Theme);
   private readonly router = inject(Router);
   readonly collapsed = signal(false);
@@ -42,7 +45,12 @@ export class OperatorShell {
   );
   readonly groups = computed(() => {
     const dest = this.session.destination();
-    if (dest === '/app/dashboard') return navigation;
+    if (dest === '/app/dashboard') {
+      return navigation.filter(({ group }) =>
+        (group !== 'Management' || this.access.canViewEmployees()) &&
+        (group !== 'Operations' || this.access.canViewTerminals()),
+      );
+    }
     const setup = dest === '/onboarding';
     return [
       {

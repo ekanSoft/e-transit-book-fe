@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { permitsWorkspaceRoute } from './routing';
 import { Session } from './session';
+import { WorkspaceAccess } from './workspace-access';
 export const guestGuard: CanActivateFn = async () => {
   const session = inject(Session),
     router = inject(Router);
@@ -18,3 +19,9 @@ export const authGuard: CanActivateFn = async (_route, state) => {
   const destination = session.destination();
   return permitsWorkspaceRoute(destination, state.url) ? true : router.parseUrl(destination);
 };
+
+export const terminalsGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canViewTerminals() || inject(Router).parseUrl('/app/dashboard');
+
+export const employeesGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canViewEmployees() || inject(Router).parseUrl('/app/dashboard');

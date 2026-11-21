@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Session } from '../../core/auth/session';
@@ -7,9 +8,10 @@ import { emailValidators, focusInvalid } from '../../shared/forms/validators';
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
+import { EmailRequest } from './email-request';
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, Field, Button, Errors, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Field, Button, Errors, Icon, EmailRequest],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="auth-heading">
@@ -64,12 +66,16 @@ import { Icon } from '../../shared/ui/icon';
     <p class="auth-switch">
       New to eTransitBook? <a routerLink="/signup">Create a business account</a>
     </p>
-    <div class="auth-help">
-      <app-icon name="mail" /><span
-        >Still waiting to verify your email?
-        <a routerLink="/verify-signup">Resend verification</a></span
-      >
-    </div>
+    @for (recipient of resendRecipients(); track recipient.email) {
+      <app-email-request [recipient]="recipient" />
+    } @empty {
+      <div class="auth-help">
+        <app-icon name="mail" /><span
+          >Still waiting to verify your email?
+          <a routerLink="/verify-signup">Resend verification</a></span
+        >
+      </div>
+    }
   `,
 })
 export class Login {
@@ -81,6 +87,16 @@ export class Login {
     email: [this.switchEmail, emailValidators],
     password: ['', [Validators.required, Validators.maxLength(100)]],
   });
+  private readonly enteredEmail = toSignal(this.form.controls.email.valueChanges, {
+    initialValue: this.switchEmail,
+  });
+  protected readonly resendRecipients = computed(() => {
+    const email = this.enteredEmail().trim().toLowerCase();
+    return this.form.controls.email.valid ? [{ email, slug: this.slug }] : [];
+  });
+  private get slug() {
+    return this.route.snapshot.queryParamMap.get('slug') ?? undefined;
+  }
   readonly busy = signal(false);
   readonly errors = signal<string[]>([]);
   async submit(element: HTMLFormElement) {
@@ -92,15 +108,12 @@ export class Login {
     }
     this.busy.set(true);
     this.errors.set([]);
+    const { email, password } = this.form.getRawValue();
+    const recipient = { email: email.trim().toLowerCase(), slug: this.slug };
     try {
-      const value = this.form.getRawValue();
-      await this.session.login(
-        value.email.trim().toLowerCase(),
-        value.password,
-        this.route.snapshot.queryParamMap.get('slug') ?? undefined,
-      );
+      await this.session.login(recipient.email, password, recipient.slug);
     } catch (error) {
-      this.errors.set(await this.session.signInError(error));
+      this.errors.set(await this.session.signInError(error, recipient));
     } finally {
       this.busy.set(false);
     }

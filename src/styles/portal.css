@@ -91,6 +91,9 @@
     font-size: 13px;
     color: var(--color-muted);
   }
+  .signup-confirmation .auth-switch {
+    text-align: start;
+  }
   .auth-help {
     display: flex;
     align-items: center;

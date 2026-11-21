@@ -1,91 +1,143 @@
-<div class="page-heading">
+<div class="page-heading directory-heading">
   <div>
-    <h1>Terminals</h1>
+    <h1 tabindex="-1">Terminals</h1>
     <p>Motor parks and pickup points for {{ session.business()?.name }}.</p>
   </div>
-</div>
-<section class="panel">
-  <div class="panel-heading">
-    <h2>Terminal directory</h2>
-    <form class="search-form" role="search" (submit)="$event.preventDefault(); search(term.value)">
-      <input
-        #term
-        type="search"
-        placeholder="Search by name"
-        aria-label="Terminal name"
-        (search)="search(term.value)"
-      /><button class="icon-button" aria-label="Search terminals">
-        <app-icon name="search" />
-      </button>
-    </form>
-  </div>
-  @if (list.error()) {
-    <app-errors [messages]="errors(list.error())" /><button
-      class="text-button inset"
-      (click)="list.reload()"
-    >
-      Retry
+  @if (access.canCreateTerminal()) {
+    <button #add appButton type="button" (click)="open(add)">
+      <app-icon name="plus" /> Add terminal
     </button>
-  } @else if (list.isLoading()) {
-    <p class="loading" role="status">Loading terminals…</p>
-  } @else if (list.hasValue()) {
-    @let page = list.value();
-    @if (page.content.length) {
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Terminal name</th>
-              <th>Address</th>
-              <th>Phone</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (b of page.content; track b._id) {
-              <tr>
-                <td>
-                  <strong>{{ b.name }}</strong>
-                  @if (b.primeBranch) {
-                    <span class="badge">Primary</span>
+  }
+</div>
+
+<section class="panel directory" aria-labelledby="terminal-directory">
+  <div class="directory-toolbar">
+    <h2 id="terminal-directory">Terminal directory</h2>
+    <app-directory-search
+      label="Search terminals"
+      placeholder="Search by terminal name"
+      [value]="query().search"
+      (changed)="search($event)"
+    />
+  </div>
+  <div [attr.aria-busy]="list.isLoading()">
+    @if (list.error()) {
+      <div class="directory-message">
+        <app-errors [messages]="errors(list.error())" />
+        <button appButton variant="secondary" type="button" (click)="list.reload()">Retry</button>
+      </div>
+    } @else if (list.hasValue() && list.value().content.length) {
+      <table class="directory-table" role="table" aria-label="Terminals">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">Terminal</th>
+            <th role="columnheader" scope="col">Location</th>
+            <th role="columnheader" scope="col">Contact phone</th>
+            @if (access.canViewEmployees()) {
+              <th role="columnheader" scope="col">Designated manager</th>
+            }
+            @if (access.canViewEmployees()) {
+              <th role="columnheader" scope="col" class="directory-actions">Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          @for (terminal of list.value().content; track terminal._id) {
+            <tr role="row">
+              <td role="cell" class="directory-identity">
+                <span class="directory-avatar"><app-icon name="pin" /></span>
+                <div class="directory-identity-text">
+                  <strong>{{ terminal.name }}</strong>
+                  @if (terminal.primeBranch) {
+                    <span class="badge directory-positive">Primary</span>
+                  }
+                </div>
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label" aria-hidden="true">Location</span>
+                <div>
+                  <span>{{ location(terminal) || 'Unavailable' }}</span>
+                  @if (terminal.address?.street) {
+                    <span class="directory-detail">{{ terminal.address?.street }}</span>
+                  }
+                </div>
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label" aria-hidden="true">Contact phone</span>
+                <span>{{ terminal.phoneNumber || 'Unavailable' }}</span>
+              </td>
+              @if (access.canViewEmployees()) {
+                <td role="cell">
+                  <span class="directory-mobile-label" aria-hidden="true">Designated manager</span>
+                  <span>
+                    @if (!terminal.branchManager) {
+                      Unassigned
+                    } @else if (managerName(terminal); as name) {
+                      {{ name }}
+                    } @else if (
+                      !access.canCreateTerminal() && !access.canEditTerminal(terminal._id)
+                    ) {
+                      Assigned
+                    } @else {
+                      {{ managers.isLoading() ? 'Loading…' : 'Unavailable' }}
+                    }
+                  </span>
+                </td>
+                <td role="cell" class="directory-actions">
+                  @if (access.canEditTerminal(terminal._id)) {
+                    <button
+                      #edit
+                      appButton
+                      variant="secondary"
+                      type="button"
+                      [attr.aria-label]="'Edit ' + terminal.name"
+                      (click)="open(edit, terminal)"
+                    >
+                      <app-icon name="edit" /> Edit
+                    </button>
+                  } @else {
+                    <span class="muted">—</span>
                   }
                 </td>
-                <td>{{ address(b.address) || 'Not provided' }}</td>
-                <td>{{ b.phoneNumber || 'Not provided' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (list.isLoading()) {
+      <div class="directory-loading">
+        <p role="status">Loading terminals…</p>
+        <div class="directory-skeleton" aria-hidden="true"></div>
       </div>
-    } @else {
-      <div class="empty-state">
-        <app-icon name="pin" /><strong>{{
-          query().search ? 'No matching terminals' : 'No terminals recorded'
-        }}</strong>
+    } @else if (list.hasValue()) {
+      <div class="empty-state directory-empty">
+        <app-icon name="pin" />
+        <strong>{{ query().search ? 'No matching terminals' : 'No terminals recorded' }}</strong>
         @if (query().search) {
-          <button class="text-button" (click)="term.value = ''; search('')">Clear search</button>
+          <button class="text-button" type="button" (click)="searchControl().clear(true)">
+            Clear search
+          </button>
         }
       </div>
     }
-    <div class="pager">
-      <span
-        >{{ page.total }} {{ page.total === 1 ? 'terminal' : 'terminals' }} · Page
-        {{ page.currentPage }} of {{ page.totalPages }}</span
-      >
-      <div>
-        <button
-          class="button button-secondary"
-          [disabled]="!page.hasPrev"
-          (click)="go(page.currentPage - 1)"
-        >
-          Previous</button
-        ><button
-          class="button button-secondary"
-          [disabled]="!page.hasNext"
-          (click)="go(page.currentPage + 1)"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  }
+  </div>
+  <app-directory-pager
+    singular="terminal"
+    plural="terminals"
+    [waiting]="list.isLoading()"
+    [page]="list.hasValue() ? list.value() : undefined"
+    (pageChange)="go($event)"
+  />
 </section>
+
+@if (editor(); as current) {
+  <app-terminal-form
+    [terminal]="current.terminal"
+    [trigger]="current.trigger"
+    [managers]="managers.hasValue() && !managers.isLoading() ? managers.value() : undefined"
+    [managerLoadFailed]="!!managers.error()"
+    (retryManagers)="managers.reload()"
+    (dismissed)="editor.set(null)"
+    (saved)="saved($event)"
+  />
+}
