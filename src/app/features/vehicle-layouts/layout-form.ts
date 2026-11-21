@@ -143,6 +143,15 @@ export class LayoutForm implements OnInit {
     this.step.set('details');
     this.focus('#layout-name');
   }
+  back() {
+    const editor = this.editor();
+    if (editor?.preview()) {
+      editor.preview.set(false);
+      this.focus('#seat-editor-mode');
+      return;
+    }
+    this.details();
+  }
   next() {
     this.attempted.set(true);
     this.name.markAsTouched();

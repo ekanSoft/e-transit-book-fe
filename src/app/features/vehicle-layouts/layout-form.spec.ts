@@ -39,6 +39,80 @@ describe('layout workspace drafts', () => {
     f.detectChanges();
     return f.componentInstance;
   }
+  it.each([
+    ['creating', null],
+    ['editing', saved],
+  ] as const)(
+    'goes Back from preview to the editor and then to details while %s',
+    async (_, record) => {
+      const fixture = TestBed.createComponent(LayoutForm);
+      fixture.componentRef.setInput('saved', record);
+      await fixture.whenStable();
+
+      const form = fixture.componentInstance;
+      const host: HTMLElement = fixture.nativeElement;
+      const back = () => host.querySelector<HTMLButtonElement>('.form-footer button[type=button]');
+      const advance = () =>
+        host.querySelector<HTMLButtonElement>('.form-footer button[type=submit]')!.click();
+      expect(back()).toBeNull();
+
+      form.name.setValue('Coach draft');
+      form.setType(record?.type ?? 'CAR');
+      advance();
+      await fixture.whenStable();
+      if (!record) form.choose(presets[0]);
+      const preset = form.selected();
+      const grid = labelSeat(form.grid()!, { row: 2, column: 0 }, 'VIP');
+      form.grid.set(grid);
+      await fixture.whenStable();
+
+      const mode = host.querySelector<HTMLButtonElement>('#seat-editor-mode')!;
+      if (!record) {
+        mode.click();
+        await fixture.whenStable();
+      }
+      host
+        .querySelector<HTMLButtonElement>('button.cell[aria-label="Row 2, position 1, Seat VIP"]')!
+        .click();
+      const aisle = Array.from(host.querySelectorAll<HTMLButtonElement>('.tools button')).find(
+        (button) => button.textContent?.trim() === 'Aisle',
+      )!;
+      aisle.click();
+      mode.click();
+      await fixture.whenStable();
+      expect(mode.getAttribute('aria-pressed')).toBe('true');
+      expect(host.querySelector('#seat-number')).toBeNull();
+
+      expect(back()?.textContent).toBe('Back');
+      back()!.click();
+      await fixture.whenStable();
+      expect(form.step()).toBe('seating');
+      expect(mode.getAttribute('aria-pressed')).toBe('false');
+      expect(document.activeElement).toBe(mode);
+      expect(host.querySelector<HTMLInputElement>('#seat-number')?.value).toBe('VIP');
+      expect(host.querySelector('.tools button[aria-pressed=true]')?.textContent?.trim()).toBe(
+        'Aisle',
+      );
+      expect(form.grid()).toBe(grid);
+
+      back()!.click();
+      await fixture.whenStable();
+      expect(back()).toBeNull();
+      expect(document.activeElement).toBe(host.querySelector('#layout-name'));
+      expect(form.name.value).toBe('Coach draft');
+      expect(form.customType.value).toBe(record?.customType ?? '');
+      form.name.setValue('Updated coach draft');
+      advance();
+      await fixture.whenStable();
+
+      expect(back()).not.toBeNull();
+      expect(form.selected()).toBe(preset);
+      expect(form.grid()).toBe(grid);
+      expect(form.discard()).toBe(false);
+      expect(api.create).not.toHaveBeenCalled();
+      expect(api.update).not.toHaveBeenCalled();
+    },
+  );
   it('requires details, a custom type for Other and a passenger in the grid', async () => {
     const c = open();
     expect(c.next()).toBe(false);

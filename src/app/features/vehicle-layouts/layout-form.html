@@ -124,6 +124,7 @@
       @if (step() === 'details') {
         <button appButton type="submit">Choose seat layout <app-icon name="arrow" /></button>
       } @else {
+        <button appButton variant="secondary" type="button" (click)="back()">Back</button>
         <button appButton type="submit">{{ busy() ? 'Saving…' : 'Save layout' }}</button>
       }
     </footer>
