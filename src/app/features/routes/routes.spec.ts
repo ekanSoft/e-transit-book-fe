@@ -14,6 +14,7 @@ import type {
   EmployeeRole,
 } from '../../core/http/api.models';
 import { Notifications } from '../../shared/ui/feedback';
+import { TripSchedule } from '../trips/trip-schedule';
 import type { Branch, CreateRoute, Route } from '../workspace/workspace-data';
 import { RouteForm } from './route-form';
 import { Routes } from './routes';
@@ -169,6 +170,46 @@ describe('Routes directory and management', () => {
     else Reflect.deleteProperty(dialogPrototype, 'showModal');
     if (nativeClose) Object.defineProperty(dialogPrototype, 'close', nativeClose);
     else Reflect.deleteProperty(dialogPrototype, 'close');
+  });
+
+  it('creates and selects a route from the empty trip picker without losing the departure', async () => {
+    employee.set(membership('ADMIN'));
+    const tripFixture = TestBed.createComponent(TripSchedule);
+    (await request('GET', '/routes')).flush(envelope([]));
+    (await request('GET', '/vehicle-layouts')).flush(envelope([]));
+    await tripFixture.whenStable();
+
+    const page = tripFixture.componentInstance;
+    const departure = '2099-01-12T23:40';
+    page.time.controls.departureTime.setValue(departure);
+    const root = tripFixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('#schedule-route')!.click();
+    await tripFixture.whenStable();
+    const createRoute = root.querySelector<HTMLButtonElement>('.picker-search-action')!;
+    expect(createRoute.textContent).toContain('Create route');
+    createRoute.click();
+
+    (await request('GET', '/branch')).flush(envelope([origin, destination]));
+    await tripFixture.whenStable();
+    const dialog = tripFixture.debugElement.query(By.directive(RouteForm)).injector.get(RouteForm);
+    dialog.form.setValue(pair);
+    await tripFixture.whenStable();
+
+    root.querySelector<HTMLButtonElement>('#add-route-title')!
+      .closest('dialog')!
+      .querySelector<HTMLButtonElement>('button[type="submit"]')!
+      .click();
+    const pending = await request('POST', '/routes');
+    expect(pending.request.body).toEqual(pair);
+    pending.flush(envelope({ ...pair, _id: 'new-route', status: 'ACTIVE' }, 201));
+    await tripFixture.whenStable();
+
+    expect(root.querySelector('dialog')).toBeNull();
+    expect(page.routeControl.value).toBe('new-route');
+    expect(page.time.controls.departureTime.value).toBe(departure);
+    expect(root.querySelector('#schedule-route')?.textContent).toContain(
+      'Lagos State, Lagos → Lagos State, Lagos (Jibowu Terminal → Yaba Terminal)',
+    );
   });
 
   it('renders a business-wide, ordered, read-only directory for a Terminal Manager', async () => {

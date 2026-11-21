@@ -15,7 +15,6 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import { errorMessages } from '../../core/http/errors';
-import { Field } from '../../shared/forms/field';
 import { SearchableSelect } from '../../shared/forms/searchable-select';
 import { applyServerValidation } from '../../shared/forms/server-validation';
 import { capacity } from '../../shared/seat-map/seat-layout';
@@ -23,30 +22,42 @@ import { Button } from '../../shared/ui/button';
 import { Errors, Notifications } from '../../shared/ui/feedback';
 import { ManagementDialog } from '../../shared/ui/management-dialog';
 import { LayoutApi } from '../vehicle-layouts/layout-api';
-import { WorkspaceData } from '../workspace/workspace-data';
+import { RouteForm } from '../routes/route-form';
+import { findDirectionalRoute } from '../routes/route-labels';
+import { WorkspaceData, type CreateRoute, type Route } from '../workspace/workspace-data';
 import { TripApi, type TripPricing } from './trip-api';
+import { TripDateTime } from './trip-date-time';
 import { TripFares } from './trip-fares';
 import {
   choiceControl,
   fareControl,
-  seatNames,
+  fitSeatFares,
   timeFields,
   validateTripTimes,
   watInstant,
 } from './trip-fields';
-import { fareLabel, routeLabel, routeLocation, showWat } from './trip-format';
-import { TripScheduleDraft } from './trip-schedule-draft';
+import { fareLabel, showWat, tripRouteChoiceLabel } from './trip-format';
+import { TripScheduleDraft, tripScheduleOrigin } from './trip-schedule-draft';
 
 @Component({
   selector: 'app-trip-schedule',
-  imports: [RouterLink, Button, Errors, Field, SearchableSelect, TripFares, ManagementDialog],
+  imports: [
+    RouterLink,
+    Button,
+    Errors,
+    SearchableSelect,
+    TripFares,
+    ManagementDialog,
+    RouteForm,
+    TripDateTime,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './trip-schedule.html',
   styleUrls: ['./trip-workspace.css', './trip-schedule.css'],
   host: { '(window:beforeunload)': 'beforeUnload($event)' },
 })
 export class TripSchedule {
-  private readonly access = inject(WorkspaceAccess);
+  readonly access = inject(WorkspaceAccess);
   private readonly router = inject(Router);
   private readonly destroy = inject(DestroyRef);
   private readonly injector = inject(Injector);
@@ -61,7 +72,7 @@ export class TripSchedule {
   private readonly fares = viewChild(TripFares);
 
   readonly step = signal(this.resume?.step ?? 0);
-  readonly steps = ['Journey & time', 'Layout & fares', 'Review & schedule'];
+  readonly steps = ['Journey & time', 'Layout & fares', 'Review & create'];
   readonly routeControl = choiceControl(this.resume?.route);
   readonly layoutControl = choiceControl(this.resume?.layout);
   readonly time = timeFields(this.resume?.departure, this.resume?.arrival);
@@ -71,6 +82,7 @@ export class TripSchedule {
   readonly busy = signal(false);
   readonly discard = signal(false);
   readonly messages = signal<string[]>([]);
+  readonly routeCreator = signal<HTMLElement | null>(null);
   private saved = false;
   private resolveLeave?: (leave: boolean) => void;
 
@@ -82,8 +94,13 @@ export class TripSchedule {
     params: () => (this.access.canScheduleTrip() ? this.access.scope() : undefined),
     loader: async () => (await this.catalog.list()).data,
   });
+  readonly terminals = resource({
+    params: () => (this.routeCreator() && this.access.canCreateRoute() ? this.access.scope() : undefined),
+    loader: () => this.workspace.allBranches(),
+  });
+  readonly allRoutes = computed(() => (this.routes.hasValue() ? this.routes.value() : []));
   readonly activeRoutes = computed(() =>
-    (this.routes.hasValue() ? this.routes.value() : []).filter(
+    this.allRoutes().filter(
       (route) => route.status === 'ACTIVE' && route.originBranch && route.destinationBranch,
     ),
   );
@@ -95,7 +112,7 @@ export class TripSchedule {
   readonly routeOptions = computed(() =>
     this.activeRoutes().map((route) => ({
       value: route._id,
-      label: [routeLabel(route), routeLocation(route)].filter(Boolean).join(' · '),
+      label: tripRouteChoiceLabel(route),
     })),
   );
   readonly layoutOptions = computed(() =>
@@ -116,14 +133,13 @@ export class TripSchedule {
   readonly layout = computed(() =>
     this.activeLayouts().find((layout) => layout._id === this.layoutId()),
   );
-  readonly routeLabel = routeLabel;
-  readonly routeLocation = routeLocation;
+  readonly tripRouteChoiceLabel = tripRouteChoiceLabel;
   readonly showWat = showWat;
   readonly capacity = capacity;
   readonly fare = fareLabel;
   readonly errors = errorMessages;
-  readonly hasRoutes = computed(() => this.routes.hasValue() && this.routes.value().length > 0);
   readonly hasLayouts = computed(() => this.layouts.hasValue() && this.layouts.value().length > 0);
+  readonly setupParams = { from: tripScheduleOrigin };
 
   constructor() {
     this.layoutControl.valueChanges
@@ -132,18 +148,48 @@ export class TripSchedule {
     this.destroy.onDestroy(() => this.resolveLeave?.(true));
   }
 
+  openRouteCreator(trigger: HTMLElement) {
+    if (this.access.canCreateRoute() && !this.busy()) this.routeCreator.set(trigger);
+  }
+
+  routeCreated(route: Route) {
+    this.routes.set([route, ...this.allRoutes().filter(({ _id }) => _id !== route._id)]);
+    this.selectRoute(route._id);
+    this.notify.show('Route added.');
+  }
+
+  findDuplicate(pair: CreateRoute) {
+    if (!findDirectionalRoute(this.allRoutes(), pair)) this.routes.reload();
+  }
+
+  useExistingRoute(id: string) {
+    if (this.activeRoutes().some(({ _id }) => _id === id)) {
+      this.selectRoute(id);
+    } else {
+      void this.router.navigate(['/app/routes'], { queryParams: this.setupParams });
+    }
+  }
+
+  private selectRoute(id: string) {
+    this.routeControl.markAsDirty();
+    this.routeControl.setValue(id);
+    this.routeCreator.set(null);
+  }
+
   private reviewOverrides(layout: ReturnType<typeof this.layout>) {
     if (!layout) return;
-    const names = seatNames(layout.seatLayout);
-    const kept: TripPricing['seatOverrides'] = [];
-    const dropped: string[] = [];
-    for (const item of this.overrides()) {
-      const label = names.get(item.seatNumber.toLowerCase());
-      if (label) kept.push({ ...item, seatNumber: label });
-      else dropped.push(item.seatNumber);
+    const { overrides, removed } = fitSeatFares(layout.seatLayout, {
+      overrides: this.overrides(),
+      removed: this.removed(),
+    });
+    this.overrides.set(overrides);
+    this.removed.set(removed);
+  }
+
+  createLayout() {
+    if (this.access.canWriteLayouts()) {
+      void this.router.navigate(['/app/vehicle-layouts/new'], { queryParams: this.setupParams });
     }
-    this.overrides.set(kept);
-    if (dropped.length) this.removed.update((labels) => [...new Set([...labels, ...dropped])]);
   }
 
   get departure() {
@@ -212,7 +258,7 @@ export class TripSchedule {
       if (this.destroy.destroyed || this.scope !== this.access.scope()) return;
       this.saved = true;
       this.draft.saved.set(null);
-      this.notify.show('Trip scheduled.');
+      this.notify.show('Trip created.');
       await this.router.navigate(['/app/trips', saved._id]);
     } catch (error) {
       if (this.destroy.destroyed || this.scope !== this.access.scope()) return;
@@ -283,7 +329,7 @@ export class TripSchedule {
     const path = url.split(/[?#]/, 1)[0];
     if (
       ['/app/routes', '/app/vehicle-layouts', '/app/vehicle-layouts/new'].includes(path) &&
-      url.includes('from=trip-schedule')
+      this.router.parseUrl(url).queryParamMap.get('from') === tripScheduleOrigin
     ) {
       if (!(this.fares()?.validatePending() ?? true)) return false;
       this.draft.saved.set(this.currentDraft());

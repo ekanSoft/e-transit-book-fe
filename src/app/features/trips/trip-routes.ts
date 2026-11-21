@@ -12,7 +12,7 @@ export const tripRoutes: Routes = [
   },
   {
     path: 'new',
-    title: 'Schedule trip · eTransitBook',
+    title: 'Create trip · eTransitBook',
     canActivate: [scheduleTripGuard],
     canDeactivate: [(page: TripSchedule, _route, _current, next) => page.leave(next.url)],
     loadComponent: () => import('./trip-schedule').then((m) => m.TripSchedule),

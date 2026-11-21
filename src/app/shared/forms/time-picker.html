@@ -1,0 +1,44 @@
+<div class="time-field">
+  <label [id]="id() + '-label'" [for]="id()">{{ label() }}</label>
+  <button
+    #trigger
+    type="button"
+    class="picker-trigger time-trigger"
+    [id]="id()"
+    [attr.aria-labelledby]="id() + '-label ' + id() + '-value'"
+    [attr.aria-expanded]="expanded()"
+    [attr.aria-controls]="expanded() ? id() + '-options' : null"
+    (click)="toggle()"
+  >
+    <span [id]="id() + '-value'">{{ displayTime() }}</span>
+    <app-icon name="clock" />
+  </button>
+</div>
+@if (expanded()) {
+  <div class="time-options" [id]="id() + '-options'" role="group" [attr.aria-labelledby]="id() + '-label'">
+    <label>
+      Hour
+      <select #hourInput (change)="hour.set(+hourInput.value)">
+        @for (option of hours; track option) {
+          <option [value]="option" [selected]="hour() === option">{{ option }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Minute
+      <select #minuteInput (change)="minute.set(minuteInput.value)">
+        @for (option of minutes; track option) {
+          <option [value]="option" [selected]="minute() === option">{{ option }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      AM/PM
+      <select #periodInput (change)="period.set(periodInput.value)">
+        <option [selected]="period() === 'AM'">AM</option>
+        <option [selected]="period() === 'PM'">PM</option>
+      </select>
+    </label>
+    <button appButton type="button" aria-label="OK, confirm time" (click)="confirm()">OK</button>
+  </div>
+}

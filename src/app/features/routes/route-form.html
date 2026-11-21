@@ -66,7 +66,7 @@
               class="mt-2"
               (click)="viewExisting.emit(match._id)"
             >
-              View existing route
+              {{ match.status === 'ACTIVE' ? activeRouteAction() : 'View existing route' }}
             </button>
           } @else if (routesLoading()) {
             <p role="status">Checking the route directory…</p>

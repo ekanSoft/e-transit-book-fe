@@ -3,12 +3,19 @@
     class="base-fare"
     [id]="'trip-base-fare'"
     label="Default fare (₦)"
+    labelHelp="Every passenger seat uses this fare unless you set a different fare for that seat."
     [control]="baseFare()"
     [hint]="hint"
   />
   <div class="fare-map">
-    <h3>Per-seat fares</h3>
-    <p class="muted">Select a passenger seat to set a different fare.</p>
+    <div class="fare-map-heading">
+      <h3>Special Seat Fares</h3>
+      <app-field-help
+        id="trip-per-seat-fare-help"
+        label="Special Seat Fares"
+        text="Select a passenger seat on the map to set a different fare for that seat."
+      />
+    </div>
     <app-seat-map
       [grid]="grid()"
       mode="select"

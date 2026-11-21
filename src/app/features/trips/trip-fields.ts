@@ -1,5 +1,6 @@
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import type { SeatLayout } from '../../shared/seat-map/seat-layout';
+import type { TripPricing } from './trip-api';
 import { isCalendarDate } from './trip-format';
 
 export const minFare = 100;
@@ -103,4 +104,19 @@ export function seatNames(grid: SeatLayout) {
       ),
     ),
   );
+}
+
+export function fitSeatFares(
+  grid: SeatLayout,
+  { overrides, removed }: { overrides: TripPricing['seatOverrides']; removed: string[] },
+) {
+  const names = seatNames(grid);
+  const kept: TripPricing['seatOverrides'] = [];
+  const dropped = new Set(removed);
+  for (const item of overrides) {
+    const seatNumber = names.get(item.seatNumber.toLowerCase());
+    if (seatNumber) kept.push({ ...item, seatNumber });
+    else dropped.add(item.seatNumber);
+  }
+  return { overrides: kept, removed: [...dropped] };
 }

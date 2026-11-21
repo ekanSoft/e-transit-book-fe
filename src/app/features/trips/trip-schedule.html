@@ -1,12 +1,12 @@
 <a class="text-button trip-back" routerLink="/app/trips">← All trips</a>
 <div class="page-heading">
   <div>
-    <h1 tabindex="-1">Schedule trip</h1>
+    <h1 tabindex="-1">Create trip</h1>
     <p>Set up a departure in West Africa Time (WAT).</p>
   </div>
 </div>
 <section class="panel trip-panel schedule-panel" aria-labelledby="schedule-step">
-  <ol class="schedule-steps" aria-label="Scheduling progress">
+  <ol class="schedule-steps" aria-label="Trip creation progress">
     @for (label of steps; track label; let index = $index) {
       <li [attr.aria-current]="step() === index ? 'step' : null" [class.visited]="step() >= index">
         <span>{{ index + 1 }}</span>{{ label }}
@@ -16,52 +16,47 @@
   <h2 id="schedule-step" #stepHeading tabindex="-1">{{ steps[step()] }}</h2>
   <app-errors [messages]="messages()" />
   <div class="schedule-stage" [hidden]="step() !== 0">
-    @if (routes.isLoading()) {
+    @if (routes.isLoading() && !routes.hasValue()) {
       <p role="status">Loading routes…</p>
-    } @else if (routes.error()) {
+    }
+    @if (routes.error()) {
       <app-errors [messages]="errors(routes.error())" />
       <button appButton type="button" variant="secondary" (click)="routes.reload()">
         Retry routes
       </button>
-    } @else if (activeRoutes().length) {
-      <app-searchable-select
-        [id]="'schedule-route'"
-        label="Route"
-        placeholder="Choose a route"
-        searchLabel="Search routes"
-        [options]="routeOptions()"
-        [control]="routeControl"
-      />
-    } @else {
+    }
+    <app-searchable-select
+      [id]="'schedule-route'"
+      label="Route"
+      placeholder="Choose a route"
+      searchLabel="Search routes"
+      [options]="routeOptions()"
+      [control]="routeControl"
+      [actionLabel]="access.canCreateRoute() ? 'Create route' : ''"
+      (action)="openRouteCreator($event)"
+    />
+    @if (routes.hasValue() && !activeRoutes().length && allRoutes().length) {
       <div class="schedule-setup">
-        <p>
-          {{
-            hasRoutes()
-              ? 'Reactivate a route or create a new one to schedule this departure.'
-              : 'Create a route between two terminals to schedule this departure.'
-          }}
-        </p>
+        <p>Reactivate an existing route or create one from the picker.</p>
         <a
           appButton
           variant="secondary"
           routerLink="/app/routes"
-          [queryParams]="{ from: 'trip-schedule' }"
-          >{{ hasRoutes() ? 'Manage routes' : 'Set up a route' }}</a
+          [queryParams]="setupParams"
+          >Manage routes</a
         >
-        <small>Return to Schedule trip to resume your draft.</small>
+        <small>Return to Create trip to resume your draft.</small>
       </div>
     }
     <div class="schedule-times">
-      <app-field
+      <app-trip-date-time
         [id]="'schedule-departure'"
         label="Departure (WAT)"
-        type="datetime-local"
         [control]="time.controls.departureTime"
       />
-      <app-field
+      <app-trip-date-time
         [id]="'schedule-arrival'"
         label="Estimated arrival (WAT)"
-        type="datetime-local"
         [control]="time.controls.estimatedArrivalTime"
         [optional]="true"
       />
@@ -83,6 +78,8 @@
         searchLabel="Search vehicle layouts"
         [options]="layoutOptions()"
         [control]="layoutControl"
+        [actionLabel]="access.canWriteLayouts() ? 'Create vehicle layout' : ''"
+        (action)="createLayout()"
       />
     } @else {
       <div class="schedule-setup">
@@ -96,11 +93,15 @@
         <a
           appButton
           variant="secondary"
-          [routerLink]="hasLayouts() ? '/app/vehicle-layouts' : '/app/vehicle-layouts/new'"
-          [queryParams]="{ from: 'trip-schedule' }"
-          >{{ hasLayouts() ? 'Manage layouts' : 'Create vehicle layout' }}</a
+          routerLink="/app/vehicle-layouts/new"
+          [queryParams]="setupParams"
+          >Create vehicle layout</a
         >
-        <small>Return to Schedule trip to resume your draft.</small>
+        @if (hasLayouts()) {
+          <a class="text-button" routerLink="/app/vehicle-layouts" [queryParams]="setupParams">
+            Manage layouts
+          </a>
+        }
       </div>
     }
     @if (layout(); as selected) {
@@ -114,8 +115,7 @@
   <div class="schedule-stage" [hidden]="step() !== 2">
     @if (route(); as selected) {
       <div class="schedule-journey">
-        <strong>{{ routeLabel(selected) }}</strong>
-        <p class="muted">{{ routeLocation(selected) }}</p>
+        <strong>{{ tripRouteChoiceLabel(selected) }}</strong>
       </div>
     }
     <dl class="trip-facts">
@@ -197,12 +197,30 @@
           [disabled]="busy() || routes.isLoading() || layouts.isLoading()"
           (click)="submit()"
         >
-          {{ busy() ? 'Scheduling…' : 'Schedule trip' }}
+          {{ busy() ? 'Creating…' : 'Create trip' }}
         </button>
       }
     </div>
   </footer>
 </section>
+@if (routeCreator(); as trigger) {
+  @if (access.canCreateRoute()) {
+    <app-route-form
+      [trigger]="trigger"
+      [terminals]="terminals.hasValue() ? terminals.value() : undefined"
+      [terminalError]="terminals.error()"
+      [routes]="allRoutes()"
+      [routesLoading]="routes.isLoading()"
+      activeRouteAction="Use existing route"
+      (retryTerminals)="terminals.reload()"
+      (retryRoutes)="routes.reload()"
+      (conflicted)="findDuplicate($event)"
+      (viewExisting)="useExistingRoute($event)"
+      (dismissed)="routeCreator.set(null)"
+      (saved)="routeCreated($event)"
+    />
+  }
+}
 @if (discard()) {
   <app-management-dialog
     dialogId="discard-trip"

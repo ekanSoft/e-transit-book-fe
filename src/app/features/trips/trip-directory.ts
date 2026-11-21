@@ -23,6 +23,7 @@ import {
   isCalendarDate,
   routeLabel,
   routeLocation,
+  routeLocationLabel,
   showWat,
   watDate,
 } from './trip-format';
@@ -33,9 +34,11 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './trip-directory.html',
   styleUrl: './trip-directory.css',
+  host: { '(document:keydown.escape)': 'copyHelpDismissed.set(true)' },
 })
 export class TripDirectory {
   readonly access = inject(WorkspaceAccess);
+  protected readonly copyHelpDismissed = signal(false);
   private readonly api = inject(TripApi);
   private readonly workspace = inject(WorkspaceData);
   private readonly route = inject(ActivatedRoute);
@@ -69,7 +72,7 @@ export class TripDirectory {
       .filter((route) => this.access.canReadTripFrom(route.originBranch?._id))
       .map((route) => ({
         value: route._id,
-        label: routeLabel(route) + (route.status === 'INACTIVE' ? ' · Inactive' : ''),
+        label: routeLocationLabel(route) + (route.status === 'INACTIVE' ? ' · Inactive' : ''),
       })),
   ]);
   readonly page = computed(() => (this.trips.hasValue() ? this.trips.value() : undefined));

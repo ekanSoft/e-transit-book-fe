@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { errorMessages } from '../../core/http/errors';
+import { terminalName } from '../routes/route-labels';
 import type { Route, RouteTerminal } from '../workspace/workspace-data';
 
 const zone = 'Africa/Lagos';
@@ -59,6 +60,20 @@ export function routeLocation(route: Route | null | undefined) {
   const origin = terminalLocation(route?.originBranch);
   const destination = terminalLocation(route?.destinationBranch);
   return origin && destination ? origin + ' → ' + destination : origin || destination;
+}
+
+function stateFirstTerminalLabel(terminal: RouteTerminal | null) {
+  const address = terminal?.address;
+  const state = address?.state?.trim() || address?.stateCode?.trim();
+  return [state, address?.city?.trim()].filter(Boolean).join(', ') || terminalName(terminal);
+}
+
+export function routeLocationLabel({ originBranch, destinationBranch }: Route) {
+  return stateFirstTerminalLabel(originBranch) + ' → ' + stateFirstTerminalLabel(destinationBranch);
+}
+
+export function tripRouteChoiceLabel(route: Route) {
+  return `${routeLocationLabel(route)} (${routeLabel(route)})`;
 }
 
 export function tripReadErrors(error: unknown) {

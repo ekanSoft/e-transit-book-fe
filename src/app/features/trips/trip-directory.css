@@ -18,6 +18,35 @@
 .quick-dates:not(.trip-heading-actions) {
   padding-top: 24px;
 }
+.trip-heading-actions {
+  position: relative;
+}
+.copy-action-help {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  width: min(17rem, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid var(--control-line);
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 16%);
+  visibility: hidden;
+}
+.copy-action:not(.help-dismissed):is(:hover, :focus-within) .copy-action-help {
+  visibility: visible;
+}
+@media (max-width: 620px) {
+  .trip-heading-actions {
+    flex-basis: 100%;
+  }
+  .copy-action-help {
+    inset-inline: 0 auto;
+  }
+}
 .quick-dates button[aria-pressed='true'] {
   border-color: var(--color-brand);
 }

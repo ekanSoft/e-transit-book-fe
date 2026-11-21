@@ -7,11 +7,11 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import { Field } from '../../shared/forms/field';
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { ManagementDialog } from '../../shared/ui/management-dialog';
 import type { Trip, TripPricing, UpdateTrip } from './trip-api';
+import { TripDateTime } from './trip-date-time';
 import { TripFares } from './trip-fares';
 import { fareControl, timeFields, validateTripTimes, watInput, watInstant } from './trip-fields';
 
@@ -41,7 +41,7 @@ export function tripChanges(
 
 @Component({
   selector: 'app-trip-edit-dialog',
-  imports: [Button, Errors, Field, ManagementDialog, TripFares],
+  imports: [Button, Errors, ManagementDialog, TripDateTime, TripFares],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-management-dialog
@@ -56,16 +56,14 @@ export function tripChanges(
         <div class="management-body editor">
           <app-errors [messages]="messages()" />
           <div class="times">
-            <app-field
+            <app-trip-date-time
               [id]="'edit-trip-departure'"
               label="Departure (WAT)"
-              type="datetime-local"
               [control]="times().controls.departureTime"
             />
-            <app-field
+            <app-trip-date-time
               [id]="'edit-trip-arrival'"
               label="Estimated arrival (WAT)"
-              type="datetime-local"
               [control]="times().controls.estimatedArrivalTime"
               [optional]="true"
             />
@@ -77,7 +75,7 @@ export function tripChanges(
           />
           @if (overrides().length) {
             <button type="button" class="text-button" (click)="clearPrices()">
-              Clear all per-seat fares
+              Clear all special seat fares
             </button>
           }
         </div>

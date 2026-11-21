@@ -18,8 +18,17 @@
   grid-area: override;
   min-width: 0;
 }
-.fare-map h3 {
-  font-weight: 700;
+.fare-map-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 7px;
+}
+.fare-map-heading h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 550;
 }
 .fare-map p {
   font-size: 0.86rem;

@@ -5,16 +5,28 @@
   </div>
   <div class="quick-dates trip-heading-actions">
     @if (access.canCopyTrips()) {
-      <a
-        appButton
-        variant="secondary"
-        routerLink="copy-day"
-        [queryParams]="{ departureDate: query().departureDate }"
-        >Copy a day</a
+      <div
+        class="copy-action"
+        [class.help-dismissed]="copyHelpDismissed()"
+        (pointerenter)="copyHelpDismissed.set(false)"
+        (focusin)="copyHelpDismissed.set(false)"
       >
+        <a
+          appButton
+          variant="secondary"
+          routerLink="copy-day"
+          aria-describedby="copy-day-help"
+          [queryParams]="{ departureDate: query().departureDate }"
+          >Copy a day</a
+        >
+        <div class="copy-action-help" id="copy-day-help" role="tooltip">
+          <strong>Reuse an existing day’s timetable.</strong> Choose which departures to copy and which of the next
+          seven days to copy them to without having to maually create each trip again.
+        </div>
+      </div>
     }
     @if (access.canScheduleTrip()) {
-      <a appButton routerLink="new"><app-icon name="plus" /> Schedule trip</a>
+      <a appButton routerLink="new"><app-icon name="plus" /> Create trip</a>
     }
   </div>
 </div>

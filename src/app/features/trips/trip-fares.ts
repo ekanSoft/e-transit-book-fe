@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import type { FormControl } from '@angular/forms';
 import { Field } from '../../shared/forms/field';
+import { FieldHelp } from '../../shared/forms/field-help';
 import type { SeatLayout, SeatPosition } from '../../shared/seat-map/seat-layout';
 import { SeatMap } from '../../shared/seat-map/seat-map';
 import { Button } from '../../shared/ui/button';
@@ -18,7 +19,7 @@ import { fareLabel } from './trip-format';
 
 @Component({
   selector: 'app-trip-fares',
-  imports: [Button, Field, Icon, SeatMap],
+  imports: [Button, Field, FieldHelp, Icon, SeatMap],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './trip-fares.html',
   styleUrl: './trip-fares.css',

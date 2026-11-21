@@ -1,0 +1,117 @@
+<label [for]="id()">
+  {{ label() }} @if (optional()) { <span class="optional">(optional)</span> }
+</label>
+<button
+  #trigger
+  type="button"
+  class="picker-trigger picker-anchor"
+  [style.--picker-anchor]="'--' + id()"
+  [id]="id()"
+  [attr.popovertarget]="id() + '-panel'"
+  [attr.aria-expanded]="open()"
+  aria-haspopup="dialog"
+  [attr.aria-labelledby]="id() + '-label ' + id() + '-value'"
+  [attr.aria-invalid]="!!error()"
+  [attr.aria-describedby]="error() ? id() + '-error' : null"
+  [disabled]="control().disabled"
+>
+  <span class="sr-only" [id]="id() + '-label'">{{ label() }}</span>
+  <span [id]="id() + '-value'" [class.muted]="!displayValue()">
+    {{ displayValue() || 'Choose date and time' }}
+  </span>
+  <app-icon name="calendar" />
+</button>
+@if (error(); as message) {
+  <p class="field-hint field-error" [id]="id() + '-error'">{{ message }}</p>
+}
+<div
+  #panel
+  popover="auto"
+  class="calendar"
+  role="dialog"
+  [id]="id() + '-panel'"
+  [attr.aria-label]="label()"
+  [style.--picker-anchor]="'--' + id()"
+  (beforetoggle)="beforeToggle($event)"
+  (keydown.escape)="escape($event)"
+>
+  <div class="calendar-heading">
+    <div>
+      <span class="section-label">Date</span>
+      <strong aria-live="polite">{{ selectedHeading() }}</strong>
+    </div>
+    <button type="button" class="today" (click)="today()">Today</button>
+  </div>
+  <div class="date-controls">
+    <button type="button" class="month-arrow" aria-label="Previous month" (click)="moveMonth(-1)">
+      <app-icon name="chevron" />
+    </button>
+    <div class="month-select">
+      <select #monthMenu aria-label="Month" (change)="jumpToMonth(year(), +monthMenu.value)">
+        @for (month of months; track month.value) {
+          <option [value]="month.value" [selected]="month.value === monthNumber()">{{ month.label }}</option>
+        }
+      </select>
+      <app-icon name="down" />
+    </div>
+    <div class="month-select">
+      <select #yearMenu aria-label="Year" (change)="jumpToMonth(+yearMenu.value, monthNumber())">
+        @for (option of years(); track option) {
+          <option [value]="option" [selected]="option === year()">{{ option }}</option>
+        }
+      </select>
+      <app-icon name="down" />
+    </div>
+    <button type="button" class="month-arrow next" aria-label="Next month" (click)="moveMonth(1)">
+      <app-icon name="chevron" />
+    </button>
+  </div>
+  <div role="grid" class="calendar-grid" [attr.aria-label]="monthLabel()" (keydown)="moveFocus($event)">
+    <div role="row" class="week weekdays">
+      @for (day of weekdays; track day) {
+        <span role="columnheader" [attr.aria-label]="day">{{ day.slice(0, 2) }}</span>
+      }
+    </div>
+    @for (week of weeks(); track week[0].value) {
+      <div role="row" class="week">
+        @for (day of week; track day.value) {
+          <div role="gridcell" [attr.aria-selected]="selected() === day.value">
+            <button
+              type="button"
+              class="day"
+              [class.adjacent]="!day.value.startsWith(month())"
+              [attr.aria-current]="currentDate() === day.value ? 'date' : null"
+              [attr.tabindex]="focused() === day.value ? 0 : -1"
+              [attr.aria-label]="day.label"
+              (click)="choose(day.value)"
+            >{{ day.number }}</button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <!-- To restore the separate dropdown, add TimePicker to the component imports and replace the native time field.
+  @if (open()) {
+    <app-time-picker
+      class="time"
+      [id]="id() + '-time'"
+      label="Time (WAT)"
+      [(value)]="time"
+    />
+  }
+  -->
+  <label class="time" [for]="id() + '-time'">
+    Time (WAT)
+    <input
+      #timeInput
+      type="time"
+      [id]="id() + '-time'"
+      [value]="time()"
+      (input)="time.set(timeInput.value)"
+    />
+  </label>
+  <div class="calendar-actions">
+    <button type="button" class="text-button" (click)="selected.set('')">Clear</button>
+    <button appButton type="button" class="confirm" [disabled]="!canConfirm()" (click)="confirm()">OK</button>
+  </div>
+</div>

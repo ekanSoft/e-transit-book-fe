@@ -48,7 +48,7 @@
   flex-wrap: wrap;
   gap: 12px;
 }
-.schedule-times app-field {
+.schedule-times app-trip-date-time {
   flex: 1 1 14rem;
   min-width: 0;
 }

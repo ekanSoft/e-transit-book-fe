@@ -51,12 +51,13 @@ export class RouteForm {
   readonly terminalError = input<unknown>();
   readonly routes = input.required<readonly Route[]>();
   readonly routesLoading = input(false);
+  readonly activeRouteAction = input('View existing route');
   readonly retryTerminals = output<void>();
   readonly retryRoutes = output<void>();
   readonly conflicted = output<CreateRoute>();
   readonly viewExisting = output<string>();
   readonly dismissed = output<void>();
-  readonly saved = output<void>();
+  readonly saved = output<Route>();
 
   readonly access = inject(WorkspaceAccess);
   private readonly session = inject(Session);
@@ -112,11 +113,19 @@ export class RouteForm {
   async submit() {
     if (this.destroyRef.destroyed || !this.canSubmit()) return;
     const pair = this.form.getRawValue();
+    const terminals = this.terminals() ?? [];
     this.busy.set(true);
     this.errors.set([]);
     try {
-      await this.api.createRoute(pair);
-      if (!this.destroyRef.destroyed && this.scope === this.access.scope()) this.saved.emit();
+      const { data } = await this.api.createRoute(pair);
+      if (!this.destroyRef.destroyed && this.scope === this.access.scope()) {
+        this.saved.emit({
+          _id: data._id,
+          status: data.status,
+          originBranch: terminals.find(({ _id }) => _id === data.originBranch) ?? null,
+          destinationBranch: terminals.find(({ _id }) => _id === data.destinationBranch) ?? null,
+        });
+      }
     } catch (error) {
       if (this.destroyRef.destroyed || this.scope !== this.access.scope()) return;
       const status = error instanceof HttpErrorResponse ? error.status : 0;

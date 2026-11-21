@@ -14,7 +14,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormControl, type ValidatorFn } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import { errorMessages } from '../../core/http/errors';
 import { Field } from '../../shared/forms/field';
@@ -24,6 +24,7 @@ import { Button } from '../../shared/ui/button';
 import { Errors, Notifications } from '../../shared/ui/feedback';
 import { Icon, type IconName } from '../../shared/ui/icon';
 import { ManagementDialog } from '../../shared/ui/management-dialog';
+import { TripScheduleDraft, tripScheduleOrigin } from '../trips/trip-schedule-draft';
 import {
   LayoutApi,
   layoutChanges,
@@ -67,6 +68,8 @@ export class LayoutForm implements OnInit {
   private readonly access = inject(WorkspaceAccess);
   private readonly api = inject(LayoutApi);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly tripDraft = inject(TripScheduleDraft);
   private readonly notify = inject(Notifications);
   private readonly destroy = inject(DestroyRef);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -94,10 +97,9 @@ export class LayoutForm implements OnInit {
       : null;
   });
   readonly options = computed(() => {
-    const choices = [...presets.filter((p) => p.type === this.type()), customPreset];
-    const selected = this.selected();
+    const type = this.type();
+    const choices = [...presets.filter((preset) => preset.type === type), customPreset];
     const original = this.original();
-    if (selected && selected !== original && !choices.includes(selected)) choices.unshift(selected);
     return original ? [original, ...choices] : choices;
   });
   readonly previewFirst = computed(
@@ -115,6 +117,7 @@ export class LayoutForm implements OnInit {
   readonly discard = signal(false);
   private resolveLeave?: (leave: boolean) => void;
   private savedSuccessfully = false;
+  private arrangementType: VehicleType | null = null;
   private readonly scope = this.access.scope();
   readonly problems = computed(() => {
     const grid = this.grid();
@@ -170,6 +173,19 @@ export class LayoutForm implements OnInit {
       this.focus('#custom-type');
       return false;
     }
+    const type = this.type();
+    if (this.arrangementType !== type) {
+      const original = this.original();
+      if (original) {
+        this.start(original);
+      } else {
+        this.arrangementType = type;
+        this.selected.set(null);
+        this.baseline.set(null);
+        this.grid.set(null);
+        this.checkedGrid.set(false);
+      }
+    }
     this.step.set('seating');
     this.focus('#arrangements');
     return true;
@@ -181,6 +197,7 @@ export class LayoutForm implements OnInit {
     else this.start(preset);
   }
   start(preset: SeatPreset) {
+    this.arrangementType = this.type();
     this.selected.set(preset);
     this.baseline.set(preset.grid);
     this.grid.set(preset.grid);
@@ -188,12 +205,6 @@ export class LayoutForm implements OnInit {
     this.checkedGrid.set(false);
   }
   setType(type: VehicleType) {
-    if (type === this.type()) return;
-    if (!this.saved() && this.grid() === this.baseline()) {
-      this.grid.set(null);
-      this.selected.set(null);
-      this.baseline.set(null);
-    }
     this.type.set(type);
   }
   private draft(): LayoutInput {
@@ -268,7 +279,11 @@ export class LayoutForm implements OnInit {
       if (this.destroy.destroyed || this.scope !== this.access.scope()) return;
       this.savedSuccessfully = true;
       this.notify.show(item ? 'Vehicle layout updated.' : 'Vehicle layout created.');
-      await this.router.navigate(['/app/vehicle-layouts', data._id]);
+      const resumeTrip =
+        !item &&
+        this.route.snapshot.queryParamMap.get('from') === tripScheduleOrigin &&
+        this.tripDraft.selectCreatedLayout(data);
+      await this.router.navigate(resumeTrip ? ['/app/trips/new'] : ['/app/vehicle-layouts', data._id]);
     } catch (error) {
       if (this.destroy.destroyed || this.scope !== this.access.scope()) return;
       if (error instanceof HttpErrorResponse && error.status === 409) {

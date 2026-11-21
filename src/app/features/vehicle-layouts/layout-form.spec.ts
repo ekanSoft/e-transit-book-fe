@@ -1,8 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { WorkspaceAccess } from '../../core/auth/workspace-access';
+import { TripScheduleDraft, type ScheduleDraft } from '../trips/trip-schedule-draft';
 import { LayoutApi, type VehicleLayout } from './layout-api';
 import { LayoutForm } from './layout-form';
 import { customPreset, presets } from './seat-presets';
@@ -27,7 +28,11 @@ describe('layout workspace drafts', () => {
         { provide: LayoutApi, useValue: api },
         {
           provide: WorkspaceAccess,
-          useValue: { scope: signal({ business: 'tenant' }), canWriteLayouts: signal(true) },
+          useValue: {
+            scope: signal({ business: 'tenant' }),
+            canWriteLayouts: signal(true),
+            canScheduleTrip: signal(true),
+          },
         },
       ],
     });
@@ -39,6 +44,42 @@ describe('layout workspace drafts', () => {
     f.detectChanges();
     return f.componentInstance;
   }
+
+  it.each([
+    ['trip-schedule', true, true],
+    [null, true, false],
+    ['trip-schedule', false, false],
+  ] as const)('scopes the creation return to Trips (%s, draft %s)', async (from, hasDraft, resumes) => {
+    const tripDraft = TestBed.inject(TripScheduleDraft);
+    const draft: ScheduleDraft = {
+      step: 1,
+      route: 'route',
+      layout: 'old-layout',
+      departure: '2099-01-12T23:40',
+      arrival: '2099-01-13T01:10',
+      fare: '18000',
+      overrides: [{ seatNumber: 'missing-seat', fare: 22000 }],
+      removed: [],
+    };
+    tripDraft.saved.set(hasDraft ? draft : null);
+    vi.spyOn(TestBed.inject(ActivatedRoute).snapshot.queryParamMap, 'get').mockReturnValue(from);
+    api.create.mockResolvedValue({ data: saved });
+
+    const form = open();
+    form.name.setValue('Coach');
+    form.setType('BUS');
+    form.start(presets[3]);
+    await form.save();
+
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
+      resumes ? ['/app/trips/new'] : ['/app/vehicle-layouts', saved._id],
+    );
+    expect(tripDraft.saved()).toEqual(
+      resumes
+        ? { ...draft, layout: saved._id, overrides: [], removed: ['missing-seat'] }
+        : hasDraft ? draft : null,
+    );
+  });
   it.each([
     ['creating', null],
     ['editing', saved],
@@ -133,6 +174,45 @@ describe('layout workspace drafts', () => {
       customType: 'Van',
       seatLayout: c.grid(),
     });
+  });
+  it('keeps seat edits until advancing with a different vehicle type', () => {
+    const form = open();
+    form.name.setValue('Test layout');
+    form.setType('CAR');
+    form.next();
+    form.choose(presets[0]);
+    const edited = labelSeat(form.grid()!, { row: 2, column: 0 }, 'VIP');
+    form.grid.set(edited);
+    form.details();
+    form.setType('COASTER');
+
+    expect(form.step()).toBe('details');
+    expect(form.grid()).toBe(edited);
+    form.name.setValue('Renamed layout');
+    form.setType('CAR');
+    expect(form.next()).toBe(true);
+    expect(form.grid()).toBe(edited);
+
+    form.details();
+    form.setType('COASTER');
+    expect(form.next()).toBe(true);
+
+    expect(form.step()).toBe('seating');
+    expect(form.options().map(({ name }) => name)).toEqual(['Coaster 30', 'Custom layout']);
+    expect(form.grid()).toBeNull();
+    expect(form.selected()).toBeNull();
+  });
+
+  it('keeps the saved arrangement available when changing the type of a saved layout', () => {
+    const form = open(saved);
+    form.setType('COASTER');
+    expect(form.next()).toBe(true);
+    expect(form.options().map(({ name }) => name)).toEqual([
+      'Saved arrangement',
+      'Coaster 30',
+      'Custom layout',
+    ]);
+    expect(form.grid()).toEqual(saved.seatLayout);
   });
   it('keeps the draft through a duplicate name, then submits once after correction', async () => {
     const c = open();
