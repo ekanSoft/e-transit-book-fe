@@ -1,0 +1,47 @@
+<div class="fare-workspace">
+  <app-field
+    class="base-fare"
+    [id]="'trip-base-fare'"
+    label="Default fare (₦)"
+    [control]="baseFare()"
+    [hint]="hint"
+  />
+  <div class="fare-map">
+    <h3>Per-seat fares</h3>
+    <p class="muted">Select a passenger seat to set a different fare.</p>
+    <app-seat-map
+      [grid]="grid()"
+      mode="select"
+      [selected]="selected()"
+      [seatDescriptions]="descriptions()"
+      (cellPress)="select($event)"
+    >
+      <ng-template let-cell>
+        @if (bySeat().has(cell.seatNumber.toLowerCase())) {
+          <app-icon class="override-fare" name="wallet" />
+        }
+      </ng-template>
+    </app-seat-map>
+    @if (overrides().length) {
+      <p class="fare-key muted"><app-icon name="wallet" /> Fare override</p>
+    }
+  </div>
+  <div class="fare-override">
+    @if (seat(); as label) {
+      <app-field
+        [id]="'trip-seat-fare'"
+        [label]="'Fare for seat ' + label + ' (₦)'"
+        [control]="seatFare"
+      />
+      <div class="fare-actions">
+        <button appButton type="button" variant="secondary" (click)="apply()">Apply fare</button>
+        @if (bySeat().has(label.toLowerCase())) {
+          <button type="button" class="text-button" (click)="clear()">Use default fare</button>
+        }
+      </div>
+    }
+    <p class="muted override-count" role="status">
+      {{ overrides().length }} {{ overrides().length === 1 ? 'override' : 'overrides' }}
+    </p>
+  </div>
+</div>

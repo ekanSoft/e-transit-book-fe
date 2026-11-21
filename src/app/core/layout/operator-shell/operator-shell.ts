@@ -16,7 +16,8 @@ type NavItem = {
   label: string;
   url: string;
   icon: IconName;
-  permission?: 'canViewTerminals' | 'canViewRoutes' | 'canViewLayouts' | 'canViewEmployees';
+  permission?:
+    'canViewTerminals' | 'canViewRoutes' | 'canViewLayouts' | 'canViewTrips' | 'canViewEmployees';
 };
 const navigation: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [{ label: 'Dashboard', url: '/app/dashboard', icon: 'overview' }] },
@@ -31,6 +32,7 @@ const navigation: { group: string; items: NavItem[] }[] = [
         icon: 'seat',
         permission: 'canViewLayouts',
       },
+      { label: 'Trips', url: '/app/trips', icon: 'calendar', permission: 'canViewTrips' },
     ],
   },
   {

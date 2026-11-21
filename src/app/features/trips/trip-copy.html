@@ -1,0 +1,236 @@
+<a class="text-button trip-back" routerLink="/app/trips">← All trips</a>
+<div class="page-heading">
+  <div>
+    <h1 tabindex="-1">Copy a day</h1>
+    <p>Repeat departures from a source day. Each copy starts scheduled with zero bookings.</p>
+  </div>
+</div>
+@if (outcome(); as saved) {
+  <section class="panel trip-panel copy-section" aria-labelledby="copy-outcome">
+    @if (saved.result; as result) {
+      <h2 id="copy-outcome">
+        {{ result.tripCount }} {{ result.tripCount === 1 ? 'trip' : 'trips' }} scheduled
+      </h2>
+      @if (result.removedSeatPrices.length) {
+        <div class="copy-warning">
+          <strong>Fare overrides removed</strong>
+          <ul>
+            @for (warning of result.removedSeatPrices; track $index) {
+              <li>
+                {{ copyLabel(warning.date, warning.sourceTrip, saved.input.fromDate) }} · Seats
+                {{ warning.seatNumbers.join(', ') }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    } @else {
+      <h2 id="copy-outcome">Save could not be confirmed</h2>
+      <p>Review the refreshed timetables for these departures before trying again.</p>
+    }
+    @if (affected.isLoading()) {
+      <p class="muted" role="status">Refreshing target timetables…</p>
+    } @else if (affected.error()) {
+      <app-errors [messages]="errors(affected.error())" />
+      <button appButton type="button" variant="secondary" (click)="affected.reload()">
+        Retry timetable refresh
+      </button>
+    }
+    <ul class="copy-timetables">
+      @for (day of saved.input.days; track day.date; let index = $index) {
+        <li>
+          <a class="text-button" routerLink="/app/trips" [queryParams]="{ departureDate: day.date }"
+            >{{ day.date }} timetable</a
+          >
+          @if (affected.hasValue()) {
+            <span class="muted"> · {{ affected.value()[index].trips.length }} departures</span>
+          }
+          @if (!saved.result) {
+            <ul>
+              @for (copy of day.trips; track copy.sourceTrip) {
+                <li>{{ copyLabel(day.date, copy.sourceTrip, saved.input.fromDate) }}</li>
+              }
+            </ul>
+            @if (affected.hasValue()) {
+              <details>
+                <summary>View refreshed departures</summary>
+                @if (affected.value()[index].trips.length) {
+                  <ul>
+                    @for (trip of affected.value()[index].trips; track trip._id) {
+                      <li>
+                        <a class="text-button" [routerLink]="['/app/trips', trip._id]">
+                          {{ routeLabel(trip.route) }} · {{ showWat(trip.departureTime) }}
+                        </a>
+                        <span class="muted"> · {{ statuses[trip.status] }}</span>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="muted">No departures are currently listed for this date.</p>
+                }
+              </details>
+            }
+          }
+        </li>
+      }
+    </ul>
+    @if (!saved.result) {
+      <button appButton type="button" [disabled]="!affected.hasValue()" (click)="reviewComplete()">
+        I reviewed the timetables
+      </button>
+    }
+  </section>
+} @else {
+  <fieldset class="copy-planner" [disabled]="!!busy()">
+    <section class="panel trip-panel copy-section" aria-labelledby="copy-source">
+      <h2 id="copy-source">Source departures</h2>
+      <app-field
+        [id]="'copy-source-date'"
+        label="Source date (WAT)"
+        type="date"
+        [control]="sourceDate"
+      />
+      @if (!date()) {
+        <p class="muted">Choose a date to load departures.</p>
+      } @else if (timetable.isLoading()) {
+        <p role="status">Loading all departures for {{ date() }}…</p>
+      } @else if (timetable.error()) {
+        <app-errors [messages]="errors(timetable.error())" />
+        <button appButton type="button" variant="secondary" (click)="timetable.reload()">
+          Retry departures
+        </button>
+      } @else if (sourceTrips().length) {
+        <ul class="copy-sources">
+          @for (trip of sourceTrips(); track trip._id) {
+            @let unavailable = ineligible(trip);
+            <li>
+              <label>
+                <input
+                  type="checkbox"
+                  [disabled]="!!unavailable"
+                  [checked]="selectedSources().has(trip._id)"
+                  (change)="toggleSource(trip._id, source.checked)"
+                  #source
+                />
+                <span
+                  ><strong>{{ routeLabel(trip.route) }}</strong>
+                  <span class="muted"
+                    >{{ showWat(trip.departureTime) }} · {{ statuses[trip.status] }} ·
+                    {{ trip.vehicleLayout?.name || 'Layout unavailable' }}</span
+                  >
+                  @if (unavailable) {
+                    <span>{{ unavailable }}</span>
+                  }
+                </span>
+              </label>
+            </li>
+          }
+        </ul>
+      } @else if (timetable.hasValue()) {
+        <p class="muted">There are no departures on this date.</p>
+      }
+    </section>
+    @if (selectedTrips().length) {
+      <section class="panel trip-panel copy-section" aria-labelledby="copy-targets">
+        <h2 id="copy-targets">Target dates (WAT)</h2>
+        <p class="muted">Choose from the seven calendar days after {{ date() }}.</p>
+        <div class="copy-dates" role="group" aria-labelledby="copy-targets">
+          @for (day of choices(); track day.date) {
+            <label
+              ><input
+                type="checkbox"
+                [checked]="selectedDates().has(day.date)"
+                (change)="toggleDate(day.date, target.checked)"
+                #target
+              />{{ day.date }}</label
+            >
+          }
+        </div>
+        @if (catalog.error()) {
+          <p class="muted">
+            Replacement layouts could not be loaded. You can keep the source layouts.
+          </p>
+          <button appButton type="button" variant="secondary" (click)="catalog.reload()">
+            Retry layouts
+          </button>
+        }
+        @for (day of targets(); track day.date) {
+          <section class="copy-target" [attr.aria-labelledby]="'copy-day-' + day.date">
+            <h3 [id]="'copy-day-' + day.date">{{ day.date }}</h3>
+            @for (trip of selectedTrips(); track trip._id) {
+              @let selected = choice(day.date, trip._id);
+              <app-trip-copy-row
+                [date]="day.date"
+                [offset]="day.offset"
+                [trip]="trip"
+                [included]="selected.included !== false"
+                [replacement]="selected.layout ?? ''"
+                [options]="layoutOptions()"
+                (include)="changeChoice(day.date, trip._id, { included: $event })"
+                (changeLayout)="changeChoice(day.date, trip._id, { layout: $event })"
+              />
+            }
+            @if (!plan().days[$index].trips.length) {
+              <p class="muted">Include at least one departure or deselect this date.</p>
+            }
+          </section>
+        }
+      </section>
+    }
+  </fieldset>
+  @if (targets().length || messages().length || busy()) {
+    <section class="panel trip-panel copy-section" aria-labelledby="copy-check">
+      <h2 id="copy-check">Review and save</h2>
+      <app-errors [messages]="messages()" />
+      @if (preview(); as checked) {
+        <p role="status">
+          {{ checked.tripCount }}
+          {{ checked.tripCount === 1 ? 'departure is' : 'departures are' }} ready to copy.
+        </p>
+        @if (checked.problems.length) {
+          <app-errors
+            [messages]="['Resolve the problems below, then check the departures again.']"
+          />
+          <ul class="copy-problems">
+            @for (problem of checked.problems; track $index) {
+              <li>
+                <strong>{{ copyLabel(problem.date, problem.sourceTrip) }}</strong><span>{{
+                  problem.message
+                }}</span>
+              </li>
+            }
+          </ul>
+        }
+        @if (checked.removedSeatPrices.length) {
+          <div class="copy-warning">
+            <strong>Fare overrides that will be removed</strong>
+            <ul>
+              @for (warning of checked.removedSeatPrices; track $index) {
+                <li>
+                  {{ copyLabel(warning.date, warning.sourceTrip) }} · Seats
+                  {{ warning.seatNumbers.join(', ') }}
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      } @else {
+        <p class="muted">Check the proposed departures before saving.</p>
+      }
+      <div class="trip-actions">
+        <button
+          appButton
+          type="button"
+          variant="secondary"
+          [disabled]="!canCheck()"
+          (click)="submit('check')"
+        >
+          {{ busy() === 'check' ? 'Checking…' : 'Check departures' }}
+        </button>
+        <button appButton type="button" [disabled]="!canSave()" (click)="submit('save')">
+          {{ busy() === 'save' ? 'Saving…' : 'Save copied trips' }}
+        </button>
+      </div>
+    </section>
+  }
+}

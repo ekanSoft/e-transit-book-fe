@@ -1,0 +1,29 @@
+.manifest-overview,
+.manifest-passengers {
+  margin-bottom: 15px;
+}
+.manifest-trip,
+.manifest-counts {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+}
+.manifest-counts {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--color-line);
+  margin-block: 20px 0;
+  padding-top: 16px;
+}
+.manifest-counts dt {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.manifest-counts dd {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.manifest-empty {
+  padding: 0 16px 16px;
+}
+td small {
+  display: block;
+}

@@ -21,6 +21,7 @@ import { Icon } from './icon';
       #dialog
       class="management-dialog"
       [class.management-drawer]="drawer()"
+      [class.management-dialog-wide]="wide()"
       [attr.aria-labelledby]="dialogId() + '-title'"
       [attr.aria-describedby]="description() ? dialogId() + '-description' : null"
       (cancel)="cancel($event)"
@@ -51,6 +52,7 @@ export class ManagementDialog {
   readonly dialogId = input('management');
   readonly description = input('');
   readonly drawer = input(false);
+  readonly wide = input(false);
   readonly busy = input(false);
   readonly trigger = input<HTMLElement>();
   readonly dismiss = output<void>();

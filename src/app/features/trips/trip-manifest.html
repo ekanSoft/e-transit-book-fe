@@ -1,0 +1,149 @@
+<a class="text-button trip-back" [routerLink]="['/app/trips', id()]">← Trip details</a>
+<div class="page-heading">
+  <div>
+    <h1 tabindex="-1">Passenger manifest</h1>
+    @if (manifest.hasValue()) {
+      <p>{{ routeLabel(manifest.value().trip.route) }}</p>
+    }
+  </div>
+</div>
+@if (manifest.error()) {
+  <div class="panel trip-panel">
+    <app-errors [messages]="errors(manifest.error())" />
+    <button appButton variant="secondary" type="button" (click)="manifest.reload()">Retry</button>
+  </div>
+} @else if (manifest.isLoading()) {
+  <p role="status">Loading passenger manifest…</p>
+} @else if (manifest.hasValue()) {
+  @let data = manifest.value();
+  <section class="panel trip-panel manifest-overview" aria-labelledby="manifest-summary">
+    <div class="trip-panel-heading">
+      <h2 id="manifest-summary">Departure summary</h2>
+      <span
+        class="badge directory-status"
+        [class.directory-positive]="data.trip.status === 'SCHEDULED'"
+        >{{ statuses[data.trip.status] }}</span
+      >
+    </div>
+    <dl class="trip-facts manifest-trip">
+      <div>
+        <dt>Departure</dt>
+        <dd>{{ showWat(data.trip.departureTime) }}</dd>
+      </div>
+      <div>
+        <dt>Estimated arrival</dt>
+        <dd>
+          {{
+            data.trip.estimatedArrivalTime ? showWat(data.trip.estimatedArrivalTime) : 'No estimate'
+          }}
+        </dd>
+      </div>
+      <div>
+        <dt>Vehicle layout</dt>
+        <dd>{{ data.trip.vehicleLayout?.name || 'Layout unavailable' }}</dd>
+      </div>
+      <div>
+        <dt>Trip capacity</dt>
+        <dd>{{ data.trip.capacity }} seats</dd>
+      </div>
+    </dl>
+    <dl class="manifest-counts">
+      @for (item of summary; track item.key) {
+        <div>
+          <dt>{{ item.label }}</dt>
+          <dd>{{ data.summary[item.key] }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+  <ng-container
+    *ngTemplateOutlet="passengers; context: { $implicit: data.passengers, missed: false }"
+  />
+  <ng-container
+    *ngTemplateOutlet="passengers; context: { $implicit: data.missedPassengers, missed: true }"
+  />
+}
+<ng-template #passengers let-entries let-missed="missed">
+  <section
+    class="panel directory manifest-passengers"
+    [attr.aria-labelledby]="missed ? 'missed-passengers' : 'manifest-passengers'"
+  >
+    <div class="directory-toolbar">
+      <h2 [id]="missed ? 'missed-passengers' : 'manifest-passengers'">
+        {{ missed ? 'Missed passengers' : 'Passengers' }}
+      </h2>
+    </div>
+    @if (entries.length) {
+      <table
+        class="directory-table"
+        role="table"
+        [attr.aria-label]="missed ? 'Missed passengers' : 'Passengers'"
+      >
+        <thead role="rowgroup">
+          <tr role="row">
+            @for (
+              label of [
+                'Seat',
+                'Passenger',
+                'Ticket',
+                'Channel',
+                missed ? 'Marked missed' : 'Check-in',
+              ];
+              track label
+            ) {
+              <th scope="col" role="columnheader">{{ label }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          @for (entry of entries; track entry._id) {
+            <tr role="row">
+              <td role="cell">
+                <span class="directory-mobile-label">Seat</span
+                ><strong>{{ entry.seatNumber }}</strong>
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Passenger</span
+                ><span
+                  >{{ entry.passenger.firstName }} {{ entry.passenger.lastName
+                  }}<small class="muted">{{ entry.passenger.phoneNumber }}</small></span
+                >
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Ticket</span>{{ entry.ticket }}
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Channel</span
+                >{{ entry.channel === 'WALK_IN' ? 'Walk-in' : 'Online' }}
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">{{
+                  missed ? 'Marked missed' : 'Check-in'
+                }}</span>
+                @if (missed) {
+                  {{ entry.missedAt ? showWat(entry.missedAt) : 'Missed' }}
+                } @else {
+                  {{
+                    entry.checkedInAt
+                      ? showWat(entry.checkedInAt)
+                      : entry.status === 'CHECKED_IN'
+                        ? 'Checked in'
+                        : 'Confirmed'
+                  }}
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="muted manifest-empty">
+        {{
+          missed
+            ? 'No passengers were marked missed.'
+            : 'There are no confirmed or checked-in passengers.'
+        }}
+      </p>
+    }
+  </section>
+</ng-template>

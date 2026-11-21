@@ -33,6 +33,52 @@ export class WorkspaceAccess {
   });
   readonly canCreateTerminal = this.canManageOperations;
   readonly canViewRoutes = computed(() => !!this.scope());
+  private readonly hasOriginScopedTripReads = computed(() => {
+    const role = this.employee()?.role;
+    return role === 'BRANCH_MANAGER' || role === 'BOOKING_AGENT';
+  });
+  readonly tripScope = computed(() => {
+    const scope = this.scope();
+    if (!scope) return undefined;
+    if (!this.hasOriginScopedTripReads()) return scope;
+    const origin = this.employee()?.branch;
+    return origin ? { ...scope, origin } : undefined;
+  });
+  readonly canViewTrips = computed(() => !!this.tripScope());
+  readonly canScheduleTrip = computed(
+    () =>
+      this.canViewTrips() &&
+      this.canManageOperations() &&
+      this.session.business()?.accountStatus === 'ACTIVE',
+  );
+  readonly canCopyTrips = computed(
+    () =>
+      this.canScheduleTrip() ||
+      (this.canViewTrips() &&
+        this.employee()?.role === 'BRANCH_MANAGER' &&
+        this.session.business()?.accountStatus === 'ACTIVE'),
+  );
+  readonly canReadTripManifest = computed(
+    () => this.canViewTrips() && (this.canManageOperations() || this.hasOriginScopedTripReads()),
+  );
+
+  canReadTripManifestFrom(origin?: string | null) {
+    return this.canReadTripManifest() && this.canReadTripFrom(origin);
+  }
+
+  canManageTripFrom(origin?: string | null) {
+    return this.canCopyTrips() && this.canReadTripFrom(origin);
+  }
+
+  canReplaceTripLayout(origin?: string | null) {
+    return this.canManageTripFrom(origin) && this.canViewLayouts();
+  }
+  canReadTripFrom(origin?: string | null) {
+    return (
+      this.canViewTrips() &&
+      (!this.hasOriginScopedTripReads() || (!!origin && this.employee()?.branch === origin))
+    );
+  }
   readonly canCreateRoute = computed(
     () =>
       this.canViewRoutes() &&

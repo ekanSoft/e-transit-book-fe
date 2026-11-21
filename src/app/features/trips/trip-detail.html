@@ -1,0 +1,205 @@
+<a class="text-button trip-back" routerLink="/app/trips">← All trips</a>
+<div class="page-heading">
+  <div>
+    <h1 tabindex="-1">
+      {{ detail.hasValue() ? routeLabel(detail.value().route) : 'Trip details' }}
+    </h1>
+    @if (detail.hasValue() && routeLocation(detail.value().route); as place) {
+      <p>{{ place }}</p>
+    }
+  </div>
+  @if (
+    detail.hasValue() && access.canReadTripManifestFrom(detail.value().route?.originBranch?._id)
+  ) {
+    <a appButton variant="secondary" routerLink="manifest">View manifest</a>
+  }
+</div>
+@if (reviewMessage()) {
+  <p class="panel trip-panel trip-notice" role="status">{{ reviewMessage() }}</p>
+}
+@if (removedPrices().length) {
+  <p class="panel trip-panel trip-notice" role="status">
+    Fare overrides were removed for seats {{ removedPrices().join(', ') }}.
+  </p>
+}
+@if (detail.error()) {
+  <div class="panel trip-panel">
+    <app-errors [messages]="errors(detail.error())" />
+    <button appButton type="button" variant="secondary" (click)="detail.reload()">Retry</button>
+  </div>
+} @else if (detail.isLoading()) {
+  <p role="status">Loading trip details…</p>
+} @else if (detail.hasValue()) {
+  @let trip = detail.value();
+  @if (canManage()) {
+    <div class="trip-actions trip-detail-actions" aria-label="Trip actions" role="group">
+      @if (trip.status === 'SCHEDULED') {
+        <button appButton variant="secondary" type="button" (click)="open('edit')">
+          Edit times and fares
+        </button>
+        @if (access.canReplaceTripLayout(trip.route?.originBranch?._id)) {
+          <button appButton variant="secondary" type="button" (click)="open('layout')">
+            Change layout
+          </button>
+        }
+        <button appButton type="button" (click)="open('DEPARTED')">Mark departed</button>
+        @if (trip.bookedSeatCount > 0) {
+          <span class="muted">Cancellation is blocked while the trip has booked seats.</span>
+        } @else {
+          <button appButton variant="secondary" type="button" (click)="open('CANCELLED')">
+            Cancel trip
+          </button>
+        }
+      } @else if (trip.status === 'DEPARTED') {
+        <button appButton type="button" (click)="open('COMPLETED')">Mark completed</button>
+      }
+    </div>
+  }
+  <div class="trip-columns">
+    <section class="panel trip-panel" aria-labelledby="trip-summary">
+      <div class="trip-panel-heading">
+        <h2 id="trip-summary">Departure summary</h2>
+        <span
+          class="badge directory-status"
+          [class.directory-positive]="trip.status === 'SCHEDULED'"
+          >{{ statuses[trip.status] }}</span
+        >
+      </div>
+      <dl class="trip-facts">
+        <div>
+          <dt>Departure</dt>
+          <dd>
+            <time [attr.datetime]="trip.departureTime">{{ showWat(trip.departureTime) }}</time>
+          </dd>
+        </div>
+        <div>
+          <dt>Estimated arrival</dt>
+          <dd>
+            {{ trip.estimatedArrivalTime ? showWat(trip.estimatedArrivalTime) : 'No estimate' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Vehicle layout</dt>
+          <dd>
+            @if (access.canViewLayouts() && trip.vehicleLayout; as layout) {
+              <a class="text-button" [routerLink]="['/app/vehicle-layouts', layout._id]">{{
+                layout.name
+              }}</a>
+            } @else {
+              {{ trip.vehicleLayout?.name || 'Layout unavailable' }}
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>Booked seats</dt>
+          <dd>{{ trip.bookedSeatCount }} of {{ capacity(trip.seatLayoutSnapshot) }}</dd>
+        </div>
+        <div>
+          <dt>Default fare</dt>
+          <dd>{{ fare(trip.pricing.baseFare) }}</dd>
+        </div>
+        <div>
+          <dt>Seat fare overrides</dt>
+          <dd>{{ overrideFares().size }}</dd>
+        </div>
+      </dl>
+    </section>
+    <section class="panel trip-panel" aria-labelledby="trip-seats">
+      <h2 id="trip-seats">Trip seat map</h2>
+      <p class="muted">Saved seating arrangement for this departure.</p>
+      @if (booked.error()) {
+        <app-errors [messages]="errors(booked.error())" />
+        <button appButton variant="secondary" type="button" (click)="booked.reload()">
+          Retry booked seats
+        </button>
+      } @else if (booked.isLoading()) {
+        <p class="muted" role="status">Loading booked seats…</p>
+      }
+      <app-seat-map [grid]="trip.seatLayoutSnapshot">
+        <ng-template let-cell>
+          @let price = overrideFares().get(cell.seatNumber.toLowerCase());
+          @if (bookedLabels().has(cell.seatNumber.toLowerCase())) {
+            <span class="trip-seat-note occupied">Booked</span>
+          }
+          @if (price !== undefined) {
+            <span class="trip-seat-note"
+              ><span aria-hidden="true">Fare</span
+              ><span class="sr-only">{{ fare(price) }} fare override</span></span
+            >
+          }
+        </ng-template>
+      </app-seat-map>
+      @if (trip.pricing.seatOverrides.length) {
+        <ul class="trip-seat-fares" aria-label="Seat fare overrides">
+          @for (item of trip.pricing.seatOverrides; track item.seatNumber) {
+            <li>
+              <span>Seat {{ item.seatNumber }}</span> <strong>{{ fare(item.fare) }}</strong>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+  @if (canManage()) {
+    @switch (action()) {
+      @case ('edit') {
+        <app-trip-edit-dialog
+          [trip]="trip"
+          [busy]="busy()"
+          [messages]="messages()"
+          (save)="edit($event)"
+          (dismiss)="close()"
+        />
+      }
+      @case ('layout') {
+        <app-trip-layout-dialog
+          [trip]="trip"
+          [booked]="booked.hasValue() && !booked.isLoading() ? booked.value() : undefined"
+          [bookedError]="!!booked.error()"
+          [busy]="busy()"
+          [messages]="messages()"
+          (save)="replace($event)"
+          (dismiss)="close()"
+          (retryBooked)="booked.reload()"
+        />
+      }
+      @default {
+        @if (statusAction(); as status) {
+          <app-management-dialog
+            dialogId="trip-status-confirmation"
+            [title]="status.label + '?'"
+            [description]="status.description"
+            [busy]="busy()"
+            (dismiss)="close()"
+          >
+            <div class="management-body">
+              <strong>{{ routeLabel(trip.route) }}</strong>
+              <p class="muted">{{ showWat(trip.departureTime) }}</p>
+              <app-errors [messages]="messages()" />
+            </div>
+            <footer class="management-footer">
+              <button
+                appButton
+                type="button"
+                variant="secondary"
+                [disabled]="busy()"
+                (click)="close()"
+              >
+                Go back
+              </button>
+              <button
+                appButton
+                type="button"
+                [class.directory-danger-button]="action() === 'CANCELLED'"
+                [disabled]="busy()"
+                (click)="changeStatus()"
+              >
+                {{ busy() ? 'Updating…' : status.label }}
+              </button>
+            </footer>
+          </app-management-dialog>
+        }
+      }
+    }
+  }
+}

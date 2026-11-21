@@ -1,0 +1,100 @@
+.schedule-panel {
+  width: min(100%, 54rem);
+  display: grid;
+  gap: 20px;
+}
+.schedule-stage:not([hidden]) {
+  display: grid;
+  gap: 14px;
+}
+.schedule-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.schedule-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--color-line);
+  color: var(--color-muted);
+  font-weight: 650;
+  font-size: 0.85rem;
+}
+.schedule-steps li[aria-current] {
+  border-color: var(--color-brand);
+  color: var(--color-ink);
+}
+.schedule-steps span {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--raised);
+}
+.schedule-steps .visited span {
+  color: var(--color-brand);
+  background: var(--tint);
+}
+.schedule-times,
+.schedule-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.schedule-times app-field {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.schedule-footer {
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line);
+}
+.schedule-setup {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.schedule-setup small {
+  color: var(--color-muted);
+}
+.schedule-journey {
+  border-inline-start: 3px solid var(--color-brand);
+  padding-inline-start: 12px;
+}
+.schedule-price-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.schedule-price-list li {
+  display: flex;
+  gap: 8px;
+  background: var(--raised);
+  padding: 6px 10px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.schedule-warning {
+  background: var(--raised);
+  border-inline-start: 3px solid var(--color-brand);
+  padding: 12px;
+}
+@media (max-width: 480px) {
+  .schedule-steps li {
+    align-items: flex-start;
+    flex-direction: column;
+    font-size: 0.78rem;
+  }
+}

@@ -1,5 +1,25 @@
 # Verification record
 
+## Trips · 21 November 2026
+
+- **Directory and access.** Chromium exercised all six staff roles with controlled API responses. The checks covered WAT date filters, trip details, booked seats, origin restrictions for Terminal Managers and Booking Agents, and restricted manifest and layout actions. Automated HTTP tests verified server pagination and the supported filter parameters.
+- **Scheduling and management.** Browser checks covered overnight scheduling from an America/Los_Angeles session, keyboard seat selection, draft recovery after layout setup, and discard confirmation. Trip edits preserved unchanged departure times and retained seat fares when sending updated pricing. Browser checks also covered arrival clearing, conflict recovery, layout replacement with booked-seat validation, and removed-fare warnings.
+- **Copy and manifests.** Browser checks loaded source trips across multiple pages, verified that preview problems blocked saving, and required a fresh check after changes. The checks covered an uncertain save response, a successful copy with zero bookings, and a fresh manifest read that showed missed passengers after departure.
+- **Build and accessibility.** All 151 frontend tests and the production build passed. Chromium inspection covered the directory, scheduling, trip detail, layout replacement, copy planner, and manifest. The tested states had zero axe violations and no horizontal page overflow at 360, 768, and 1440 px across both themes.
+- **Live API and limits.** During Trips implementation, the local API returned the expected unauthenticated responses for the Trips read endpoints. Live signed-in reads and writes remain unverified. [Trips checklist and test notes](tasks/trips-frontend.md)
+
+## Vehicle Layouts · 21 November 2026
+
+- **Editor and lifecycle.** Isolated fixtures exercised preset and custom layouts, keyboard seat editing, manual labels, previews, creation and reopening, metadata and grid edits, deactivation and reactivation, and draft protection. Tests covered duplicate names, invalid seat labels, and duplicate submissions.
+- **Build and accessibility.** The feature acceptance run passed 129 frontend tests and the production build. Chrome inspection covered small and large seating arrangements at 360, 768, and 1440 px in both themes. Ten browser states passed axe and page-width overflow checks. Current automated HTTP tests cover the complete catalog response and workspace-scoped reuse of catalog and detail data.
+- **Live API and limits.** An Admin loaded and searched the empty catalog. A Booking Agent was denied catalog access by the API, and the portal hid the navigation entry and redirected catalog deep links without making layout requests. Populated catalogs and writes used fixtures. Operations Manager and Terminal Manager access was covered by automated tests. Live sign-in for those roles and operator confirmation of preset floor plans remain open. [Vehicle Layouts acceptance notes](tasks/vehicle-layouts-progress.md#execution-record--21-november-2026)
+
+## Terminal, route, and employee directories · 21 November 2026
+
+- **Terminals and employees.** HTTP tests verified the complete terminal list, primary-terminal lookup by flag, employee filters and phone search, explicit terminal clearing, and the bodyless employee status toggle. Workspace access tests exercised own-terminal restrictions, role assignment rules, and permission resets on a business change.
+- **Routes.** Component tests exercised the business-wide directory for a Terminal Manager, terminal validation, same-city and reverse routes, inactive duplicate recovery, status confirmations, uncertain writes, and draft clearing on a business change.
+- **Live API and limits.** The local smoke run during Trips implementation confirmed HTTP 401 on unauthenticated terminal, route, and employee requests. The workflow results in this entry come from automated tests. Signed-in directory and management flows were outside this verification.
+
 ## Operator portal redesign · 18 November 2026
 
 The production Angular app was exercised in Chromium against the NestJS API. Tests that needed account creation used a separate, uniquely named local MongoDB database and the real controllers, guards, services, validation, and response formatter. The test mail provider captured verification and reset links in memory. Approved memberships were test fixtures. Browser checks of active operations and pending approval also ran against the existing backend on port 4000.

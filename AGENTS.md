@@ -77,3 +77,8 @@ if you also need to get full context of the project as a whole, u can also take 
 - Backend repository at `../e-transit-book`, with [architecture](../e-transit-book/ARCHITECTURE.md) and [frontend implementation notes](../e-transit-book/docs/FRONTEND_IMPLEMENTATION_NOTES.md).
 - The portal calls the backend's **Branch** a **Terminal**. Keep backend field and enum names in API requests.
 - Validate API-dependent changes against the backend source and documentation. Keep shared API contracts and product rules documented in the backend repository.
+
+## Verification record
+
+- Update [docs/VERIFICATION.md](docs/VERIFICATION.md) when completing a major feature or substantial workflow change, such as Vehicle Layouts or Trips. Reserve the record for work of that scope.
+- Add a dated entry covering the workflows exercised, the results of relevant tests, builds, API checks, and browser or accessibility checks, and any verification still outstanding. Identify which results came from the live backend and which came from fixtures or automated tests. Link to detailed task notes when available.

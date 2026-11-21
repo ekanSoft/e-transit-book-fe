@@ -145,4 +145,43 @@ describe('workspace directory access', () => {
     );
     expect(access.canManageEmployee(target)).toBe(false);
   });
+
+  it.each([
+    ['ADMIN', false, true, true, true],
+    ['OPERATIONS_MANAGER', false, true, true, true],
+    ['BRANCH_MANAGER', true, false, true, true],
+    ['BOOKING_AGENT', true, false, false, true],
+    ['ACCOUNTANT', false, false, false, false],
+    ['DRIVER', false, false, false, false],
+  ] as const)(
+    'applies the Trips permissions for %s',
+    (role, scoped, schedule, manage, manifest) => {
+      employee.set(membership(role, 'terminal-a'));
+      const access = TestBed.inject(WorkspaceAccess);
+      expect(access.canViewTrips()).toBe(true);
+      expect(access.canReadTripFrom('terminal-a')).toBe(true);
+      expect(access.canReadTripFrom('terminal-b')).toBe(!scoped);
+      expect(access.canScheduleTrip()).toBe(schedule);
+      expect(access.canCopyTrips()).toBe(manage);
+      expect(access.canManageTripFrom('terminal-a')).toBe(manage);
+      expect(access.canManageTripFrom('terminal-b')).toBe(!scoped && manage);
+      expect(access.canReplaceTripLayout('terminal-a')).toBe(schedule);
+      expect(access.canReadTripManifestFrom('terminal-a')).toBe(manifest);
+      expect(access.canReadTripManifestFrom('terminal-b')).toBe(!scoped && manifest);
+      if (scoped) {
+        const before = access.tripScope();
+        employee.set(membership(role, 'terminal-b'));
+        expect(access.tripScope()).not.toBe(before);
+        expect(access.canReadTripFrom('terminal-a')).toBe(false);
+        employee.set(membership(role));
+        expect(access.canViewTrips()).toBe(false);
+        expect(access.canReadTripManifest()).toBe(false);
+      }
+      selectedBusiness.set({ ...business, accountStatus: 'SUSPENDED' });
+      expect(access.canScheduleTrip()).toBe(false);
+      expect(access.canCopyTrips()).toBe(false);
+      selectedBusiness.set({ ...business, _id: 'business-b' });
+      expect(access.tripScope()).toBeUndefined();
+    },
+  );
 });

@@ -6,6 +6,7 @@ import {
   layoutsGuard,
   routesGuard,
   terminalsGuard,
+  tripsGuard,
 } from './core/auth/guards';
 
 export const routes: Routes = [
@@ -96,6 +97,11 @@ export const routes: Routes = [
         canActivate: [layoutsGuard],
         loadChildren: () =>
           import('./features/vehicle-layouts/layout-routes').then((m) => m.layoutRoutes),
+      },
+      {
+        path: 'app/trips',
+        canActivate: [tripsGuard],
+        loadChildren: () => import('./features/trips/trip-routes').then((m) => m.tripRoutes),
       },
       {
         path: 'app/employees',

@@ -52,6 +52,7 @@ Static hosting is also possible using `dist/e-transit-book-fe/browser`. Configur
 | `/app/terminals`          | Searchable terminal directory with permission-aware creation and editing         |
 | `/app/routes`             | Business-wide route directory with creation and status management               |
 | `/app/vehicle-layouts`     | Reusable seating arrangements, visual editor and status management               |
+| `/app/trips`               | Departure directory, scheduling, trip management, day copying and manifests     |
 | `/app/employees`          | Searchable employee directory, assignments, and account status management        |
 | `/app/business-profile`   | Read-only registration details and primary terminal                              |
 | `/app/account`            | Employee profile, workspace role, and appearance                                 |
@@ -74,6 +75,7 @@ Switching workspaces signs out the current membership and opens sign-in with the
 - **Routes** shows the selected business’s Active and Inactive routes, newest first. All staff roles can view the business-wide directory and filter it locally by terminal name, city, state, and status. Admins and Operations Managers in an active business can add routes and change their status. The Add Route dialog searches the business’s terminal list and requires distinct origin and destination terminals. Same-city routes and the reverse direction are valid. If a route already exists, the dialog helps staff find it in the directory and reactivate it explicitly if needed.
 - The Routes directory reads the populated array from `GET /routes`. Creation uses `POST /routes` with the two selected branch IDs. Activation and confirmed deactivation use `PATCH /routes/:id/toggle-status` with an empty body. The directory refreshes after each successful change. The toggle flips the current server status, so the directory also refreshes after an uncertain result before another attempt.
 - **Vehicle layouts** gives Admins and Operations Managers a company-wide directory at `/app/vehicle-layouts`, with local name and custom-type search and vehicle-type and status filters. The directory loads complete layouts and reuses them for view and edit navigation within the current workspace. In an active business, start with an editable arrangement or a custom grid, place seats, aisles and the driver, adjust seat numbers, and preview the passenger capacity before saving. The directory supports viewing, editing, deactivation and reactivation. Existing trips retain their saved seat snapshots.
+- **Trips** shows a paginated departure timetable with route, status, and WAT date filters. Admins and Operations Managers can schedule a departure using an active route and layout. Trip details show the saved seat snapshot, booked seats, default fare, and per-seat fares. Terminal Managers can edit times and fares, update status, and copy departures from their assigned terminal. Admins and Operations Managers can also replace the layout after checking booked seats. Copy a day validates the proposed departures before saving. Admins and Operations Managers can read business-wide manifests, while Terminal Managers and Booking Agents can read manifests for departures from their own terminal.
 - **Employees** includes server-side search, pagination, and role and terminal filters. Filtering by account status would require a backend API change. Admins and Operations Managers can manage non-admin employees across the selected business. Terminal Managers can view employees at their own terminal, add Booking Agents, and manage existing Booking Agents and Drivers. The server assigns their terminal automatically. Driver is temporarily unavailable for role assignment. Admin accounts are read-only in the directory.
 - Employee creation requires an Initial staff password. The backend activates the account and attempts to email sign-in details. Sign-in email is read-only after creation. Operations Manager is company-wide, while Terminal Managers, Booking Agents, Accountants and Drivers require a terminal assignment. Moving an employee to Operations Manager clears their previous assignment.
 - The employee form searches the business’s terminal list. Admins and Operations Managers can add a missing terminal in a dialog, which selects it and keeps the employee draft open.
@@ -93,6 +95,8 @@ The wizard orders Business Profile → Primary Terminal → Business Verificatio
 - Progress comes from returned `registrationStage` values (`PROFILE`, `VERIFICATION`, `BRANCH`), not browser-stored wizard indices. Onboarding never activates a business.
 
 ## Verification
+
+Use the [Trips manual testing checklist](docs/tasks/trips-manual-testing.md) to track browser acceptance testing. Tick each test as it passes and record any failures or blocked checks in the checklist.
 
 ```powershell
 npm test -- --watch=false
@@ -120,5 +124,6 @@ See `docs/VERIFICATION.md` for observed evidence and limits.
 - `features/workspace`: dashboard, terminal management, read-only business profile and account settings.
 - `features/employees`: employee directory, forms and API integration.
 - `features/routes`: route directory, creation form and status actions.
+- `features/trips`: timetable, scheduling, trip management, copy planner, and manifests.
 
 Typed Reactive Forms follow the repository conventions; signals own application/feature state. Native controls and a modal `<dialog>` provide keyboard behavior without a large UI framework. No backend source files were changed.

@@ -30,8 +30,9 @@ import {
 })
 export class SeatMap {
   readonly grid = input.required<SeatLayout>();
-  readonly mode = input<'edit' | 'view' | 'miniature'>('view');
+  readonly mode = input<'edit' | 'view' | 'miniature' | 'select'>('view');
   readonly selected = input<SeatPosition | null>(null);
+  readonly seatDescriptions = input<ReadonlyMap<string, string>>(new Map());
   readonly errors = input<ReadonlyMap<string, string>>(new Map());
   readonly cellPress = output<SeatPosition>();
   // Consumers can annotate a seat without changing the saved grid.
@@ -41,7 +42,11 @@ export class SeatMap {
   describe(row: number, column: number, cell: SeatCell, error?: string) {
     const label =
       cell.type === 'SEAT'
-        ? 'Seat ' + (cell.seatNumber || 'without a number')
+        ? 'Seat ' +
+          (cell.seatNumber || 'without a number') +
+          (this.seatDescriptions().has(cell.seatNumber)
+            ? ' ' + this.seatDescriptions().get(cell.seatNumber)
+            : '')
         : cell.type === 'DRIVER'
           ? 'Driver'
           : 'Aisle';

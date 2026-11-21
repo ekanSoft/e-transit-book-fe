@@ -1,0 +1,222 @@
+<a class="text-button trip-back" routerLink="/app/trips">← All trips</a>
+<div class="page-heading">
+  <div>
+    <h1 tabindex="-1">Schedule trip</h1>
+    <p>Set up a departure in West Africa Time (WAT).</p>
+  </div>
+</div>
+<section class="panel trip-panel schedule-panel" aria-labelledby="schedule-step">
+  <ol class="schedule-steps" aria-label="Scheduling progress">
+    @for (label of steps; track label; let index = $index) {
+      <li [attr.aria-current]="step() === index ? 'step' : null" [class.visited]="step() >= index">
+        <span>{{ index + 1 }}</span>{{ label }}
+      </li>
+    }
+  </ol>
+  <h2 id="schedule-step" #stepHeading tabindex="-1">{{ steps[step()] }}</h2>
+  <app-errors [messages]="messages()" />
+  <div class="schedule-stage" [hidden]="step() !== 0">
+    @if (routes.isLoading()) {
+      <p role="status">Loading routes…</p>
+    } @else if (routes.error()) {
+      <app-errors [messages]="errors(routes.error())" />
+      <button appButton type="button" variant="secondary" (click)="routes.reload()">
+        Retry routes
+      </button>
+    } @else if (activeRoutes().length) {
+      <app-searchable-select
+        [id]="'schedule-route'"
+        label="Route"
+        placeholder="Choose a route"
+        searchLabel="Search routes"
+        [options]="routeOptions()"
+        [control]="routeControl"
+      />
+    } @else {
+      <div class="schedule-setup">
+        <p>
+          {{
+            hasRoutes()
+              ? 'Reactivate a route or create a new one to schedule this departure.'
+              : 'Create a route between two terminals to schedule this departure.'
+          }}
+        </p>
+        <a
+          appButton
+          variant="secondary"
+          routerLink="/app/routes"
+          [queryParams]="{ from: 'trip-schedule' }"
+          >{{ hasRoutes() ? 'Manage routes' : 'Set up a route' }}</a
+        >
+        <small>Return to Schedule trip to resume your draft.</small>
+      </div>
+    }
+    <div class="schedule-times">
+      <app-field
+        [id]="'schedule-departure'"
+        label="Departure (WAT)"
+        type="datetime-local"
+        [control]="time.controls.departureTime"
+      />
+      <app-field
+        [id]="'schedule-arrival'"
+        label="Estimated arrival (WAT)"
+        type="datetime-local"
+        [control]="time.controls.estimatedArrivalTime"
+        [optional]="true"
+      />
+    </div>
+  </div>
+  <div class="schedule-stage" [hidden]="step() !== 1">
+    @if (layouts.isLoading()) {
+      <p role="status">Loading vehicle layouts…</p>
+    } @else if (layouts.error()) {
+      <app-errors [messages]="errors(layouts.error())" />
+      <button appButton type="button" variant="secondary" (click)="layouts.reload()">
+        Retry layouts
+      </button>
+    } @else if (activeLayouts().length) {
+      <app-searchable-select
+        [id]="'schedule-layout'"
+        label="Vehicle layout"
+        placeholder="Choose a vehicle layout"
+        searchLabel="Search vehicle layouts"
+        [options]="layoutOptions()"
+        [control]="layoutControl"
+      />
+    } @else {
+      <div class="schedule-setup">
+        <p>
+          {{
+            hasLayouts()
+              ? 'Reactivate a vehicle layout or create a new one to assign passenger seats.'
+              : 'Create a vehicle layout to assign passenger seats.'
+          }}
+        </p>
+        <a
+          appButton
+          variant="secondary"
+          [routerLink]="hasLayouts() ? '/app/vehicle-layouts' : '/app/vehicle-layouts/new'"
+          [queryParams]="{ from: 'trip-schedule' }"
+          >{{ hasLayouts() ? 'Manage layouts' : 'Create vehicle layout' }}</a
+        >
+        <small>Return to Schedule trip to resume your draft.</small>
+      </div>
+    }
+    @if (layout(); as selected) {
+      <app-trip-fares
+        [grid]="selected.seatLayout"
+        [baseFare]="baseFare"
+        [(overrides)]="overrides"
+      />
+    }
+  </div>
+  <div class="schedule-stage" [hidden]="step() !== 2">
+    @if (route(); as selected) {
+      <div class="schedule-journey">
+        <strong>{{ routeLabel(selected) }}</strong>
+        <p class="muted">{{ routeLocation(selected) }}</p>
+      </div>
+    }
+    <dl class="trip-facts">
+      <div>
+        <dt>Departure</dt>
+        <dd>{{ departure ? showWat(departure) : 'Choose departure' }}</dd>
+      </div>
+      <div>
+        <dt>Estimated arrival</dt>
+        <dd>{{ arrival ? showWat(arrival) : 'No estimate' }}</dd>
+      </div>
+      <div>
+        <dt>Vehicle layout</dt>
+        <dd>{{ layout()?.name || 'Layout unavailable' }}</dd>
+      </div>
+      <div>
+        <dt>Passenger capacity</dt>
+        <dd>
+          @if (layout(); as current) {
+            {{ capacity(current.seatLayout) }}
+          } @else {
+            Unavailable
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>Default fare</dt>
+        <dd>{{ fare(+baseFare.value) }}</dd>
+      </div>
+      <div>
+        <dt>Seat fare overrides</dt>
+        <dd>{{ overrides().length }}</dd>
+      </div>
+    </dl>
+    @if (overrides().length) {
+      <ul class="schedule-price-list">
+        @for (item of overrides(); track item.seatNumber) {
+          <li>
+            <span>Seat {{ item.seatNumber }}</span
+            ><strong>{{ fare(item.fare) }}</strong>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+  @if (step() > 0 && removed().length) {
+    <p class="schedule-warning" role="status">
+      The selected layout is missing {{ removed().length === 1 ? 'seat' : 'seats' }}
+      {{ removed().join(', ') }}. Their fare overrides were removed.
+    </p>
+  }
+  <footer class="schedule-footer">
+    <a appButton variant="secondary" routerLink="/app/trips">Cancel</a>
+    <div class="trip-actions">
+      @if (step() > 0) {
+        <button
+          appButton
+          type="button"
+          variant="secondary"
+          [disabled]="busy()"
+          (click)="go(step() - 1)"
+        >
+          Back
+        </button>
+      }
+      @if (step() < 2) {
+        <button
+          appButton
+          type="button"
+          [disabled]="step() === 0 ? !activeRoutes().length : !activeLayouts().length"
+          (click)="next()"
+        >
+          Continue
+        </button>
+      } @else {
+        <button
+          appButton
+          type="button"
+          [disabled]="busy() || routes.isLoading() || layouts.isLoading()"
+          (click)="submit()"
+        >
+          {{ busy() ? 'Scheduling…' : 'Schedule trip' }}
+        </button>
+      }
+    </div>
+  </footer>
+</section>
+@if (discard()) {
+  <app-management-dialog
+    dialogId="discard-trip"
+    title="Discard this trip draft?"
+    description="The journey, times and fares you entered will be lost."
+    (dismiss)="finishLeave(false)"
+  >
+    <footer class="management-footer">
+      <button appButton type="button" variant="secondary" (click)="finishLeave(false)">
+        Keep editing
+      </button>
+      <button appButton type="button" class="directory-danger-button" (click)="finishLeave(true)">
+        Discard draft
+      </button>
+    </footer>
+  </app-management-dialog>
+}

@@ -1,0 +1,56 @@
+.fare-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: 'base map' 'override map';
+  gap: 10px 24px;
+  align-items: start;
+  align-content: start;
+}
+.base-fare {
+  grid-area: base;
+  margin-bottom: 0;
+}
+.fare-map {
+  grid-area: map;
+  min-width: 0;
+}
+.fare-override {
+  grid-area: override;
+  min-width: 0;
+}
+.fare-map h3 {
+  font-weight: 700;
+}
+.fare-map p {
+  font-size: 0.86rem;
+}
+.fare-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.override-count {
+  margin-top: 8px;
+}
+.override-fare {
+  width: 13px;
+  height: 13px;
+  margin-bottom: 3px;
+}
+.fare-key {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+.fare-key app-icon {
+  width: 15px;
+  height: 15px;
+}
+@media (max-width: 640px) {
+  .fare-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'base' 'map' 'override';
+  }
+}

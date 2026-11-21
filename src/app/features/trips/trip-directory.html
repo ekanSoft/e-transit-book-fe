@@ -1,0 +1,178 @@
+<div class="page-heading directory-heading">
+  <div>
+    <h1 tabindex="-1">Trips</h1>
+    <p>Find scheduled departures and review trip details.</p>
+  </div>
+  <div class="quick-dates trip-heading-actions">
+    @if (access.canCopyTrips()) {
+      <a
+        appButton
+        variant="secondary"
+        routerLink="copy-day"
+        [queryParams]="{ departureDate: query().departureDate }"
+        >Copy a day</a
+      >
+    }
+    @if (access.canScheduleTrip()) {
+      <a appButton routerLink="new"><app-icon name="plus" /> Schedule trip</a>
+    }
+  </div>
+</div>
+@if (access.canViewTrips()) {
+  <section class="panel directory" aria-labelledby="trip-directory-heading">
+    <div class="directory-toolbar">
+      <h2 id="trip-directory-heading">Departures</h2>
+      <div class="trip-filters">
+        <app-field
+          [id]="'trip-route'"
+          label="Route"
+          [control]="routeFilter"
+          [options]="routeOptions()"
+          [overlayOptions]="true"
+          [optional]="true"
+        />
+        <app-field
+          [id]="'trip-status'"
+          label="Status"
+          [control]="statusFilter"
+          [options]="statuses"
+          [overlayOptions]="true"
+          [optional]="true"
+        />
+        <app-field
+          [id]="'trip-date'"
+          label="Departure date (WAT)"
+          type="date"
+          [control]="dateFilter"
+          [optional]="true"
+        />
+        <div class="quick-dates" role="group" aria-label="Departure date shortcuts">
+          <button appButton variant="secondary" type="button" (click)="today()">Today</button>
+          <button
+            appButton
+            variant="secondary"
+            type="button"
+            [attr.aria-pressed]="!query().departureDate"
+            (click)="dateFilter.setValue('')"
+          >
+            All dates
+          </button>
+        </div>
+      </div>
+      @if (routes.error()) {
+        <div class="route-error">
+          <span role="status">Route filters are temporarily unavailable.</span>
+          <button type="button" class="text-button" (click)="routes.reload()">Retry routes</button>
+        </div>
+      }
+    </div>
+    <div [attr.aria-busy]="trips.isLoading()">
+      @if (trips.error()) {
+        <div class="directory-message">
+          <app-errors [messages]="errors(trips.error())" />
+          <button appButton type="button" variant="secondary" (click)="trips.reload()">
+            Retry
+          </button>
+        </div>
+      } @else if (trips.isLoading()) {
+        <div class="directory-loading">
+          <p role="status">Loading departures…</p>
+          <div class="directory-skeleton" aria-hidden="true"></div>
+        </div>
+      } @else if (page(); as current) {
+        @if (current.pageSize) {
+          <table class="directory-table" role="table" aria-label="Trips">
+            <thead role="rowgroup">
+              <tr role="row">
+                @for (
+                  label of [
+                    'Journey',
+                    'Departure (WAT)',
+                    'Status',
+                    'Layout',
+                    'Default fare',
+                    'Booked',
+                  ];
+                  track label
+                ) {
+                  <th scope="col" role="columnheader">{{ label }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody role="rowgroup">
+              @for (trip of current.content; track trip._id) {
+                <tr role="row" class="directory-clickable">
+                  <td role="cell" class="directory-identity">
+                    <div>
+                      <a
+                        class="directory-employee-name"
+                        [routerLink]="[trip._id]"
+                        [attr.aria-label]="
+                          routeLabel(trip.route) + ', ' + showWat(trip.departureTime)
+                        "
+                      >
+                        {{ routeLabel(trip.route) }}
+                      </a>
+                      @if (routeLocation(trip.route); as place) {
+                        <small class="muted trip-place">{{ place }}</small>
+                      }
+                    </div>
+                  </td>
+                  <td role="cell">
+                    <span class="directory-mobile-label">Departure</span
+                    ><time [attr.datetime]="trip.departureTime">{{
+                      showWat(trip.departureTime)
+                    }}</time>
+                  </td>
+                  <td role="cell">
+                    <span class="directory-mobile-label">Status</span
+                    ><span
+                      class="badge directory-status"
+                      [class.directory-positive]="trip.status === 'SCHEDULED'"
+                      >{{ statusLabels[trip.status] }}</span
+                    >
+                  </td>
+                  <td role="cell">
+                    <span class="directory-mobile-label">Layout</span
+                    >{{ trip.vehicleLayout?.name || 'Layout unavailable' }}
+                  </td>
+                  <td role="cell">
+                    <span class="directory-mobile-label">Default fare</span
+                    >{{ fare(trip.pricing.baseFare) }}
+                  </td>
+                  <td role="cell">
+                    <span class="directory-mobile-label">Booked</span>{{ trip.bookedSeatCount }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <div class="empty-state directory-empty">
+            <app-icon name="calendar" />
+            <strong>No departures found</strong>
+            <p class="muted">Try a different date or change your filters.</p>
+          </div>
+        }
+      }
+    </div>
+    @if (page()?.total || page()?.hasPrev || trips.isLoading()) {
+      <div class="trip-pagination">
+        <app-field
+          [id]="'trip-page-size'"
+          label="Trips per page"
+          [control]="sizeFilter"
+          [options]="sizes"
+          [overlayOptions]="true"
+        />
+        <app-directory-pager
+          [page]="trips.isLoading() ? undefined : page()"
+          [waiting]="trips.isLoading()"
+          singular="trip"
+          plural="trips"
+          (pageChange)="filter({ page: $event })"
+        />
+      </div>
+    }
+  </section>
+}

@@ -32,5 +32,17 @@ export const employeesGuard: CanActivateFn = () =>
 export const layoutsGuard: CanActivateFn = () =>
   inject(WorkspaceAccess).canViewLayouts() || inject(Router).parseUrl('/app/dashboard');
 
+export const tripsGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canViewTrips() || inject(Router).parseUrl('/app/dashboard');
+
+export const scheduleTripGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canScheduleTrip() || inject(Router).parseUrl('/app/trips');
+
+export const copyTripsGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canCopyTrips() || inject(Router).parseUrl('/app/trips');
+
+export const tripManifestGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canReadTripManifest() || inject(Router).parseUrl('/app/trips');
+
 export const layoutWriteGuard: CanActivateFn = () =>
   inject(WorkspaceAccess).canWriteLayouts() || inject(Router).parseUrl('/app/vehicle-layouts');
