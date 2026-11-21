@@ -15,17 +15,13 @@ export interface Branch {
   phoneNumber?: string;
   address?: Address;
   primeBranch?: boolean;
-  branchManager?: string | null;
 }
 export interface CreateBranch {
   name: string;
   phoneNumber: string;
   address: Omit<Address, 'country' | 'countryCode'>;
-  branchManager?: string;
 }
-export type UpdateBranch = Partial<Omit<CreateBranch, 'branchManager'>> & {
-  branchManager?: string | null;
-};
+export type UpdateBranch = Partial<CreateBranch>;
 export type RouteStatus = 'ACTIVE' | 'INACTIVE';
 export interface RouteTerminal {
   _id: string;

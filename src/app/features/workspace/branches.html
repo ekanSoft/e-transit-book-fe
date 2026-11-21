@@ -34,9 +34,6 @@
             <th role="columnheader" scope="col">Location</th>
             <th role="columnheader" scope="col">Contact phone</th>
             @if (access.canViewEmployees()) {
-              <th role="columnheader" scope="col">Designated manager</th>
-            }
-            @if (access.canViewEmployees()) {
               <th role="columnheader" scope="col" class="directory-actions">Actions</th>
             }
           </tr>
@@ -67,22 +64,6 @@
                 <span>{{ terminal.phoneNumber || 'Unavailable' }}</span>
               </td>
               @if (access.canViewEmployees()) {
-                <td role="cell">
-                  <span class="directory-mobile-label" aria-hidden="true">Designated manager</span>
-                  <span>
-                    @if (!terminal.branchManager) {
-                      Unassigned
-                    } @else if (managerName(terminal); as name) {
-                      {{ name }}
-                    } @else if (
-                      !access.canCreateTerminal() && !access.canEditTerminal(terminal._id)
-                    ) {
-                      Assigned
-                    } @else {
-                      {{ managers.isLoading() ? 'Loading…' : 'Unavailable' }}
-                    }
-                  </span>
-                </td>
                 <td role="cell" class="directory-actions">
                   @if (access.canEditTerminal(terminal._id)) {
                     <button
@@ -131,9 +112,6 @@
   <app-terminal-form
     [terminal]="current.terminal"
     [trigger]="current.trigger"
-    [managers]="managers.hasValue() && !managers.isLoading() ? managers.value() : undefined"
-    [managerLoadFailed]="!!managers.error()"
-    (retryManagers)="managers.reload()"
     (dismissed)="editor.set(null)"
     (saved)="saved()"
   />

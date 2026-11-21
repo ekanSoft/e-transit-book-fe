@@ -2,7 +2,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
-import { Session } from '../../core/auth/session';
 import { EmployeesApi } from './employees-api';
 
 describe('EmployeesApi', () => {
@@ -11,14 +10,7 @@ describe('EmployeesApi', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        {
-          provide: Session,
-          useValue: { token: () => 'local-session' },
-        },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
     api = TestBed.inject(EmployeesApi);

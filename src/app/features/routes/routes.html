@@ -61,14 +61,16 @@
             <tr role="row" tabindex="-1" [id]="'route-row-' + row.route._id">
               <td role="cell">
                 <div class="route-direction">
-                  <div>
-                    <span class="sr-only">Origin terminal</span>
-                    <strong>{{ row.origin.name }}</strong>
-                    @if (row.origin.location) {
-                      <span class="directory-detail">{{ row.origin.location }}</span>
-                    }
+                  <div class="route-origin">
+                    <div>
+                      <span class="sr-only">Origin terminal</span>
+                      <strong>{{ row.origin.name }}</strong>
+                      @if (row.origin.location) {
+                        <span class="directory-detail">{{ row.origin.location }}</span>
+                      }
+                    </div>
+                    <span class="route-arrow"><app-icon name="arrow" /></span>
                   </div>
-                  <app-icon name="arrow" />
                   <div>
                     <span class="sr-only">Destination terminal</span>
                     <strong>{{ row.destination.name }}</strong>

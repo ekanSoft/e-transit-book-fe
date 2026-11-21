@@ -23,10 +23,8 @@ import { Errors } from '../../shared/ui/feedback';
 import { ManagementDialog } from '../../shared/ui/management-dialog';
 import { addressPayload, savedAddressValue } from '../../shared/utilities/nigerian-address';
 import { nigerianPhone, normalizeNigerianPhone } from '../../shared/utilities/phone';
-import { employeeName, EmployeeRow } from '../employees/employees-api';
 import { Branch, CreateBranch, UpdateBranch, WorkspaceData } from './workspace-data';
 
-const unassigned = 'unassigned';
 const addressFields = ['street', 'city', 'stateCode'] as const;
 
 @Component({
@@ -42,29 +40,15 @@ export class TerminalForm implements OnInit {
   readonly access = inject(WorkspaceAccess);
   readonly terminal = input<Branch>();
   readonly quickCreate = input(false);
-  readonly managers = input<EmployeeRow[]>();
-  readonly managerLoadFailed = input(false);
   readonly trigger = input<HTMLElement>();
   readonly saved = output<Branch>();
   readonly dismissed = output<void>();
-  readonly retryManagers = output<void>();
   readonly busy = signal(false);
   readonly errors = signal<string[]>([]);
-  readonly managerOptions = computed(() => {
-    const terminal = this.terminal();
-    const options = (this.managers() ?? [])
-      .filter((manager) => manager.accountStatus === 'ACTIVE')
-      .map((manager) => ({ value: manager._id, label: employeeName(manager) }));
-    if (terminal?.branchManager && !options.some(({ value }) => value === terminal.branchManager)) {
-      options.unshift({ value: terminal.branchManager, label: 'Current manager unavailable' });
-    }
-    return [{ value: unassigned, label: 'No designated manager' }, ...options];
-  });
   readonly form = inject(NonNullableFormBuilder).group({
     name: ['', requiredText(120)],
     phoneNumber: ['', [Validators.required, nigerianPhone]],
     address: addressForm(),
-    branchManager: [unassigned],
   });
   private readonly valueChanges = toSignal(this.form.valueChanges);
   private readonly original = signal(this.form.getRawValue());
@@ -79,11 +63,9 @@ export class TerminalForm implements OnInit {
       address: addressFields.some(
         (key) => value.address[key].trim() !== original.address[key].trim(),
       ),
-      branchManager: this.allowManager() && value.branchManager !== original.branchManager,
     };
   });
   readonly changed = computed(() => Object.values(this.changes()).some(Boolean));
-  readonly allowManager = computed(() => !this.quickCreate() && this.access.canCreateTerminal());
 
   ngOnInit() {
     const terminal = this.terminal();
@@ -92,7 +74,6 @@ export class TerminalForm implements OnInit {
       name: terminal.name,
       phoneNumber: terminal.phoneNumber ?? '',
       address: savedAddressValue(terminal.address),
-      branchManager: terminal.branchManager || unassigned,
     });
     this.original.set(this.form.getRawValue());
   }
@@ -126,12 +107,6 @@ export class TerminalForm implements OnInit {
       const value = this.form.getRawValue();
       const name = value.name.trim();
       const phoneNumber = normalizeNigerianPhone(value.phoneNumber);
-      if (
-        changes.branchManager &&
-        !this.managerOptions().some(({ value: id }) => id === value.branchManager)
-      ) {
-        throw new Error('Select an available Terminal Manager.');
-      }
       let result: Branch | null;
       if (terminal) {
         const body: UpdateBranch = {};
@@ -159,16 +134,12 @@ export class TerminalForm implements OnInit {
           }
           body.address = addressPayload(merged);
         }
-        if (changes.branchManager) {
-          body.branchManager = value.branchManager === unassigned ? null : value.branchManager;
-        }
         result = (await this.api.updateBranch(terminal._id, body)).data;
       } else {
         const body: CreateBranch = {
           name,
           phoneNumber,
           address: addressPayload(value.address),
-          ...(changes.branchManager && { branchManager: value.branchManager }),
         };
         result = (await this.api.createBranch(body)).data;
       }
@@ -190,7 +161,6 @@ export class TerminalForm implements OnInit {
             'address.city': controls.address.controls.city,
             'address.state': controls.address.controls.stateCode,
             'address.stateCode': controls.address.controls.stateCode,
-            branchManager: controls.branchManager,
           },
           {
             'Address.select a Nigerian state or FCT and its matching state code.': {

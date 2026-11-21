@@ -42,29 +42,6 @@
             [overlayOptions]="true"
           />
         </section>
-        @if (allowManager()) {
-          <section class="management-section" aria-labelledby="terminal-manager-heading">
-            <h3 id="terminal-manager-heading">Management</h3>
-            @if (managers()) {
-              <app-field
-                [id]="'terminal-manager'"
-                label="Designated manager"
-                [control]="form.controls.branchManager"
-                [options]="managerOptions()"
-                [overlayOptions]="true"
-                [optional]="true"
-                hint="Manage the employee’s terminal assignment separately in Employees."
-              />
-            } @else if (managerLoadFailed()) {
-              <p class="muted small">Manager choices could not be loaded.</p>
-              <button type="button" class="text-button" (click)="retryManagers.emit()">
-                Retry loading managers
-              </button>
-            } @else {
-              <p class="muted small" role="status">Loading managers…</p>
-            }
-          </section>
-        }
       </fieldset>
     </div>
     <footer class="management-footer">
