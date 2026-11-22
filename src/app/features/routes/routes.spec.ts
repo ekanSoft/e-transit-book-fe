@@ -217,6 +217,15 @@ describe('Routes directory and management', () => {
     const page = fixture.componentInstance;
     expect(fixture.nativeElement.textContent).toContain('Lagos, Lagos State');
     expect(fixture.nativeElement.textContent).toContain('Terminal unavailable');
+    const places = [...fixture.nativeElement.querySelectorAll('.route-direction strong')].map(
+      (node) => node.textContent?.trim(),
+    );
+    const terminals = [
+      ...fixture.nativeElement.querySelectorAll('.route-direction .directory-detail'),
+    ].map((node) => node.textContent?.trim());
+    expect(places).toContain('Lagos, Lagos State');
+    expect(terminals).toContain('Jibowu Terminal');
+    expect(places).not.toContain('Jibowu Terminal');
     expect(fixture.nativeElement.textContent).not.toContain('undefined');
     expect(fixture.nativeElement.querySelectorAll('#route-status-filter')).toHaveLength(1);
     expect(page.filteredRows().map(({ route }) => route._id)).toEqual([

@@ -32,6 +32,7 @@ import { fareLabel, routeLabel, showWat, shiftDays } from './trip-format';
         <app-field
           [id]="'copy-' + date() + '-' + trip()._id"
           label="Vehicle layout"
+          labelHelp="The copied trip keeps the source trip’s fare even if you select a different vehicle layout. You can always edit the fare after the copy is saved."
           [control]="layout"
           [options]="options()"
           [overlayOptions]="true"

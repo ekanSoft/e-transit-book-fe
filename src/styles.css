@@ -35,6 +35,10 @@
   --sidebar: #0d1116;
   --side-text: #e6ebee;
   --side-muted: #a5afba;
+  --scheduled: #1c2630;
+  --scheduled-bg: #ed9a00;
+  --cancelled: #fff;
+  --cancelled-bg: #e7000b;
 }
 :root[data-theme='light'] {
   color-scheme: light;

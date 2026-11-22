@@ -31,6 +31,7 @@ import { gridIssues, labelSeat, normalizeGrid, paint, resize, type Resize } from
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './seat-editor.html',
   styleUrl: './seat-editor.css',
+  host: { '(document:keydown.escape)': 'toolHelpDismissed.set(true)' },
 })
 export class SeatEditor {
   readonly grid = model.required<SeatLayout>();
@@ -45,10 +46,35 @@ export class SeatEditor {
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly tool = signal<SeatCell['type']>('SEAT');
-  readonly tools: { type: SeatCell['type']; name: string; icon: IconName }[] = [
-    { type: 'SEAT', name: 'Seat', icon: 'seat' },
-    { type: 'AISLE', name: 'Aisle', icon: 'aisle' },
-    { type: 'DRIVER', name: 'Driver', icon: 'wheel' },
+  readonly toolHelpDismissed = signal(false);
+  readonly tools: {
+    type: SeatCell['type'];
+    name: string;
+    icon: IconName;
+    lead: string;
+    help: string;
+  }[] = [
+    {
+      type: 'SEAT',
+      name: 'Seat',
+      icon: 'seat',
+      lead: 'Create a seat.',
+      help: 'Click this tool, then select the spot.',
+    },
+    {
+      type: 'AISLE',
+      name: 'Aisle',
+      icon: 'aisle',
+      lead: 'Create an aisle.',
+      help: 'Click this tool, then select a spot to leave it empty.',
+    },
+    {
+      type: 'DRIVER',
+      name: 'Driver',
+      icon: 'wheel',
+      lead: 'Place the driver.',
+      help: 'Click this tool, then select where the driver sits.',
+    },
   ];
   readonly selected = linkedSignal({
     source: this.baseline,

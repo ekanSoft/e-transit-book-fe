@@ -14,7 +14,6 @@ import { FormControl } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import { errorMessages } from '../../core/http/errors';
-import { Field } from '../../shared/forms/field';
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { LayoutApi } from '../vehicle-layouts/layout-api';
@@ -22,11 +21,11 @@ import {
   TripApi,
   tripStatuses,
   type TripCopyInput,
-  type TripCopyPreview,
   type TripCopyResult,
   type TripSummary,
 } from './trip-api';
 import { TripCopyRow } from './trip-copy-row';
+import { TripDateTime } from './trip-date-time';
 import {
   isCalendarDate,
   routeLabel,
@@ -35,6 +34,15 @@ import {
   tripReadErrors,
   watDate,
 } from './trip-format';
+
+const copyDateFormat = new Intl.DateTimeFormat('en-US', {
+  dateStyle: 'long',
+  timeZone: 'Africa/Lagos',
+});
+const copyWeekdayFormat = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  timeZone: 'Africa/Lagos',
+});
 
 interface CopyChoice {
   included?: boolean;
@@ -47,7 +55,7 @@ interface CopyOutcome {
 
 @Component({
   selector: 'app-trip-copy',
-  imports: [Button, Field, Errors, RouterLink, TripCopyRow],
+  imports: [Button, Errors, RouterLink, TripCopyRow, TripDateTime],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './trip-copy.html',
   styleUrls: ['./trip-workspace.css', './trip-copy.css'],
@@ -95,12 +103,24 @@ export class TripCopy {
       .filter(({ status }) => status === 'ACTIVE')
       .map(({ _id, name }) => ({ value: _id, label: name })),
   ]);
+  readonly sourceDateLabel = computed(() => {
+    const date = this.source()?.date;
+    return date ? copyDateFormat.format(new Date(date + 'T12:00:00+01:00')) : '';
+  });
   readonly choices = computed(() => {
     const date = this.date();
     if (!isCalendarDate(date)) return [];
     return Array.from({ length: 7 }, (_, index) => {
       const offset = index + 1;
-      return { offset, date: watDate(shiftDays(date + 'T12:00:00+01:00', offset)) };
+      const target = shiftDays(date + 'T12:00:00+01:00', offset);
+      const targetDate = watDate(target);
+      return {
+        offset,
+        date: targetDate,
+        weekday: copyWeekdayFormat.format(target),
+        dayNumber: Number(targetDate.slice(-2)),
+        label: copyDateFormat.format(target),
+      };
     });
   });
   readonly selectedSources = linkedSignal({
@@ -136,9 +156,9 @@ export class TripCopy {
       }),
     })),
   }));
-  readonly preview = linkedSignal({
-    source: this.plan,
-    computation: (): TripCopyPreview | null => null,
+  private readonly copyInput = computed<TripCopyInput>(() => {
+    const plan = this.plan();
+    return { ...plan, days: plan.days.filter((day) => day.trips.length > 0) };
   });
   readonly outcome = linkedSignal({
     source: this.source,
@@ -154,23 +174,36 @@ export class TripCopy {
         })),
       ),
   });
-  readonly messages = signal<string[]>([]);
-  readonly busy = signal<'check' | 'save' | null>(null);
-  readonly canCheck = computed(
-    () =>
-      !this.busy() &&
-      !this.outcome() &&
-      this.plan().days.length > 0 &&
-      this.plan().days.every((day) => day.trips.length > 0),
-  );
+  readonly messages = linkedSignal({ source: this.plan, computation: (): string[] => [] });
+  readonly busy = signal(false);
+  readonly hasCopies = computed(() => this.copyInput().days.length > 0);
+  readonly preview = resource({
+    params: () => {
+      const context = this.context();
+      return context && !this.outcome() && this.hasCopies()
+        ? { context, plan: this.copyInput() }
+        : undefined;
+    },
+    loader: async ({ params, abortSignal }) => {
+      // Let quick changes to dates and departures settle before checking the plan.
+      await new Promise<void>((resolve) => setTimeout(resolve, 250));
+      abortSignal.throwIfAborted();
+      return this.api.checkCopy(params.plan);
+    },
+  });
   readonly canSave = computed(() => {
-    const preview = this.preview();
-    return this.canCheck() && !!preview?.tripCount && preview.problems.length === 0;
+    if (this.busy() || this.preview.isLoading() || !this.preview.hasValue()) return false;
+    const preview = this.preview.value();
+    return preview.tripCount > 0 && preview.problems.length === 0;
   });
   readonly statuses = tripStatuses;
   readonly routeLabel = routeLabel;
   readonly showWat = showWat;
   readonly errors = errorMessages;
+  readonly copyErrors = (error: unknown) =>
+    error instanceof HttpErrorResponse && error.status === 403
+      ? ['This plan includes a trip outside your access, or your workspace permissions changed.']
+      : tripReadErrors(error);
 
   ineligible(trip: TripSummary) {
     if (trip.status === 'CANCELLED') return 'Cancelled trips cannot be copied.';
@@ -184,6 +217,14 @@ export class TripCopy {
 
   toggleDate(date: string, selected: boolean) {
     this.toggle(this.selectedDates, date, selected);
+  }
+
+  selectAllDates() {
+    this.selectedDates.set(new Set(this.choices().map(({ date }) => date)));
+  }
+
+  clearDates() {
+    this.selectedDates.set(new Set());
   }
 
   private toggle(selection: typeof this.selectedSources, item: string, selected: boolean) {
@@ -212,45 +253,27 @@ export class TripCopy {
     );
   }
 
-  async submit(kind: 'check' | 'save') {
+  async submit() {
     const source = this.source();
-    const plan = this.plan();
-    if (!source || (kind === 'save' ? !this.canSave() : !this.canCheck())) return;
-    this.busy.set(kind);
+    const plan = this.copyInput();
+    if (!source || !this.canSave()) return;
+    this.busy.set(true);
     this.messages.set([]);
-    if (kind === 'check') this.preview.set(null);
     const current = () =>
-      !this.destroy.destroyed && source === this.source() && plan === this.plan();
+      !this.destroy.destroyed && source === this.source() && plan === this.copyInput();
     try {
-      if (kind === 'check') {
-        const result = await this.api.checkCopy(plan);
-        if (current()) this.preview.set(result);
-      } else {
-        const result = await this.api.saveCopy(plan);
-        if (current()) {
-          this.preview.set(null);
-          this.outcome.set({ input: plan, result });
-        }
-      }
+      const result = await this.api.saveCopy(plan);
+      if (current()) this.outcome.set({ input: plan, result });
     } catch (error) {
       if (!current()) return;
-      this.preview.set(null);
-      if (
-        kind === 'save' &&
-        (!(error instanceof HttpErrorResponse) || error.status === 0 || error.status >= 500)
-      ) {
+      if (!(error instanceof HttpErrorResponse) || error.status === 0 || error.status >= 500) {
         this.outcome.set({ input: plan });
       } else {
-        this.messages.set(
-          error instanceof HttpErrorResponse && error.status === 403
-            ? [
-                'This plan includes a trip outside your access, or your workspace permissions changed.',
-              ]
-            : tripReadErrors(error),
-        );
+        this.messages.set(this.copyErrors(error));
+        this.preview.reload();
       }
     } finally {
-      if (!this.destroy.destroyed) this.busy.set(null);
+      if (!this.destroy.destroyed) this.busy.set(false);
     }
   }
 
@@ -259,7 +282,7 @@ export class TripCopy {
   }
 
   leave() {
-    return this.busy() !== 'save' || !this.context();
+    return !this.busy() || !this.context();
   }
 
   beforeUnload(event: BeforeUnloadEvent) {

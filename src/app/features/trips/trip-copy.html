@@ -84,10 +84,10 @@
   <fieldset class="copy-planner" [disabled]="!!busy()">
     <section class="panel trip-panel copy-section" aria-labelledby="copy-source">
       <h2 id="copy-source">Source departures</h2>
-      <app-field
+      <app-trip-date-time
         [id]="'copy-source-date'"
         label="Source date (WAT)"
-        type="date"
+        [dateOnly]="true"
         [control]="sourceDate"
       />
       @if (!date()) {
@@ -103,6 +103,7 @@
         <ul class="copy-sources">
           @for (trip of sourceTrips(); track trip._id) {
             @let unavailable = ineligible(trip);
+            @let layout = trip.vehicleLayout;
             <li>
               <label>
                 <input
@@ -114,10 +115,13 @@
                 />
                 <span
                   ><strong>{{ routeLabel(trip.route) }}</strong>
-                  <span class="muted"
-                    >{{ showWat(trip.departureTime) }} · {{ statuses[trip.status] }} ·
-                    {{ trip.vehicleLayout?.name || 'Layout unavailable' }}</span
-                  >
+                  <span class="muted">
+                    {{ showWat(trip.departureTime) }} · {{ statuses[trip.status] }} ·
+                    {{ layout?.name || 'Layout unavailable' }}
+                    @if (layout) {
+                      · Capacity: {{ layout.capacity }} {{ layout.capacity === 1 ? 'seat' : 'seats' }}
+                    }
+                  </span>
                   @if (unavailable) {
                     <span>{{ unavailable }}</span>
                   }
@@ -132,19 +136,45 @@
     </section>
     @if (selectedTrips().length) {
       <section class="panel trip-panel copy-section" aria-labelledby="copy-targets">
-        <h2 id="copy-targets">Target dates (WAT)</h2>
-        <p class="muted">Choose from the seven calendar days after {{ date() }}.</p>
-        <div class="copy-dates" role="group" aria-labelledby="copy-targets">
-          @for (day of choices(); track day.date) {
-            <label
-              ><input
-                type="checkbox"
-                [checked]="selectedDates().has(day.date)"
-                (change)="toggleDate(day.date, target.checked)"
-                #target
-              />{{ day.date }}</label
-            >
-          }
+        <div class="copy-date-picker">
+          <h2 id="copy-targets">
+            Select the days you want to copy trips to after {{ sourceDateLabel() }}
+          </h2>
+          <button
+            type="button"
+            class="date-action"
+            [disabled]="selectedDates().size === choices().length"
+            (click)="selectAllDates()"
+          >
+            Select all
+          </button>
+          <div class="copy-dates" role="group" aria-labelledby="copy-targets">
+            @for (day of choices(); track day.date) {
+              <label class="copy-date">
+                <input
+                  #target
+                  type="checkbox"
+                  class="sr-only"
+                  [attr.aria-label]="day.label"
+                  [checked]="selectedDates().has(day.date)"
+                  (change)="toggleDate(day.date, target.checked)"
+                />
+                <span aria-hidden="true">{{ day.weekday }}</span>
+                <strong aria-hidden="true">{{ day.dayNumber }}</strong>
+              </label>
+            }
+          </div>
+          <p class="sr-only" role="status">
+            {{ selectedDates().size }} of {{ choices().length }} days selected
+          </p>
+          <button
+            type="button"
+            class="date-action"
+            [disabled]="!selectedDates().size"
+            (click)="clearDates()"
+          >
+            Clear selection
+          </button>
         </div>
         @if (catalog.error()) {
           <p class="muted">
@@ -171,7 +201,7 @@
               />
             }
             @if (!plan().days[$index].trips.length) {
-              <p class="muted">Include at least one departure or deselect this date.</p>
+              <p class="muted">No departures will be copied to this date.</p>
             }
           </section>
         }
@@ -182,14 +212,19 @@
     <section class="panel trip-panel copy-section" aria-labelledby="copy-check">
       <h2 id="copy-check">Review and save</h2>
       <app-errors [messages]="messages()" />
-      @if (preview(); as checked) {
+      @if (preview.isLoading() && !busy()) {
+        <p class="muted" role="status">Checking departures…</p>
+      } @else if (preview.error(); as error) {
+        <app-errors [messages]="copyErrors(error)" />
+      } @else if (preview.hasValue()) {
+        @let checked = preview.value();
         <p role="status">
           {{ checked.tripCount }}
           {{ checked.tripCount === 1 ? 'departure is' : 'departures are' }} ready to copy.
         </p>
         @if (checked.problems.length) {
           <app-errors
-            [messages]="['Resolve the problems below, then check the departures again.']"
+            [messages]="['Resolve the problems below before saving.']"
           />
           <ul class="copy-problems">
             @for (problem of checked.problems; track $index) {
@@ -214,23 +249,20 @@
             </ul>
           </div>
         }
-      } @else {
-        <p class="muted">Check the proposed departures before saving.</p>
       }
-      <div class="trip-actions">
-        <button
-          appButton
-          type="button"
-          variant="secondary"
-          [disabled]="!canCheck()"
-          (click)="submit('check')"
-        >
-          {{ busy() === 'check' ? 'Checking…' : 'Check departures' }}
-        </button>
-        <button appButton type="button" [disabled]="!canSave()" (click)="submit('save')">
-          {{ busy() === 'save' ? 'Saving…' : 'Save copied trips' }}
-        </button>
-      </div>
+      @if (hasCopies()) {
+        <div class="trip-actions">
+          @if (preview.error()) {
+            <button appButton type="button" variant="secondary" (click)="preview.reload()">
+              Retry validation
+            </button>
+          } @else {
+            <button appButton type="button" [disabled]="!canSave()" (click)="submit()">
+              {{ busy() ? 'Saving…' : 'Save copied trips' }}
+            </button>
+          }
+        </div>
+      }
     </section>
   }
 }

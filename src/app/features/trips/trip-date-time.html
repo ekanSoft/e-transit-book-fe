@@ -17,7 +17,7 @@
 >
   <span class="sr-only" [id]="id() + '-label'">{{ label() }}</span>
   <span [id]="id() + '-value'" [class.muted]="!displayValue()">
-    {{ displayValue() || 'Choose date and time' }}
+    {{ displayValue() || (dateOnly() ? 'Choose date' : 'Choose date and time') }}
   </span>
   <app-icon name="calendar" />
 </button>
@@ -100,16 +100,18 @@
     />
   }
   -->
-  <label class="time" [for]="id() + '-time'">
-    Time (WAT)
-    <input
-      #timeInput
-      type="time"
-      [id]="id() + '-time'"
-      [value]="time()"
-      (input)="time.set(timeInput.value)"
-    />
-  </label>
+  @if (!dateOnly()) {
+    <label class="time" [for]="id() + '-time'">
+      Time (WAT)
+      <input
+        #timeInput
+        type="time"
+        [id]="id() + '-time'"
+        [value]="time()"
+        (input)="time.set(timeInput.value)"
+      />
+    </label>
+  }
   <div class="calendar-actions">
     <button type="button" class="text-button" (click)="selected.set('')">Clear</button>
     <button appButton type="button" class="confirm" [disabled]="!canConfirm()" (click)="confirm()">OK</button>

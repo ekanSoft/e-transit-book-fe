@@ -50,6 +50,9 @@
 .quick-dates button[aria-pressed='true'] {
   border-color: var(--color-brand);
 }
+.date-filter-active {
+  --control-line: var(--color-brand);
+}
 .route-error {
   color: var(--color-muted);
   margin-top: 8px;

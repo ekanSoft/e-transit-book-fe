@@ -1,5 +1,16 @@
 [
   { "code": "AB", "name": "Abia" },
+    {
+    "code": "FC",
+    "name": "Abuja",
+    "aliases": [
+      "FCT",
+      "Abuja",
+      "Abuja FCT",
+      "Abuja Federal Capital Territory",
+      "Federal Capital Territory (FCT)"
+    ]
+  },
   { "code": "AD", "name": "Adamawa" },
   { "code": "AK", "name": "Akwa Ibom" },
   { "code": "AN", "name": "Anambra" },
@@ -13,17 +24,6 @@
   { "code": "ED", "name": "Edo" },
   { "code": "EK", "name": "Ekiti" },
   { "code": "EN", "name": "Enugu" },
-  {
-    "code": "FC",
-    "name": "Federal Capital Territory",
-    "aliases": [
-      "FCT",
-      "Abuja",
-      "Abuja FCT",
-      "Abuja Federal Capital Territory",
-      "Federal Capital Territory (FCT)"
-    ]
-  },
   { "code": "GO", "name": "Gombe" },
   { "code": "IM", "name": "Imo" },
   { "code": "JI", "name": "Jigawa" },

@@ -16,9 +16,10 @@ import type { FormControl } from '@angular/forms';
 import { Button } from '../../shared/ui/button';
 import { Icon } from '../../shared/ui/icon';
 import { watInput, watInstant } from './trip-fields';
-import { shiftDays, showWat } from './trip-format';
+import { isCalendarDate, shiftDays, showWat, watDate } from './trip-format';
 
 const dayFormat = new Intl.DateTimeFormat('en-NG', { dateStyle: 'full', timeZone: 'UTC' });
+const shortDateFormat = new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeZone: 'UTC' });
 const dateHeading = new Intl.DateTimeFormat('en-NG', {
   weekday: 'short',
   day: 'numeric',
@@ -58,6 +59,7 @@ export class TripDateTime {
   readonly label = input.required<string>();
   readonly control = input.required<FormControl<string>>();
   readonly optional = input(false);
+  readonly dateOnly = input(false);
   private readonly trigger = viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
   private readonly panel = viewChild.required<ElementRef<HTMLElement>>('panel');
   private readonly injector = inject(Injector);
@@ -101,9 +103,9 @@ export class TripDateTime {
     );
   });
   protected readonly draft = computed(() =>
-    this.selected() ? this.selected() + 'T' + this.time() : '',
+    this.dateOnly() || !this.selected() ? this.selected() : this.selected() + 'T' + this.time(),
   );
-  protected readonly canConfirm = computed(() => !this.draft() || !!watInstant(this.draft()));
+  protected readonly canConfirm = computed(() => !this.draft() || this.validValue(this.draft()));
 
   constructor() {
     effect((onCleanup) => {
@@ -113,25 +115,28 @@ export class TripDateTime {
   }
 
   protected displayValue() {
-    const value = watInstant(this.control().value);
-    return value ? showWat(value) : '';
+    const value = this.control().value;
+    if (this.dateOnly()) return isCalendarDate(value) ? shortDateFormat.format(new Date(value)) : '';
+    const instant = watInstant(value);
+    return instant ? showWat(instant) : '';
   }
 
   protected error() {
     const control = this.control();
     if (!control.invalid || (!control.touched && !control.dirty)) return '';
     const message: unknown = control.getError('server');
-    return typeof message === 'string' ? message : 'Choose a date and time.';
+    if (typeof message === 'string') return message;
+    return this.dateOnly() ? 'Choose a date.' : 'Choose a date and time.';
   }
 
   protected beforeToggle(event: ToggleEvent) {
     const open = event.newState === 'open';
     this.open.set(open);
     if (!open) return;
-    const now = watInput(new Date().toISOString());
+    const now = this.currentValue();
     this.currentDate.set(now.slice(0, 10));
     const value = this.control().value;
-    this.setDraft(watInstant(value) ? value : now);
+    this.setDraft(this.validValue(value) ? value : now);
     this.focusCalendarDay();
   }
 
@@ -142,7 +147,7 @@ export class TripDateTime {
   }
 
   protected today() {
-    const now = watInput(new Date().toISOString());
+    const now = this.currentValue();
     this.currentDate.set(now.slice(0, 10));
     this.setDraft(now);
   }
@@ -202,6 +207,15 @@ export class TripDateTime {
     this.selected.set(value.slice(0, 10));
     this.focused.set(this.selected());
     this.time.set(value.slice(11));
+  }
+
+  private currentValue() {
+    const now = new Date();
+    return this.dateOnly() ? watDate(now) : watInput(now.toISOString());
+  }
+
+  private validValue(value: string) {
+    return this.dateOnly() ? isCalendarDate(value) : !!watInstant(value);
   }
 
   private focusCalendarDay() {

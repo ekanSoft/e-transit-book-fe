@@ -53,13 +53,22 @@
         />
         <app-field
           [id]="'trip-date'"
+          [class.date-filter-active]="!!query().departureDate"
           label="Departure date (WAT)"
           type="date"
           [control]="dateFilter"
           [optional]="true"
         />
         <div class="quick-dates" role="group" aria-label="Departure date shortcuts">
-          <button appButton variant="secondary" type="button" (click)="today()">Today</button>
+          <button
+            appButton
+            variant="secondary"
+            type="button"
+            [attr.aria-pressed]="todaySelected()"
+            (click)="today()"
+          >
+            Today
+          </button>
           <button
             appButton
             variant="secondary"
@@ -140,7 +149,9 @@
                     <span class="directory-mobile-label">Status</span
                     ><span
                       class="badge directory-status"
-                      [class.directory-positive]="trip.status === 'SCHEDULED'"
+                      [class.directory-scheduled]="trip.status === 'SCHEDULED'"
+                      [class.directory-departed]="trip.status === 'DEPARTED'"
+                      [class.directory-cancelled]="trip.status === 'CANCELLED'"
                       >{{ statusLabels[trip.status] }}</span
                     >
                   </td>

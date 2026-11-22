@@ -21,7 +21,9 @@
       <h2 id="manifest-summary">Departure summary</h2>
       <span
         class="badge directory-status"
-        [class.directory-positive]="data.trip.status === 'SCHEDULED'"
+        [class.directory-scheduled]="data.trip.status === 'SCHEDULED'"
+        [class.directory-departed]="data.trip.status === 'DEPARTED'"
+        [class.directory-cancelled]="data.trip.status === 'CANCELLED'"
         >{{ statuses[data.trip.status] }}</span
       >
     </div>

@@ -1,23 +1,33 @@
 .route-direction {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(14rem, max-content) minmax(0, 1fr);
+  align-items: center;
   width: min(100%, 44rem);
+  column-gap: 0.75rem;
   text-align: start;
 }
 
 .route-origin {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .route-origin > div {
   min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .route-arrow {
   display: grid;
   place-items: center;
-  flex: 1 0 36px;
+  flex: 1 0 2.25rem;
   color: var(--color-brand);
+}
+
+.route-direction > div:last-child {
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .directory-table .route-status {
@@ -32,6 +42,10 @@
 }
 
 @media (max-width: 700px) {
+  .route-direction {
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  }
+
   .directory-table tbody tr {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;

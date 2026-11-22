@@ -47,8 +47,8 @@ export interface Departure {
   departureTime: string;
   bookedSeatCount: number;
   route: {
-    originBranch: Pick<Branch, 'name'> | null;
-    destinationBranch: Pick<Branch, 'name'> | null;
+    originBranch: RouteTerminal | null;
+    destinationBranch: RouteTerminal | null;
   } | null;
 }
 export type PaymentMethod = 'CASH' | 'TRANSFER' | 'POS';

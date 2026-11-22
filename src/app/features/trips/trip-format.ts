@@ -68,8 +68,15 @@ function stateFirstTerminalLabel(terminal: RouteTerminal | null) {
   return [state, address?.city?.trim()].filter(Boolean).join(', ') || terminalName(terminal);
 }
 
-export function routeLocationLabel({ originBranch, destinationBranch }: Route) {
-  return stateFirstTerminalLabel(originBranch) + ' → ' + stateFirstTerminalLabel(destinationBranch);
+export function routeLocationLabel(route: {
+  originBranch: RouteTerminal | null;
+  destinationBranch: RouteTerminal | null;
+}) {
+  return (
+    stateFirstTerminalLabel(route.originBranch) +
+    ' → ' +
+    stateFirstTerminalLabel(route.destinationBranch)
+  );
 }
 
 export function tripRouteChoiceLabel(route: Route) {

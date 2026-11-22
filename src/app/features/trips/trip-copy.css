@@ -14,7 +14,7 @@
   width: min(100%, 62rem);
   margin-bottom: 16px;
 }
-.copy-section > app-field {
+.copy-section > app-trip-date-time {
   max-width: 15rem;
 }
 .copy-section > button {
@@ -48,7 +48,7 @@
   display: block;
   font-size: 0.86rem;
 }
-input[type='checkbox'] {
+.copy-sources input[type='checkbox'] {
   flex: 0 0 auto;
   width: 1rem;
   height: 1rem;
@@ -59,20 +59,78 @@ input[type='checkbox'] {
 .copy-sources input {
   margin-top: 3px;
 }
+.copy-date-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 12px 16px;
+}
+.copy-date-picker h2 {
+  font-size: 0.95rem;
+  font-weight: 550;
+  letter-spacing: normal;
+}
+.date-action {
+  grid-column: 2;
+  min-height: 34px;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-align: start;
+}
+.date-action:enabled:is(:hover, :focus-visible) {
+  border-color: var(--control-line);
+  background: var(--raised);
+  color: var(--color-brand);
+}
 .copy-dates {
-  display: flex;
-  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
-.copy-dates label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 7px;
+.copy-date {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 3px;
+  border-radius: 12px;
   border: 1px solid var(--control-line);
-  min-height: 42px;
-  padding: 6px 10px;
+  min-height: 5rem;
+  padding: 6px;
   cursor: pointer;
+}
+.copy-date > span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+.copy-date > strong {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.copy-date:hover {
+  background: var(--raised);
+}
+.copy-date:has(:checked) {
+  border-color: var(--color-brand);
+  background: var(--tint);
+  box-shadow: inset 0 -3px var(--color-brand);
+}
+.copy-date:has(:focus-visible) {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.copy-date:has(:disabled) {
+  cursor: default;
+}
+@media (max-width: 480px) {
+  .copy-dates {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .copy-target {
   border-top: 1px solid var(--color-line);

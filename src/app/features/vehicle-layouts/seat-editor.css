@@ -40,17 +40,40 @@
   margin-bottom: 9px;
 }
 .tools {
+  position: relative;
   gap: 5px;
 }
-.tools button {
+.tool {
   flex: 1;
+  min-width: 0;
+}
+.tools button {
   display: grid;
   justify-items: center;
+  width: 100%;
   gap: 3px;
   padding: 8px 3px;
   border-radius: 7px;
   border: 1px solid var(--control-line);
   font-size: 12px;
+}
+.tool-help {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: calc(100% + 6px);
+  inset-inline: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--control-line);
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 16%);
+  visibility: hidden;
+}
+.tool:not(.help-dismissed):is(:hover, :focus-within) .tool-help {
+  visibility: visible;
 }
 .tools [aria-pressed='true'] {
   background: var(--tint);

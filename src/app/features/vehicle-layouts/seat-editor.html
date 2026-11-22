@@ -28,9 +28,24 @@
       <h3>Editing tool</h3>
       <div class="tools" role="group" aria-label="Editing tool">
         @for (t of tools; track t.type) {
-          <button type="button" [attr.aria-pressed]="t.type === tool()" (click)="tool.set(t.type)">
-            <app-icon [name]="t.icon" />{{ t.name }}
-          </button>
+          <div
+            class="tool"
+            [class.help-dismissed]="toolHelpDismissed()"
+            (pointerenter)="toolHelpDismissed.set(false)"
+            (focusin)="toolHelpDismissed.set(false)"
+          >
+            <button
+              type="button"
+              [attr.aria-pressed]="t.type === tool()"
+              [attr.aria-describedby]="'tool-help-' + t.type"
+              (click)="tool.set(t.type)"
+            >
+              <app-icon [name]="t.icon" />{{ t.name }}
+            </button>
+            <div class="tool-help" [id]="'tool-help-' + t.type" role="tooltip">
+              <strong>{{ t.lead }}</strong> {{ t.help }}
+            </div>
+          </div>
         }
       </div>
       <p class="help">

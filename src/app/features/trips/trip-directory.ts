@@ -50,6 +50,7 @@ export class TripDirectory {
   );
   readonly sizeFilter = new FormControl('10', { nonNullable: true });
   readonly query = signal<TripQuery>({ page: 1, limit: 10, departureDate: this.dateFilter.value });
+  readonly todaySelected = computed(() => this.query().departureDate === watDate());
   readonly statuses = [
     { value: '', label: 'All statuses' },
     ...Object.entries(tripStatuses).map(([value, label]) => ({ value, label })),
@@ -97,13 +98,13 @@ export class TripDirectory {
       .pipe(takeUntilDestroyed())
       .subscribe((limit) => this.filter({ limit: Number(limit) }));
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
-      const date = params.get('departureDate');
-      if (date !== null) this.dateFilter.setValue(this.initialDate(date));
+      const date = this.initialDate(params.get('departureDate'));
+      if (this.dateFilter.value !== date) this.dateFilter.setValue(date);
     });
   }
 
   private initialDate(date: string | null) {
-    return date && isCalendarDate(date) ? date : watDate();
+    return date && isCalendarDate(date) ? date : '';
   }
 
   filter(change: Partial<TripQuery>) {

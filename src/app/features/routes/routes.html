@@ -64,18 +64,22 @@
                   <div class="route-origin">
                     <div>
                       <span class="sr-only">Origin terminal</span>
-                      <strong>{{ row.origin.name }}</strong>
                       @if (row.origin.location) {
-                        <span class="directory-detail">{{ row.origin.location }}</span>
+                        <strong>{{ row.origin.location }}</strong>
+                        <span class="directory-detail">{{ row.origin.name }}</span>
+                      } @else {
+                        <strong>{{ row.origin.name }}</strong>
                       }
                     </div>
                     <span class="route-arrow"><app-icon name="arrow" /></span>
                   </div>
                   <div>
                     <span class="sr-only">Destination terminal</span>
-                    <strong>{{ row.destination.name }}</strong>
                     @if (row.destination.location) {
-                      <span class="directory-detail">{{ row.destination.location }}</span>
+                      <strong>{{ row.destination.location }}</strong>
+                      <span class="directory-detail">{{ row.destination.name }}</span>
+                    } @else {
+                      <strong>{{ row.destination.name }}</strong>
                     }
                   </div>
                 </div>

@@ -194,7 +194,9 @@
             Scheduled trips after {{ r.upcomingTrips.asOf | date: 'HH:mm, d MMM' : '+0100' }} WAT
           </p>
         </div>
-        <span class="badge">{{ r.upcomingTrips.total }} scheduled</span>
+        <a class="badge shrink-0" routerLink="/app/trips">
+          {{ r.upcomingTrips.total }} scheduled<span class="sr-only"> trips</span>
+        </a>
       </div>
       @if (r.upcomingTrips.items.length) {
         <div class="table-wrap">
@@ -209,10 +211,7 @@
             <tbody>
               @for (trip of r.upcomingTrips.items; track trip._id) {
                 <tr>
-                  <td>
-                    {{ trip.route?.originBranch?.name || 'Unknown origin' }} →
-                    {{ trip.route?.destinationBranch?.name || 'Unknown destination' }}
-                  </td>
+                  <td>{{ routePlace(trip.route) }}</td>
                   <td>{{ trip.departureTime | date: 'd MMM, HH:mm' : '+0100' }}</td>
                   <td>{{ trip.bookedSeatCount }}</td>
                 </tr>
@@ -260,10 +259,7 @@
           <tbody>
             @for (trip of schedule.value().content; track trip._id) {
               <tr>
-                <td>
-                  {{ trip.route?.originBranch?.name || 'Unknown origin' }} →
-                  {{ trip.route?.destinationBranch?.name || 'Unknown destination' }}
-                </td>
+                <td>{{ routePlace(trip.route) }}</td>
                 <td>{{ trip.departureTime | date: 'HH:mm' : '+0100' }}</td>
                 <td class="role-label">{{ trip.status.toLowerCase() }}</td>
               </tr>

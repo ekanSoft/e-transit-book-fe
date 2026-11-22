@@ -220,6 +220,24 @@
   border-color: transparent;
 }
 
+.directory-departed {
+  background: var(--sidebar);
+  color: var(--side-text);
+  border-color: #333c45;
+}
+
+.directory-scheduled {
+  background: var(--scheduled-bg);
+  color: var(--scheduled);
+  border-color: transparent;
+}
+
+.directory-cancelled {
+  background: var(--cancelled-bg);
+  color: var(--cancelled);
+  border-color: transparent;
+}
+
 .directory-restricted,
 .directory-danger-text {
   color: var(--error);

@@ -14,6 +14,7 @@ import { errorMessages } from '../../core/http/errors';
 import { Button } from '../../shared/ui/button';
 import { Icon } from '../../shared/ui/icon';
 import { Errors } from '../../shared/ui/feedback';
+import { routeLocationLabel } from '../trips/trip-format';
 import {
   canReadReports,
   DashboardReport,
@@ -78,6 +79,8 @@ export class Dashboard {
     { key: 'POS', label: 'POS' },
   ];
   readonly errors = errorMessages;
+  readonly routePlace = (route: Departure['route']) =>
+    route ? routeLocationLabel(route) : 'Route unavailable';
   readonly maxSale = computed(() =>
     Math.max(
       0,
