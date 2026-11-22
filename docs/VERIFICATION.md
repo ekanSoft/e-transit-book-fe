@@ -1,5 +1,10 @@
 # Verification record
 
+## Copy a day · 22 November 2026
+
+- Chromium with controlled API responses verified bulk date selection, the selected-day count, automatic validation, blocking validation errors, and saving the remaining departures after empty target dates were skipped. The save action disappeared when no departures remained. The tested screen passed axe and fit the viewport at 360 px in light mode and 1440 px in dark mode.
+- The production build and all seven Trips contract tests passed. Live signed-in API verification remains open. [Manual checks](tasks/trips-manual-testing.md#10-copy-a-day)
+
 ## Trips · 21 November 2026
 
 - **Layout creation from Trips.** The production build and all 155 frontend tests passed. Chromium fixtures at 360 px and 1440 px verified entering the layout editor with only inactive layouts and through an unmatched search, saving a layout, returning to **Layout & fares**, and selecting the saved layout while retaining journey details and any default fare. Automated tests covered the normal layout detail redirect and the fallback when a trip draft is absent. Live signed-in verification remains open. [Manual checks](tasks/trips-manual-testing.md#3-route-and-layout-selection)
