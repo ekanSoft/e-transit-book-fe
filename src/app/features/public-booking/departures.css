@@ -1,0 +1,61 @@
+.departure-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+.departure-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.departure-time,
+.departure-arrival,
+.departure-vehicle p {
+  margin: 0;
+}
+.departure-vehicle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-top: 6px;
+}
+.departure-vehicle strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+.departure-offer {
+  margin-left: auto;
+  flex: none;
+}
+.departure-fare {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+.departure-fare p {
+  margin: 0;
+}
+.departure-fare .departure-price {
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.departure-fare .action {
+  margin-top: 6px;
+}
+.departure-offer .action {
+  width: fit-content;
+}
+@media (max-width: 520px) {
+  .departure-layout {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .departure-offer {
+    margin-left: 0;
+  }
+}

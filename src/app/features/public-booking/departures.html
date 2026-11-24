@@ -1,0 +1,107 @@
+<div class="journey-hero">
+  <h1>Find your next departure</h1>
+  <p>And book your trip online with ease.</p>
+</div>
+<section class="paper">
+  @if (attempts.get(store.slug())) {
+    <a [routerLink]="['checkout']">Resume your checkout</a>
+  }
+  @if (origins().length) {
+    <form class="stack" (submit)="$event.preventDefault(); search()">
+      <div class="grid-fields">
+        <app-field
+          [id]="'from'"
+          label="From"
+          placeholder="Select a departure terminal"
+          [control]="origin"
+          [options]="origins()"
+          [overlayOptions]="true"
+        />
+        <app-field
+          [id]="'to'"
+          label="To"
+          placeholder="Select a destination"
+          [control]="destination"
+          [options]="destinations()"
+          [overlayOptions]="true"
+        />
+      </div>
+      <div class="grid-fields">
+        <div>
+          <label for="travel-date">{{ range() ? 'From date' : 'Departure date' }}</label
+          ><input id="travel-date" type="date" [formControl]="start" [min]="today()" required />
+        </div>
+        @if (range()) {
+          <div>
+            <label for="end-date">To date</label
+            ><input id="end-date" type="date" [formControl]="end" [min]="start.value" required />
+          </div>
+        }
+      </div>
+      <div class="row">
+        <button class="action" type="submit">Find departures</button>
+        <!-- <button type="button" class="secondary" (click)="toggleRange()">
+          {{ range() ? 'Use one date' : 'Search a date range' }}
+        </button> -->
+      </div>
+    </form>
+  } @else {
+    <h2>No routes available</h2>
+    <p>Check back for new departures or contact the operator.</p>
+  }
+</section>
+<div aria-live="polite" class="stack" style="margin-top: 24px">
+  @if (error()) {
+    <p class="note">{{ error() }}</p>
+  }
+  @if (loading()) {
+    <p role="status">Finding departures…</p>
+  }
+  @if (result(); as page) {
+    <h2>Departures · {{ page.length }}</h2>
+    <p>{{ label() }}</p>
+    @for (trip of page; track trip._id) {
+      <article class="paper departure-card">
+        <div class="departure-layout">
+          <div class="departure-main">
+            <h2 class="departure-time">{{ showWat(trip.departureTime) }}</h2>
+            @if (trip.estimatedArrivalTime) {
+              <p class="departure-arrival">Estimated arrival {{ showWat(trip.estimatedArrivalTime) }}</p>
+            }
+            <div class="departure-vehicle">
+              @if (vehicleType(trip.vehicleLayout)) {
+                <strong>{{ vehicleType(trip.vehicleLayout) }}</strong>
+              }
+              @if (trip.availableSeatCount) {
+                <p>{{ trip.availableSeatCount }} seats available</p>
+              } @else {
+                <strong>Sold out</strong>
+              }
+            </div>
+          </div>
+          @if (trip.startingFare !== null || trip.availableSeatCount) {
+            <div class="departure-offer">
+              @if (trip.startingFare !== null) {
+                <div class="departure-fare">
+                  <p>Base fare</p>
+                  <strong class="departure-price">{{ fare(trip.startingFare) }}</strong>
+                  @if (trip.availableSeatCount) {
+                    <a class="action" [routerLink]="['trips', trip._id]" queryParamsHandling="preserve"
+                      >Choose a seat</a
+                    >
+                  }
+                </div>
+              } @else if (trip.availableSeatCount) {
+                <a class="action" [routerLink]="['trips', trip._id]" queryParamsHandling="preserve"
+                  >Choose a seat</a
+                >
+              }
+            </div>
+          }
+        </div>
+      </article>
+    } @empty {
+      <p class="paper">No departures on these dates. Try another date or route.</p>
+    }
+  }
+</div>

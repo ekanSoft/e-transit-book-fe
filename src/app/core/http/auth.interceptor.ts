@@ -5,6 +5,7 @@ import { catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Session } from '../auth/session';
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
+  if (request.url.startsWith(environment.apiBaseUrl + '/public/')) return next(request);
   const session = inject(Session),
     router = inject(Router);
   const base = environment.apiBaseUrl;

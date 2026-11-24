@@ -18,7 +18,7 @@ import { DirectoryPager } from '../../shared/ui/directory-controls';
 import { Errors } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
 import { contactName, CustomerApi } from '../customers/customer-api';
-import { fareLabel, routeLabel, showWat } from '../trips/trip-format';
+import { fareLabel, routePlaceLabel, showWat } from '../trips/trip-format';
 import { WorkspaceData } from '../workspace/workspace-data';
 import { BookingApi, bookingStatus, bookingStatuses, type BookingStatus } from './booking-api';
 
@@ -96,7 +96,7 @@ export class BookingDirectory {
       new Map(
         (this.routes.hasValue() ? this.routes.value() : []).map((route) => [
           route._id,
-          routeLabel(route),
+          routePlaceLabel(route),
         ]),
       ),
   );

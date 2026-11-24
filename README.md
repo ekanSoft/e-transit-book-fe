@@ -35,6 +35,14 @@ The existing Angular server infrastructure is retained. Operator routes use `Ren
 
 Static hosting is also possible using `dist/e-transit-book-fe/browser`. Configure an SPA fallback to `index.csr.html` for frontend routes (or publish it as `index.html`), excluding API and asset paths. This is required for direct visits and refreshes of `/verify-signup?token=…`, `/reset-password?token=…`, and authenticated routes. The bundled Node server handles those routes automatically.
 
+## Public passenger bookings
+
+Open `/public/:slug` for the operator’s routes and WAT departure search. Public trip results are an unpaginated array. Open a departure to choose one available seat, enter passenger details and review the server’s quote before opening Paystack. Returning to `/public/:slug/payment/return` verifies the payment reference. A confirmed ticket offers a downloadable PDF and the backend attempts to email the ticket after commit.
+
+Deploy the same browser build on the apex and dashboard hostnames. The apex root opens the public home and the app hostname root opens the guarded dashboard. Local development retains the login root. Netlify’s static publish directory is `dist/e-transit-book-fe/browser`. The packaged `_redirects` forwards API requests to `api.etransitbook.com` and serves `index.csr.html` for deep links.
+
+Set the backend’s `PUBLIC_BOOKING_ORIGIN` to `https://etransitbook.com` in production. Local test keys can use `http://localhost:4200`. Keep the signed webhook configured separately at the reachable API origin. The receipt and booking flow are covered in the [checkout handoff](docs/tasks/public-booking-checkout-progress.md).
+
 ## Routes and behavior
 
 | Route                     | Purpose                                                                          |

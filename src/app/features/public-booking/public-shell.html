@@ -1,0 +1,35 @@
+<header class="mast">
+  <div class="wrap brand-row">
+    @if (store.profile(); as data) {
+      <a class="identity" [routerLink]="['/public', store.slug()]">
+        @if (logo(); as url) {
+          <img class="logo" [src]="url" alt="" (error)="broken.set(true)" />
+        } @else {
+          <img ngSrc="/coach.svg" width="72" height="46" alt="" />
+        }
+        <strong>{{ data.organization.name }}</strong></a
+      >
+      @if (data.organization.contactPhoneNumber; as phone) {
+        <a class="support" [href]="'tel:' + phone"><span>Call the operator</span> {{ phone }}</a>
+      }
+    } @else {
+      <span>Passenger bookings</span>
+    }
+  </div>
+</header>
+<main id="main-content" class="wrap">
+  @if (store.profile() || paymentPage()) {
+    @for (slug of [store.slug()]; track slug) {
+      <router-outlet (activate)="focusPage()" />
+    }
+  } @else if (store.error()) {
+    <section class="paper">
+      <h1>Booking page unavailable</h1>
+      <p>Check the link with your transport company or try again.</p>
+      <button class="action" (click)="store.open(store.slug())">Try again</button>
+    </section>
+  } @else {
+    <section class="paper skeleton" role="status">Loading booking page…</section>
+  }
+</main>
+<footer class="wrap">Powered by eTransitBook</footer>

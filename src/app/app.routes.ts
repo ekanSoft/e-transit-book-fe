@@ -11,7 +11,25 @@ import {
 } from './core/auth/guards';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  {
+    path: 'public/:slug',
+    loadChildren: () =>
+      import('./features/public-booking/public.routes').then((m) => m.publicRoutes),
+  },
+  {
+    path: '',
+    pathMatch: 'full',
+    canMatch: [() => typeof location !== 'undefined' && location.hostname === 'etransitbook.com'],
+    loadComponent: () => import('./features/public-booking/home').then((m) => m.Home),
+  },
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: () =>
+      typeof location !== 'undefined' && location.hostname === 'app.etransitbook.com'
+        ? '/app/dashboard'
+        : '/login',
+  },
   {
     path: '',
     loadComponent: () => import('./features/auth/auth-layout').then((m) => m.AuthLayout),

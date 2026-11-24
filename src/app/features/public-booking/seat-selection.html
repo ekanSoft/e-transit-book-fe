@@ -1,0 +1,45 @@
+<a class="back" [routerLink]="['/public', store.slug()]" queryParamsHandling="preserve"
+  >← Find departures</a
+>
+@if (conflict) {
+  <p role="alert" class="note">Availability has changed. Choose an available seat to continue.</p>
+}
+@if (trip(); as t) {
+  <div class="split">
+    <section class="paper">
+      <h1>Choose your seat</h1>
+      <p>Crossed-out seats are unavailable.</p>
+      <app-seat-map
+        mode="select"
+        [grid]="t.seatLayoutSnapshot"
+        [selected]="selected()"
+        [unavailable]="unavailable()"
+        [seatDescriptions]="descriptions()"
+        (cellPress)="selected.set($event)"
+      />
+    </section>
+    <section class="paper">
+      <h2>Your journey</h2>
+      <strong>{{ journey(t.route) }}</strong>
+      <p>{{ showWat(t.departureTime) }}</p>
+      @if (chosen(); as seat) {
+        <p aria-live="polite">Seat {{ seat.seatNumber }} · {{ fare(seat.fare) }}</p>
+        <p>Availability can change until your seat is held.</p>
+        <a
+          class="action"
+          [routerLink]="['/public', store.slug(), 'checkout']"
+          [queryParams]="{ trip: t._id, seat: seat.seatNumber }"
+          >Passenger details</a
+        >
+      } @else {
+        <p>Select one available seat to continue.</p>
+      }
+    </section>
+  </div>
+} @else if (error()) {
+  <div class="paper" role="alert">
+    {{ error() }}<button class="secondary" (click)="load()">Refresh seats</button>
+  </div>
+} @else {
+  <p class="paper" role="status">Loading available seats…</p>
+}

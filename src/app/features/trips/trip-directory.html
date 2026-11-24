@@ -128,6 +128,7 @@
                       <a
                         class="directory-employee-name"
                         [routerLink]="[trip._id]"
+                        queryParamsHandling="merge"
                         [attr.aria-label]="
                           routeLabel(trip.route) + ', ' + showWat(trip.departureTime)
                         "
@@ -193,7 +194,7 @@
           [waiting]="trips.isLoading()"
           singular="trip"
           plural="trips"
-          (pageChange)="filter({ page: $event })"
+          (pageChange)="pageChange($event)"
         />
       </div>
     }

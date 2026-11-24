@@ -1,5 +1,11 @@
 # Verification record
 
+## Public booking and online checkout · 24 November 2026
+
+- Live Swagger and Acemett reads confirmed guest route discovery, unpaginated departures and saved trip-seat details. An isolated real Paystack test checkout reached the hosted page. Its browser security check prevented completing the external payment.
+- Angular and Nest production builds passed. Four backend suites (74 tests) and the MongoDB checkout integration passed with a simulated gateway, including webhook replay, email failure and cross-operator receipt isolation. Frontend tests passed 175 of 176. The existing FCT display-label assertion failed.
+- Chrome fixtures exercised booking through receipt download, recovery states and mobile layouts. Six public screens passed axe, and the existing staff browser workflow passed. The A4 PDF was rendered and checked for selectable text, WAT and exact amounts. Production host configuration, the hosted payment return and inbox delivery remain outstanding. [Milestones and verification details](tasks/public-booking-checkout-progress.md)
+
 ## Staff Bookings and Customers · 22 November 2026
 
 - Chromium ran the production build against controlled API responses. The journey covered customer search, pagination and edit, saved passenger history, exact phone lookup, inline creation and duplicate recovery, booking from Trips and Bookings, payment confirmation, ticket lookup, check-in, cancellation, and reuse with or without extra payment. A seat conflict preserved the customer and contact draft. A lost confirmation response led to the saved booking without a second sale request.

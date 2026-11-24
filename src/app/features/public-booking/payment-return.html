@@ -1,0 +1,70 @@
+<section class="paper">
+  <h1 tabindex="-1">Payment status</h1>
+  @if (busy()) {
+    <div class="checking" aria-hidden="true"></div>
+    <p role="status">Checking your payment with the operator…</p>
+  }
+  @if (error()) {
+    <p class="note" role="alert">{{ error() }}</p>
+  }
+  @if (result(); as v) {
+    @if (v.paymentReview) {
+      <h2>Payment received</h2>
+      <p>
+        Contact the transport company with your payment reference so they can help with your ticket.
+      </p>
+    } @else {
+      @switch (v.status) {
+        @case ('LOCKED') {
+          <h2>Awaiting confirmation</h2>
+          <p>Your ticket will be available once the payment is confirmed.</p>
+          @if (v.holdExpiresAt) {
+            <p>Seat hold deadline · {{ showWat(v.holdExpiresAt) }}</p>
+          }
+        }
+        @case ('EXPIRED') {
+          <h2>The seat hold has ended</h2>
+          <p>
+            If you transferred funds, check this payment again or contact the operator before
+            starting another booking.
+          </p>
+          <button class="secondary" (click)="another()">Find available departures</button>
+        }
+        @case ('CANCELLED') {
+          <h2>Booking cancelled</h2>
+          <button class="secondary" (click)="another()">Find another departure</button>
+        }
+        @case ('CONFIRMED') {
+          <h2>Booking confirmed</h2>
+        }
+        @case ('CHECKED_IN') {
+          <h2>Checked in</h2>
+        }
+      }
+      @if (v.status === 'CONFIRMED' || v.status === 'CHECKED_IN') {
+        @if (v.receipt; as receipt) {
+          <app-confirmed-ticket [receipt]="receipt" (another)="another()" />
+        } @else {
+          <p>Ticket {{ v.ticket }}. Contact the operator for the full receipt.</p>
+          <button class="secondary" (click)="another()">Book another trip</button>
+        }
+      }
+    }
+  }
+  @if (reference()) {
+    <p class="reference">
+      Payment reference <strong>{{ reference() }}</strong>
+    </p>
+    @if (!result() || result()?.status === 'LOCKED' || result()?.status === 'EXPIRED' || error()) {
+      <button class="action" (click)="verify()" [disabled]="busy()">
+        {{ result()?.status === 'EXPIRED' ? 'Check this payment again' : 'Check payment status' }}
+      </button>
+    }
+  }
+  @if (store.profile()?.organization?.contactPhoneNumber; as phone) {
+    <a [href]="'tel:' + phone">Call the operator · {{ phone }}</a>
+  }
+  @if (!reference()) {
+    <a [routerLink]="['/public', store.slug()]">Return to departures</a>
+  }
+</section>

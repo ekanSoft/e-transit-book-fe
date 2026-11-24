@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { WorkspaceAccess } from '../../core/auth/workspace-access';
 import { errorMessages } from '../../core/http/errors';
 import { Field } from '../../shared/forms/field';
@@ -19,8 +19,12 @@ import { Icon } from '../../shared/ui/icon';
 import { WorkspaceData } from '../workspace/workspace-data';
 import { TripApi, tripStatuses, type TripQuery } from './trip-api';
 import {
+  readTripQuery,
+  tripDefaultIsToday,
+  tripQueryParams,
+} from './trip-directory-filters';
+import {
   fareLabel,
-  isCalendarDate,
   routeLabel,
   routeLocation,
   routeLocationLabel,
@@ -42,14 +46,13 @@ export class TripDirectory {
   private readonly api = inject(TripApi);
   private readonly workspace = inject(WorkspaceData);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly routeFilter = new FormControl('', { nonNullable: true });
   readonly statusFilter = new FormControl('', { nonNullable: true });
-  readonly dateFilter = new FormControl(
-    this.initialDate(this.route.snapshot.queryParamMap.get('departureDate')),
-    { nonNullable: true },
-  );
+  readonly dateFilter = new FormControl('', { nonNullable: true });
   readonly sizeFilter = new FormControl('10', { nonNullable: true });
-  readonly query = signal<TripQuery>({ page: 1, limit: 10, departureDate: this.dateFilter.value });
+  readonly query = signal<TripQuery>({ page: 1, limit: 10, departureDate: '' });
+  readonly defaultIsToday = computed(() => tripDefaultIsToday(this.access.employee()?.role));
   readonly todaySelected = computed(() => this.query().departureDate === watDate());
   readonly statuses = [
     { value: '', label: 'All statuses' },
@@ -83,14 +86,15 @@ export class TripDirectory {
   readonly routeLabel = routeLabel;
   readonly routeLocation = routeLocation;
   readonly errors = errorMessages;
+  private fromUrl = false;
 
   constructor() {
     this.routeFilter.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe((route) => this.filter({ route }));
+      .subscribe((route) => this.filter({ route: route || undefined }));
     this.statusFilter.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe((status) => this.filter({ status }));
+      .subscribe((status) => this.filter({ status: status || undefined }));
     this.dateFilter.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((departureDate) => this.filter({ departureDate }));
@@ -98,17 +102,60 @@ export class TripDirectory {
       .pipe(takeUntilDestroyed())
       .subscribe((limit) => this.filter({ limit: Number(limit) }));
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
-      const date = this.initialDate(params.get('departureDate'));
-      if (this.dateFilter.value !== date) this.dateFilter.setValue(date);
+      if (!params.has('departureDate') && this.defaultIsToday()) {
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { departureDate: watDate() },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+        return;
+      }
+      this.applyFromUrl(params);
     });
   }
 
-  private initialDate(date: string | null) {
-    return date && isCalendarDate(date) ? date : '';
+  private applyFromUrl(params: ParamMap) {
+    this.fromUrl = true;
+    const query = readTripQuery(params, this.defaultIsToday());
+    this.routeFilter.setValue(query.route ?? '', { emitEvent: false });
+    this.statusFilter.setValue(query.status ?? '', { emitEvent: false });
+    this.dateFilter.setValue(query.departureDate ?? '', { emitEvent: false });
+    this.sizeFilter.setValue(String(query.limit), { emitEvent: false });
+    this.query.set(query);
+    this.fromUrl = false;
   }
 
   filter(change: Partial<TripQuery>) {
-    this.query.update((query) => ({ ...query, page: 1, ...change }));
+    const next = this.normalize({ ...this.query(), page: 1, ...change });
+    this.query.set(next);
+    if (!this.fromUrl) this.syncUrl(next);
+  }
+
+  pageChange(page: number) {
+    const next = this.normalize({ ...this.query(), page });
+    this.query.set(next);
+    if (!this.fromUrl) this.syncUrl(next);
+  }
+
+  private normalize(query: TripQuery & { route?: string; status?: string }): TripQuery {
+    return {
+      page: query.page,
+      limit: query.limit,
+      departureDate: query.departureDate ?? '',
+      ...(query.route ? { route: query.route } : {}),
+      ...(query.status ? { status: query.status } : {}),
+    };
+  }
+
+  private syncUrl(query: TripQuery) {
+    const tree = this.router.createUrlTree([], {
+      relativeTo: this.route,
+      queryParams: tripQueryParams(query, this.defaultIsToday()),
+    });
+    const target = this.router.serializeUrl(tree);
+    if (target === this.router.url) return;
+    void this.router.navigateByUrl(target, { replaceUrl: true });
   }
 
   today() {

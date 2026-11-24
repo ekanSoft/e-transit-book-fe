@@ -1,0 +1,115 @@
+<a class="back" [routerLink]="['/public', store.slug()]">← Find departures</a>
+@if (attempt(); as a) {
+  <div class="split">
+    <section class="paper">
+      @if (holdActive()) {
+        <h1>Review your payment</h1>
+        <p>{{ a.journey }}</p>
+        <p>{{ showWat(a.departureTime) }} · Seat {{ a.seatNumber }}</p>
+        <app-fee-lines [fees]="a.fees" />
+        <p>Your seat hold ends at {{ showWat(a.holdExpiresAt) }}.</p>
+        @if (!a.returned && safeUrl(a.authorizationUrl); as url) {
+          <a class="action" [href]="url" referrerpolicy="no-referrer">Continue to secure payment</a>
+          <p>Time remaining {{ deadline() }}</p>
+        }
+      } @else {
+        <h1>Your seat hold has ended</h1>
+        <p>{{ a.journey }}</p>
+        <p>{{ showWat(a.departureTime) }} · Seat {{ a.seatNumber }}</p>
+        <p class="note" role="status">
+          This seat is no longer reserved for you. Choose another seat or check your payment if you
+          already paid.
+        </p>
+      }
+      <div class="row">
+        <a
+          class="secondary"
+          [routerLink]="['/public', store.slug(), 'payment', 'return']"
+          [queryParams]="{ reference: a.reference }"
+          >Check payment status</a
+        >
+        @if (!holdActive()) {
+          <button type="button" class="action" (click)="discardAttempt()">Choose another seat</button>
+        }
+      </div>
+    </section>
+  </div>
+} @else {
+  <div class="split">
+    <section class="paper">
+      <h1>Passenger details</h1>
+      @if (error()) {
+        <p role="alert" class="note">{{ error() }}</p>
+      }
+      @if (trip()) {
+        <form class="stack" (submit)="$event.preventDefault(); submit()" novalidate>
+          @for (p of parties; track p.id) {
+            <fieldset class="stack">
+              <legend>
+                <h2>{{ p.label }}</h2>
+              </legend>
+              <div class="grid-fields">
+                <app-field
+                  [id]="p.id + '-first'"
+                  label="First name"
+                  [autocomplete]="'section-' + p.id + ' given-name'"
+                  [control]="p.group.controls.firstName"
+                />
+                <app-field
+                  [id]="p.id + '-last'"
+                  label="Last name"
+                  [autocomplete]="'section-' + p.id + ' family-name'"
+                  [control]="p.group.controls.lastName"
+                />
+                <app-field
+                  [id]="p.id + '-phone'"
+                  label="Nigerian phone number"
+                  type="tel"
+                  [autocomplete]="'section-' + p.id + ' tel'"
+                  [control]="p.group.controls.phoneNumber"
+                />
+                <app-field
+                  [id]="p.id + '-email'"
+                  label="Email address"
+                  type="email"
+                  [autocomplete]="'section-' + p.id + ' email'"
+                  [optional]="p.id === 'kin'"
+                  [control]="p.group.controls.email"
+                />
+              </div>
+            </fieldset>
+          }
+          <app-field
+            [id]="'bloodgroup'"
+            label="Passenger blood group"
+            [control]="form.controls.bloodgroup"
+            [optional]="true"
+          />
+          <!-- <p>
+            Review the full price before continuing to Paystack. Your seat can be held for up to 15
+            minutes, or until departure.
+          </p> -->
+          <button class="action" [disabled]="busy()">
+            {{ busy() ? 'Checking availability…' : 'Hold seat and review total' }}
+          </button>
+        </form>
+      } @else if (error()) {
+        <button class="secondary" (click)="refresh()">Refresh availability</button>
+      } @else {
+        <p role="status">Checking availability…</p>
+      }
+    </section>
+    @if (trip(); as t) {
+      <aside class="paper">
+        <h2>Your journey</h2>
+        <strong>{{ store.profile()?.organization?.name }}</strong>
+        <p>{{ journey(t.route) }}</p>
+        <p>{{ showWat(t.departureTime) }}</p>
+        @if (seat(); as s) {
+          <p>Seat {{ s.seatNumber }} · {{ fare(s.fare) }}</p>
+        }
+        <a [routerLink]="['/public', store.slug(), 'trips', t._id]">Change seat</a>
+      </aside>
+    }
+  </div>
+}

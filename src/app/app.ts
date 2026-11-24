@@ -16,7 +16,7 @@ import { Toasts } from './shared/ui/feedback';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<a class="skip-link" href="#main-content">Skip to content</a>
     @if (navigating()) {
-      <div class="route-progress" role="status">Loading workspace…</div>
+      <div class="route-progress" role="status">Loading page…</div>
     }
     <router-outlet /><app-toasts />`,
 })

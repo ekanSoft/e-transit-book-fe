@@ -47,7 +47,7 @@ import { FieldHelp } from './field-help';
       }
     </div>
     <div class="input-wrap">
-      @if (options().length && overlayOptions() && !useOverlay()) {
+      @if (overlayOptions() && !useOverlay()) {
         <select
           [id]="id()"
           [formControl]="control()"
@@ -62,7 +62,7 @@ import { FieldHelp } from './field-help';
             <option [value]="option.value">{{ option.label }}</option>
           }
         </select>
-      } @else if (options().length) {
+      } @else if (overlayOptions() || options().length) {
         <div
           ngCombobox
           readonly

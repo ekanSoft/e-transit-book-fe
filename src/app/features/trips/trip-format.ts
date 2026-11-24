@@ -79,6 +79,21 @@ export function routeLocationLabel(route: {
   );
 }
 
+function terminalPlace(terminal: RouteTerminal | null | undefined) {
+  return [terminal?.address?.state, terminal?.address?.city].filter(Boolean).join(', ');
+}
+
+export function routePlaceLabel(route: Route | null | undefined) {
+  if (!route) return 'Route unavailable';
+  const origin = terminalPlace(route.originBranch);
+  const destination = terminalPlace(route.destinationBranch);
+  return (
+    (origin || 'Origin unavailable') +
+    ' → ' +
+    (destination || 'Destination unavailable')
+  );
+}
+
 export function tripRouteChoiceLabel(route: Route) {
   return `${routeLocationLabel(route)} (${routeLabel(route)})`;
 }
