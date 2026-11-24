@@ -1,5 +1,12 @@
 # Verification record
 
+## Staff Bookings and Customers · 22 November 2026
+
+- Chromium ran the production build against controlled API responses. The journey covered customer search, pagination and edit, saved passenger history, exact phone lookup, inline creation and duplicate recovery, booking from Trips and Bookings, payment confirmation, ticket lookup, check-in, cancellation, and reuse with or without extra payment. A seat conflict preserved the customer and contact draft. A lost confirmation response led to the saved booking without a second sale request.
+- The audited customer directory, seat map, payment review, ticket confirmation, cancellation dialog, and bookings directory had zero axe violations or horizontal page overflow at the tested 360, 768, and 1440 px widths across light and dark modes. Chromium also exercised draft discard, dialog Escape and focus restoration, and ticket copying.
+- The production build and live API smoke checks passed. Live Swagger and backend source confirmed the staff endpoints and contracts. Live HTTP checks verified unauthenticated error envelopes. Signed-in bookings, customer changes, and ticket lifecycle verification against a disposable workspace remain open.
+- All 55 targeted booking contract, Trips, routing, workspace permission and phone tests passed. The full unit run passed 171 of 172 tests. The existing Nigerian address test expects `Federal Capital Territory (FCT)` while the checked-in dataset and utility display `Abuja (FCT)`. [Task checklist and progress notes](tasks/staff-bookings-customers.md)
+
 ## Copy a day · 22 November 2026
 
 - Chromium with controlled API responses verified bulk date selection, the selected-day count, automatic validation, blocking validation errors, and saving the remaining departures after empty target dates were skipped. The save action disappeared when no departures remained. The tested screen passed axe and fit the viewport at 360 px in light mode and 1440 px in dark mode.

@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   linkedSignal,
   resource,
@@ -115,6 +116,14 @@ export class TripDetail {
   readonly capacity = capacity;
   readonly statuses = tripStatuses;
   readonly errors = tripReadErrors;
+
+  constructor() {
+    effect(() => {
+      if (this.api.lastBookingChange()?.trip !== this.id() || !this.id()) return;
+      this.detail.reload();
+      this.booked.reload();
+    });
+  }
 
   open(action: TripAction) {
     if (this.detail.isLoading() || !this.canManage() || this.busy()) return;

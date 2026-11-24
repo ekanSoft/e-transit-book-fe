@@ -102,6 +102,18 @@ button:focus-visible {
   outline: 3px solid var(--color-ink);
   outline-offset: 2px;
 }
+.cell[data-type='SEAT'].unavailable {
+  background: var(--raised);
+  border-color: var(--control-line);
+  color: var(--color-muted);
+  text-decoration: line-through;
+  outline: none;
+  cursor: default;
+}
+button[data-type='SEAT'][aria-pressed='true'] {
+  background: var(--color-brand);
+  color: var(--on-brand, var(--color-surface));
+}
 .cell.invalid {
   border-color: var(--error);
   background: var(--error-bg);

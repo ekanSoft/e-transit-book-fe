@@ -1,0 +1,39 @@
+.ticket-card {
+  max-width: 720px;
+  border-block-start: 3px solid var(--color-brand);
+}
+.ticket-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.ticket-top p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  margin: 0;
+}
+.ticket-top app-icon {
+  width: 17px;
+  height: 17px;
+}
+.ticket-code {
+  font-family: ui-monospace, monospace;
+  font-size: clamp(1.45rem, 6vw, 2.1rem);
+  letter-spacing: 0.12em;
+  user-select: all;
+}
+.ticket-journey {
+  margin-block-start: 16px;
+  border-block-start: 1px dashed var(--control-line);
+  padding-block-start: 16px;
+}
+.ticket-journey p {
+  margin: 4px 0 0;
+}
+.copy-status:empty {
+  margin: 0;
+}

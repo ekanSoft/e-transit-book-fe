@@ -1,0 +1,56 @@
+<app-management-dialog
+  dialogId="customer-form"
+  [title]="customer() ? 'Edit customer' : 'Add customer'"
+  [trigger]="trigger()"
+  [busy]="busy()"
+  (dismiss)="dismissed.emit()"
+>
+  <form [formGroup]="form" novalidate #editor (ngSubmit)="save(editor)">
+    <div class="management-body">
+      <app-errors [messages]="errors()" />
+      <div class="form-grid">
+        <app-field
+          [id]="'customer-first'"
+          label="First name"
+          [control]="form.controls.firstName"
+          [maxLength]="100"
+        />
+        <app-field
+          [id]="'customer-last'"
+          label="Last name"
+          [control]="form.controls.lastName"
+          [maxLength]="100"
+        />
+      </div>
+      <app-field
+        [id]="'customer-phone'"
+        label="Phone number"
+        type="tel"
+        placeholder="08012345678"
+        [control]="form.controls.phoneNumber"
+      />
+      <app-field
+        [id]="'customer-email'"
+        label="Email"
+        type="email"
+        [optional]="!customer()?.email"
+        [maxLength]="150"
+        [control]="form.controls.email"
+      />
+    </div>
+    <div class="management-actions">
+      <button
+        appButton
+        variant="secondary"
+        type="button"
+        [disabled]="busy()"
+        (click)="dismissed.emit()"
+      >
+        Cancel
+      </button>
+      <button appButton type="submit" [disabled]="busy()">
+        {{ busy() ? 'Saving…' : 'Save customer' }}
+      </button>
+    </div>
+  </form>
+</app-management-dialog>

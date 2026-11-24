@@ -124,6 +124,33 @@ describe('workspace directory access', () => {
     },
   );
 
+  it.each([
+    ['ADMIN', true, true],
+    ['OPERATIONS_MANAGER', true, true],
+    ['BRANCH_MANAGER', true, false],
+    ['BOOKING_AGENT', true, false],
+    ['ACCOUNTANT', false, false],
+    ['DRIVER', false, false],
+  ] as const)('applies booking and customer scope for %s', (role, staff, companyWide) => {
+    employee.set(membership(role, 'terminal-a'));
+    const access = TestBed.inject(WorkspaceAccess);
+    expect(access.canViewBookings()).toBe(staff);
+    expect(access.canEditCustomers()).toBe(staff);
+    expect(access.canBookFrom('terminal-a')).toBe(staff);
+    expect(access.canBookFrom('terminal-b')).toBe(companyWide);
+    expect(access.canManageBookingFrom('terminal-b')).toBe(companyWide);
+    employee.set(membership(role));
+    expect(access.canViewBookings()).toBe(staff);
+    expect(access.canBookFrom('terminal-a')).toBe(companyWide);
+    selectedBusiness.set({ ...business, settings: { allowStaffBooking: false } });
+    expect(access.canBookSeats()).toBe(false);
+    expect(access.canManageBookingFrom('terminal-a')).toBe(companyWide);
+    selectedBusiness.set({ ...business, accountStatus: 'PENDING' });
+    expect(access.canViewBookings()).toBe(staff);
+    expect(access.canEditCustomers()).toBe(false);
+    expect(access.canManageBookingFrom('terminal-a')).toBe(false);
+  });
+
   it('blocks unauthorized deep links and clears permissions when the workspace changes', () => {
     employee.set(membership('DRIVER', 'terminal-a'));
     const access = TestBed.inject(WorkspaceAccess);

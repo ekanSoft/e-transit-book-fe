@@ -61,6 +61,26 @@ export class WorkspaceAccess {
   readonly canReadTripManifest = computed(
     () => this.canViewTrips() && (this.canManageOperations() || this.hasOriginScopedTripReads()),
   );
+  readonly canViewBookings = computed(
+    () => !!this.scope() && (this.canManageOperations() || this.hasOriginScopedTripReads()),
+  );
+  readonly canEditCustomers = computed(
+    () => this.canViewBookings() && this.session.business()?.accountStatus === 'ACTIVE',
+  );
+  readonly canBookSeats = computed(
+    () =>
+      this.canEditCustomers() &&
+      !!this.tripScope() &&
+      this.session.business()?.settings?.allowStaffBooking !== false,
+  );
+
+  canBookFrom(origin?: string | null) {
+    return this.canBookSeats() && !!origin && this.canReadTripFrom(origin);
+  }
+
+  canManageBookingFrom(origin?: string | null) {
+    return this.canEditCustomers() && !!origin && this.canReadTripFrom(origin);
+  }
 
   canReadTripManifestFrom(origin?: string | null) {
     return this.canReadTripManifest() && this.canReadTripFrom(origin);

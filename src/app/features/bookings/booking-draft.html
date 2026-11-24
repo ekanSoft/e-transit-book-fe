@@ -1,0 +1,409 @@
+@let source = previous.hasValue() ? previous.value() : undefined;
+@if (receipt(); as confirmation) {
+  <div class="page-heading">
+    <div><h1 tabindex="-1" #stepHeading>Booking confirmed</h1></div>
+  </div>
+  <app-booking-ticket
+    [booking]="confirmation.data.booking"
+    [journey]="routeLabel(confirmation.trip.route)"
+    [departure]="confirmation.trip.departureTime"
+    [payment]="confirmation.data.transaction"
+  />
+  <div class="trip-actions booking-footer">
+    @if (allowed() && !reuseId) {
+      <button appButton type="button" (click)="another()">Book another seat</button>
+    }
+    <a appButton variant="secondary" [routerLink]="['/app/bookings', confirmation.data.booking._id]"
+      >Open booking</a
+    >
+    @if (confirmation.data.booking.rebookedFrom; as original) {
+      <a class="text-button" [routerLink]="['/app/bookings', original]">View original ticket</a>
+    }
+    <a
+      class="text-button"
+      [routerLink]="originTrip ? ['/app/trips', originTrip] : ['/app/bookings']"
+      >{{ originTrip ? 'Back to trip' : 'Back to Bookings' }}</a
+    >
+  </div>
+} @else if (recovered(); as booking) {
+  <div class="page-heading">
+    <div>
+      <h1 tabindex="-1" #stepHeading>Booking found</h1>
+      <p>A saved booking matches your last attempt.</p>
+    </div>
+  </div>
+  <app-booking-ticket
+    [booking]="booking"
+    [journey]="availability.hasValue() ? routeLabel(availability.value().trip.route) : ''"
+    [departure]="booking.trip?.departureTime"
+  />
+  <div class="trip-actions booking-footer">
+    <a appButton [routerLink]="['/app/bookings', booking._id]">Open booking</a>
+    <a class="text-button" routerLink="/app/bookings">Back to Bookings</a>
+  </div>
+} @else {
+  <div class="page-heading">
+    <div>
+      <h1 tabindex="-1">{{ reuseId ? 'Reuse ticket' : 'New booking' }}</h1>
+      @if (source) {
+        <p>Original ticket {{ source.booking.ticket }}</p>
+      }
+    </div>
+    <a
+      class="text-button draft-cancel"
+      [routerLink]="
+        reuseId
+          ? ['/app/bookings', reuseId]
+          : originTrip
+            ? ['/app/trips', originTrip]
+            : ['/app/bookings']
+      "
+      >Cancel booking draft</a
+    >
+  </div>
+  @if (reuseId && previous.error()) {
+    <div class="panel trip-panel">
+      <app-errors [messages]="apiErrors(previous.error())" />
+      <button appButton variant="secondary" type="button" (click)="previous.reload()">
+        Retry original ticket
+      </button>
+    </div>
+  } @else if (reuseId && !source) {
+    <p role="status">Loading original ticket…</p>
+  } @else if (source?.booking?.reusedBy; as replacement) {
+    <div class="panel trip-panel">
+      <p role="status">This ticket has already been reused.</p>
+      <a appButton variant="secondary" [routerLink]="['/app/bookings', replacement]"
+        >Open replacement ticket</a
+      >
+    </div>
+  } @else if (source && source.booking.status !== 'CANCELLED') {
+    <p class="panel trip-panel" role="status">Only cancelled or missed tickets can be reused.</p>
+  } @else {
+    <ol class="booking-steps" aria-label="Booking progress">
+      @for (label of progress; track label; let i = $index) {
+        <li
+          [attr.aria-current]="step() === i + 1 ? 'step' : null"
+          [class.complete]="step() > i + 1"
+        >
+          <span aria-hidden="true">{{ i + 1 }}</span>{{ label }}
+        </li>
+      }
+    </ol>
+    <div class="booking-workspace" [class.selecting-seat]="step() === 1">
+      <section class="panel trip-panel booking-main" aria-labelledby="booking-step-heading">
+        <h2 id="booking-step-heading" tabindex="-1" #stepHeading>{{ progress[step() - 1] }}</h2>
+        @if (notice()) {
+          <p class="booking-note" role="status">{{ notice() }}</p>
+        }
+        <app-errors [messages]="errors()" />
+        @if (uncertain()) {
+          <button appButton type="button" [disabled]="saving()" (click)="checkAttempt()">
+            {{ saving() ? 'Checking bookings…' : 'Check for booking' }}
+          </button>
+        } @else if (!allowed()) {
+          <p class="booking-note" role="status">
+            Staff booking is currently unavailable in this workspace.
+          </p>
+          <button appButton variant="secondary" type="button" (click)="business.reload()">
+            Refresh booking settings
+          </button>
+        } @else {
+          @switch (step()) {
+            @case (1) {
+              @if (!tripId()) {
+                <app-booking-journey (chosen)="chooseTrip($event)" />
+              } @else if (availability.error()) {
+                <app-errors [messages]="tripErrors(availability.error())" />
+                <div class="trip-actions">
+                  <button
+                    appButton
+                    variant="secondary"
+                    type="button"
+                    (click)="availability.reload()"
+                  >
+                    Retry seats
+                  </button>
+                  <button appButton variant="secondary" type="button" (click)="chooseTrip('')">
+                    Choose another departure
+                  </button>
+                </div>
+              } @else if (availability.isLoading()) {
+                <p role="status">Loading departure and seat availability…</p>
+              } @else if (availability.hasValue()) {
+                @let current = availability.value();
+                <div class="booking-departure">
+                  <div>
+                    <strong>{{ routeLabel(current.trip.route) }}</strong>
+                    <p class="muted">{{ showWat(current.trip.departureTime) }}</p>
+                  </div>
+                  <button class="text-button" type="button" (click)="chooseTrip('')">
+                    Change departure
+                  </button>
+                </div>
+                @if (current.trip.status !== 'SCHEDULED') {
+                  <p role="status">This departure is no longer scheduled.</p>
+                } @else {
+                  <div class="seat-key" aria-label="Seat map key">
+                    <span class="available">Available</span><span class="booked">Booked</span
+                    ><span class="selected">Selected</span>
+                  </div>
+                  <app-seat-map
+                    [grid]="current.trip.seatLayoutSnapshot"
+                    mode="select"
+                    [selected]="position()"
+                    [seatDescriptions]="seatDescriptions()"
+                    [unavailable]="current.booked"
+                    (cellPress)="selectSeat($event)"
+                  />
+                  <p class="muted">
+                    {{
+                      current.trip.pricing.seatOverrides.length
+                        ? 'Seat prices can vary.'
+                        : 'All seats have the same fare.'
+                    }}
+                    Choose one available seat.
+                  </p>
+                  @if (effectiveFare() !== undefined) {
+                    <p class="booking-selection" role="status">
+                      Seat <strong>{{ seat() }}</strong> ·
+                      <strong>{{ fareLabel(effectiveFare()!) }}</strong>
+                    </p>
+                  }
+                  <div class="trip-actions booking-footer">
+                    <button appButton type="button" (click)="nextFromSeat()" [disabled]="!seat()">
+                      Continue to customer
+                    </button>
+                  </div>
+                }
+              }
+            }
+            @case (2) {
+              @if (source?.customer; as passenger) {
+                <p>
+                  Passenger <strong>{{ name(passenger) }}</strong>
+                </p>
+                <p class="muted">Confirm the next-of-kin details for the new ticket.</p>
+              } @else {
+                <app-customer-lookup
+                  [phone]="phone"
+                  [selected]="selectedCustomer()"
+                  (selectedChange)="customer.set($event); contactError.set('')"
+                />
+              }
+              @if (contactError()) {
+                <app-errors [messages]="[contactError()]" />
+              }
+              <form
+                [formGroup]="contact"
+                #contactForm
+                novalidate
+                (ngSubmit)="nextFromContact(contactForm)"
+              >
+                <fieldset class="kin-fields">
+                  <legend>Next of kin</legend>
+                  <div class="form-grid">
+                    <app-field
+                      [id]="'kin-first'"
+                      label="First name"
+                      [control]="contact.controls.firstName"
+                    />
+                    <app-field
+                      [id]="'kin-last'"
+                      label="Last name"
+                      [control]="contact.controls.lastName"
+                    />
+                    <app-field
+                      [id]="'kin-phone'"
+                      label="Phone number"
+                      type="tel"
+                      [control]="contact.controls.phoneNumber"
+                    />
+                    <app-field
+                      [id]="'kin-email'"
+                      label="Email"
+                      type="email"
+                      [optional]="true"
+                      [control]="contact.controls.email"
+                    />
+                  </div>
+                </fieldset>
+                <details class="extra-details">
+                  <summary>Passenger blood group</summary>
+                  <app-field
+                    [id]="'booking-bloodgroup'"
+                    label="Blood group"
+                    [control]="contact.controls.bloodgroup"
+                    placeholder="e.g. O+"
+                    [optional]="true"
+                  />
+                </details>
+                <div class="trip-actions booking-footer">
+                  <button appButton variant="secondary" type="button" (click)="setStep(1)">
+                    Back
+                  </button>
+                  <button appButton type="submit">Continue to payment</button>
+                </div>
+              </form>
+            }
+            @case (3) {
+              @if (source?.customer ?? selectedCustomer(); as passenger) {
+                <dl class="trip-facts review-contact">
+                  <div>
+                    <dt>Passenger</dt>
+                    <dd>{{ name(passenger) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Next of kin</dt>
+                    <dd>
+                      {{ name(kin()) }} · {{ kin().phoneNumber }}
+                      @if (kin().email) {
+                        <br />{{ kin().email }}
+                      }
+                    </dd>
+                  </div>
+                </dl>
+              }
+              @if (business.error()) {
+                <app-errors [messages]="apiErrors(business.error())" />
+                <button appButton variant="secondary" type="button" (click)="business.reload()">
+                  Retry payment settings
+                </button>
+              } @else if (business.isLoading()) {
+                <p role="status">Loading payment settings…</p>
+              } @else if (business.hasValue()) {
+                @if (reuseId || paymentOptions().length) {
+                  <form
+                    id="booking-payment"
+                    (submit)="$event.preventDefault(); submit()"
+                    novalidate
+                  >
+                    <fieldset [disabled]="saving()" class="payment-fields">
+                      @if (reuseId) {
+                        <app-field
+                          [id]="'reuse-payment'"
+                          label="Payment for reuse"
+                          [control]="reusePayment"
+                          [options]="paymentModes"
+                          placeholder="Choose a payment option"
+                          [overlayOptions]="true"
+                        />
+                      }
+                      @if (!reuseId || isAdditionalPayment()) {
+                        @if (paymentOptions().length) {
+                          <app-field
+                            [id]="'booking-method'"
+                            label="Payment method"
+                            [control]="method"
+                            [options]="paymentOptions()"
+                            placeholder="Choose a payment method"
+                            [overlayOptions]="true"
+                          />
+                          @if (reuseId) {
+                            <app-field
+                              [id]="'reuse-amount'"
+                              label="Additional amount collected"
+                              [control]="amount"
+                              [hint]="fareHint"
+                            />
+                            <p class="muted">
+                              Enter the amount collected for this reuse. The seat fare is shown
+                              separately.
+                            </p>
+                          }
+                          <p class="muted">
+                            Confirm after collecting payment. Transfer and POS record money already
+                            collected at the terminal.
+                          </p>
+                        } @else {
+                          <p role="status">No payment methods are enabled for staff bookings.</p>
+                        }
+                      }
+                    </fieldset>
+                  </form>
+                } @else {
+                  <p role="status">No payment methods are enabled for staff bookings.</p>
+                  <button appButton variant="secondary" type="button" (click)="business.reload()">
+                    Refresh payment methods
+                  </button>
+                }
+              }
+              <div class="trip-actions booking-footer">
+                <button
+                  appButton
+                  variant="secondary"
+                  type="button"
+                  [disabled]="saving()"
+                  (click)="setStep(2)"
+                >
+                  Back
+                </button>
+                @if (business.hasValue() && (reuseId || paymentOptions().length)) {
+                  <button
+                    appButton
+                    type="submit"
+                    form="booking-payment"
+                    [disabled]="saving() || !readyToPay() || availability.isLoading()"
+                  >
+                    {{ saving() ? 'Confirming…' : 'Confirm booking' }}
+                  </button>
+                }
+              </div>
+            }
+          }
+        }
+      </section>
+      @if (availability.hasValue()) {
+        @let trip = availability.value().trip;
+        <aside class="panel trip-panel booking-summary" aria-labelledby="booking-summary-heading">
+          <h2 id="booking-summary-heading">Booking summary</h2>
+          <p>
+            <strong>{{ routeLabel(trip.route) }}</strong
+            ><br /><span class="muted">{{ showWat(trip.departureTime) }}</span>
+          </p>
+          <dl class="trip-facts">
+            <div>
+              <dt>Seat</dt>
+              <dd>{{ seat() || 'Choose a seat' }}</dd>
+            </div>
+            <div>
+              <dt>Seat fare</dt>
+              <dd>{{ effectiveFare() === undefined ? '—' : fareLabel(effectiveFare()!) }}</dd>
+            </div>
+            @if ((!reuseId || isAdditionalPayment()) && methodLabel()) {
+              <div>
+                <dt>Payment method</dt>
+                <dd>{{ methodLabel() }}</dd>
+              </div>
+            }
+            @if (additionalAmount() !== undefined) {
+              <div>
+                <dt>Additional amount</dt>
+                <dd>{{ fareLabel(additionalAmount()!) }}</dd>
+              </div>
+            }
+          </dl>
+        </aside>
+      }
+    </div>
+  }
+}
+@if (discard()) {
+  <app-management-dialog
+    dialogId="discard-booking"
+    title="Discard booking draft?"
+    [description]="
+      uncertain()
+        ? 'Confirmation was interrupted. You can stay and check whether the booking was saved.'
+        : 'Your seat selection and passenger details will be lost.'
+    "
+    (dismiss)="finishLeave(false)"
+  >
+    <div class="management-actions">
+      <button appButton variant="secondary" type="button" (click)="finishLeave(false)">
+        Keep working
+      </button>
+      <button appButton type="button" (click)="finishLeave(true)">Discard draft</button>
+    </div>
+  </app-management-dialog>
+}

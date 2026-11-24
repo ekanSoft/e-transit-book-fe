@@ -1,5 +1,5 @@
 import { FormControl } from '@angular/forms';
-import { nigerianPhone, normalizeNigerianPhone } from './phone';
+import { nigerianCustomerPhone, nigerianPhone, normalizeNigerianPhone } from './phone';
 describe('Nigerian phone handling', () => {
   for (const phone of [
     '08012345678',
@@ -17,4 +17,9 @@ describe('Nigerian phone handling', () => {
   });
   it('allows blank optional phone fields', () =>
     expect(nigerianPhone(new FormControl('', { nonNullable: true }))).toBeNull());
+  it('supports Nigerian landlines in customer records', () => {
+    const phone = new FormControl('02012223456', { nonNullable: true });
+    expect(normalizeNigerianPhone(phone.value)).toBe('+2342012223456');
+    expect(nigerianCustomerPhone(phone)).toBeNull();
+  });
 });

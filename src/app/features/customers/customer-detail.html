@@ -1,0 +1,115 @@
+<a class="text-button trip-back" routerLink="/app/customers">← All customers</a>
+<div class="page-heading">
+  <div>
+    <h1 tabindex="-1">{{ customer.hasValue() ? name(customer.value()) : 'Customer details' }}</h1>
+  </div>
+  @if (customer.hasValue() && access.canEditCustomers()) {
+    <button appButton variant="secondary" type="button" #editButton (click)="edit.set(editButton)">
+      Edit customer
+    </button>
+  }
+</div>
+@if (customer.error()) {
+  <div class="panel directory-message">
+    <app-errors [messages]="errors(customer.error())" />
+    <button appButton variant="secondary" type="button" (click)="customer.reload()">Retry</button>
+  </div>
+} @else if (customer.isLoading()) {
+  <p role="status">Loading customer…</p>
+} @else if (customer.hasValue()) {
+  @let record = customer.value();
+  <section class="panel trip-panel" aria-labelledby="customer-contact-heading">
+    <h2 id="customer-contact-heading">Contact details</h2>
+    <dl class="trip-facts">
+      <div>
+        <dt>Phone</dt>
+        <dd>{{ phone(record.phoneNumber) }}</dd>
+      </div>
+      <div>
+        <dt>Email</dt>
+        <dd>{{ record.email || '—' }}</dd>
+      </div>
+    </dl>
+  </section>
+  <section class="panel directory mt-4" aria-labelledby="customer-history-heading">
+    <div class="directory-toolbar">
+      <h2 id="customer-history-heading">Booking history</h2>
+      <a class="text-button" routerLink="/app/bookings" [queryParams]="{ customer: record._id }"
+        >View in Bookings</a
+      >
+    </div>
+    @if (history.error()) {
+      <div class="directory-message">
+        <app-errors [messages]="errors(history.error())" />
+        <button appButton variant="secondary" type="button" (click)="history.reload()">
+          Retry history
+        </button>
+      </div>
+    } @else if (history.isLoading()) {
+      <p class="directory-message" role="status">Loading booking history…</p>
+    } @else if (history.hasValue()) {
+      @if (history.value().content.length) {
+        <table class="directory-table" role="table" aria-label="Booking history">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Ticket</th>
+              <th scope="col" role="columnheader">Passenger</th>
+              <th scope="col" role="columnheader">Departure</th>
+              <th scope="col" role="columnheader">Seat</th>
+              <th scope="col" role="columnheader">Fare</th>
+              <th scope="col" role="columnheader">Status</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            @for (booking of history.value().content; track booking._id) {
+              <tr role="row">
+                <td role="cell">
+                  <span class="directory-mobile-label">Ticket</span
+                  ><a
+                    class="text-button"
+                    [routerLink]="['/app/bookings', booking._id]"
+                    [queryParams]="{ from: 'customer' }"
+                    >{{ booking.ticket }}</a
+                  >
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Passenger</span>{{ name(booking.passenger) }}
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Departure</span
+                  >{{ booking.trip ? date(booking.trip.departureTime) : 'Unavailable' }}
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Seat</span>{{ booking.seatNumber }}
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Fare</span>{{ fare(booking.fare) }}
+                </td>
+                <td role="cell">
+                  <span class="directory-mobile-label">Status</span>{{ status(booking) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <p class="directory-message">No bookings for this customer yet.</p>
+      }
+    }
+    <app-directory-pager
+      [page]="history.hasValue() ? history.value() : undefined"
+      [waiting]="history.isLoading()"
+      singular="booking"
+      plural="bookings"
+      (pageChange)="page.set($event)"
+    />
+  </section>
+  @if (edit(); as trigger) {
+    <app-customer-form
+      [customer]="record"
+      [trigger]="trigger"
+      (dismissed)="edit.set(undefined)"
+      (saved)="saved()"
+    />
+  }
+}

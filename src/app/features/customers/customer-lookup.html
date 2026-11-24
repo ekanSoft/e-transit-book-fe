@@ -1,0 +1,48 @@
+<form (submit)="$event.preventDefault(); lookup()" (input)="changed()" novalidate>
+  <app-field
+    [id]="'booking-customer-phone'"
+    label="Customer phone number"
+    type="tel"
+    placeholder="08012345678"
+    [control]="phone()"
+  />
+  <button appButton type="submit" variant="secondary" #find [disabled]="match.isLoading()">
+    Find customer
+  </button>
+</form>
+@if (selected(); as customer) {
+  <p class="customer-result" role="status">
+    <strong>{{ name(customer) }}</strong> · {{ formatPhone(customer.phoneNumber) }}
+  </p>
+} @else if (match.isLoading()) {
+  <p class="customer-result" role="status">Looking up customer…</p>
+} @else if (match.error()) {
+  <div class="customer-result">
+    <app-errors [messages]="errors(match.error())" />
+    <button appButton variant="secondary" type="button" (click)="lookup()">Retry lookup</button>
+  </div>
+} @else if (match.hasValue()) {
+  <div class="customer-result">
+    @if (match.value(); as customer) {
+      <p role="status">{{ raced() ? 'This number is already registered.' : 'Customer found.' }}</p>
+      <button appButton variant="secondary" type="button" (click)="choose(customer, find)">
+        Select {{ name(customer) }}
+      </button>
+      <p class="muted">{{ formatPhone(customer.phoneNumber) }}</p>
+    } @else if (access.canEditCustomers()) {
+      <p role="status">No customer found for this number.</p>
+      <button appButton variant="secondary" type="button" #add (click)="open.set(add)">
+        Add customer
+      </button>
+    }
+  </div>
+}
+@if (open(); as trigger) {
+  <app-customer-form
+    [trigger]="trigger"
+    [phone]="formatPhone(phone().value)"
+    (dismissed)="open.set(undefined)"
+    (saved)="choose($event, find)"
+    (duplicate)="duplicate($event)"
+  />
+}

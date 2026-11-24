@@ -21,6 +21,16 @@ const paths = [
   ['PATCH', '/employees/000000000000000000000000', 401],
   ['PATCH', '/employees/000000000000000000000000/toggle-status', 401],
   ['GET', '/trips', 401],
+  ['GET', '/customers?phoneNumber=%2B2348012345678', 401],
+  ['POST', '/customers', 401],
+  ['GET', '/customers/000000000000000000000000', 401],
+  ['PATCH', '/customers/000000000000000000000000', 401],
+  ['GET', '/bookings', 401],
+  ['POST', '/bookings', 401],
+  ['GET', '/bookings/000000000000000000000000', 401],
+  ['GET', '/bookings/tickets/TEST0000', 401],
+  ['PATCH', '/bookings/tickets/TEST0000/check-in', 401],
+  ['PATCH', '/bookings/000000000000000000000000/cancel', 401],
   ['GET', '/reports/dashboard', 401],
   ['GET', '/reports/sales', 401],
   ['PATCH', '/business/profile', 401],
@@ -31,7 +41,7 @@ for (const [method, path, expected] of paths) {
   const response = await fetch(base + path, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    ...(method !== 'GET' ? { body: '{}' } : {}),
+    ...(method !== 'GET' && !/\/(check-in|cancel)$/.test(path) ? { body: '{}' } : {}),
   });
   const body = await response.json();
   assert.equal(response.status, expected, `${method} ${path}`);

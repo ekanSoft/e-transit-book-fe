@@ -17,7 +17,12 @@ type NavItem = {
   url: string;
   icon: IconName;
   permission?:
-    'canViewTerminals' | 'canViewRoutes' | 'canViewLayouts' | 'canViewTrips' | 'canViewEmployees';
+    | 'canViewTerminals'
+    | 'canViewRoutes'
+    | 'canViewLayouts'
+    | 'canViewTrips'
+    | 'canViewEmployees'
+    | 'canViewBookings';
 };
 const navigation: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [{ label: 'Dashboard', url: '/app/dashboard', icon: 'overview' }] },
@@ -33,11 +38,13 @@ const navigation: { group: string; items: NavItem[] }[] = [
         permission: 'canViewLayouts',
       },
       { label: 'Trips', url: '/app/trips', icon: 'calendar', permission: 'canViewTrips' },
+      { label: 'Bookings', url: '/app/bookings', icon: 'ticket', permission: 'canViewBookings' },
     ],
   },
   {
     group: 'Management',
     items: [
+      { label: 'Customers', url: '/app/customers', icon: 'users', permission: 'canViewBookings' },
       { label: 'Employees', url: '/app/employees', icon: 'users', permission: 'canViewEmployees' },
     ],
   },
@@ -88,7 +95,7 @@ export class OperatorShell {
         .filter(({ items }) => items.length > 0);
     }
     const setup = dest === '/onboarding';
-    return [
+    const registration = [
       {
         group: 'Registration',
         items: [
@@ -100,11 +107,29 @@ export class OperatorShell {
         ],
       },
     ];
+    if (this.session.business()?.accountStatus !== 'PENDING') return registration;
+    return [
+      ...registration,
+      ...navigation
+        .map(({ group, items }) => ({
+          group,
+          items: items.filter(
+            ({ url, permission }) =>
+              !!permission &&
+              this.access[permission]() &&
+              permitsWorkspaceRoute(dest, url, this.session.business()),
+          ),
+        }))
+        .filter(({ items }) => items.length),
+    ];
   });
   // Recreate routed forms on token changes, including a switch in another tab to the same URL.
   readonly outletSession = computed(() => {
     const token = this.session.token();
-    return token && permitsWorkspaceRoute(this.session.destination(), this.url()) ? [token] : [];
+    return token &&
+      permitsWorkspaceRoute(this.session.destination(), this.url(), this.session.business())
+      ? [token]
+      : [];
   });
   readonly page = computed(
     () =>
@@ -114,6 +139,12 @@ export class OperatorShell {
       'Workspace',
   );
   readonly logo = computed(() => publicUrl(this.session.business()?.logo));
+  readonly workspaceLabel = computed(() => {
+    const name = this.session.business()?.name || 'Business workspace';
+    const mark = !this.logo() ? this.session.business()?.name?.charAt(0) : undefined;
+    const destination = this.session.destination() === '/app/dashboard' ? ' dashboard' : '';
+    return (mark ? mark + ' ' : '') + name + destination;
+  });
   readonly initials = computed(
     () =>
       (this.session.employee()?.firstName?.[0] || '') +

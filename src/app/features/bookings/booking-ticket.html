@@ -1,0 +1,44 @@
+@let ticket = booking();
+<section class="panel trip-panel ticket-card" aria-labelledby="ticket-code-heading">
+  <div class="ticket-top">
+    <div>
+      <p id="ticket-code-heading"><app-icon name="ticket" /> Ticket code</p>
+      <strong class="ticket-code">{{ ticket.ticket }}</strong>
+    </div>
+    <button appButton variant="secondary" type="button" (click)="copy()">Copy code</button>
+  </div>
+  <p class="copy-status muted" role="status">{{ copyStatus() }}</p>
+  <div class="ticket-journey">
+    <h2>{{ journey() || 'Journey' }}</h2>
+    <p class="muted">{{ departure() ? showWat(departure()!) : 'Departure unavailable' }}</p>
+  </div>
+  <dl class="trip-facts">
+    <div>
+      <dt>Passenger</dt>
+      <dd>{{ contact(ticket.passenger) }}</dd>
+    </div>
+    <div>
+      <dt>Status</dt>
+      <dd>{{ status(ticket) }}</dd>
+    </div>
+    <div>
+      <dt>Seat</dt>
+      <dd>{{ ticket.seatNumber }}</dd>
+    </div>
+    <div>
+      <dt>Seat fare</dt>
+      <dd>{{ fare(ticket.fare) }}</dd>
+    </div>
+    @if (payment(); as recorded) {
+      <div>
+        <dt>Recorded payment</dt>
+        <dd>{{ paymentLabels[recorded.method] }} · {{ fare(recorded.amount) }}</dd>
+      </div>
+    } @else if (payment() === null) {
+      <div>
+        <dt>Recorded payment</dt>
+        <dd>No additional payment</dd>
+      </div>
+    }
+  </dl>
+</section>

@@ -26,6 +26,12 @@ export type AccountStatus = 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'INACTIVE' | 'R
 export type RegistrationStage = 'PROFILE' | 'VERIFICATION' | 'BRANCH';
 export type BusinessType = 'TRANSPORTATION' | 'CAR_HIRE';
 export type DocumentKey = 'certificateOfIncorporation' | 'formCAC' | 'memorandumAndArticle';
+export interface BusinessSettings {
+  allowStaffBooking?: boolean;
+  allowCashPayment?: boolean;
+  allowTransferPayment?: boolean;
+  allowPosPayment?: boolean;
+}
 export interface Business {
   _id: string;
   name: string;
@@ -41,6 +47,7 @@ export interface Business {
   registrationStage: RegistrationStage[];
   rcNumber?: string;
   documents?: Partial<Record<DocumentKey, string>>;
+  settings?: BusinessSettings;
 }
 export interface Employee {
   _id: string;

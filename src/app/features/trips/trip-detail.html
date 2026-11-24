@@ -8,10 +8,28 @@
       <p>{{ place }}</p>
     }
   </div>
-  @if (
-    detail.hasValue() && access.canReadTripManifestFrom(detail.value().route?.originBranch?._id)
-  ) {
-    <a appButton variant="secondary" routerLink="manifest">View manifest</a>
+  @if (detail.hasValue()) {
+    @let departure = detail.value();
+    @let origin = departure.route?.originBranch?._id;
+    <div class="trip-actions">
+      @if (access.canReadTripManifestFrom(origin)) {
+        <a appButton variant="secondary" routerLink="manifest">View manifest</a>
+      }
+      @if (access.canViewBookings()) {
+        <a
+          appButton
+          variant="secondary"
+          routerLink="/app/bookings"
+          [queryParams]="{ trip: departure._id }"
+          >View bookings</a
+        >
+      }
+      @if (departure.status === 'SCHEDULED' && access.canBookFrom(origin)) {
+        <a appButton routerLink="/app/bookings/new" [queryParams]="{ trip: departure._id }"
+          >Book a seat</a
+        >
+      }
+    </div>
   }
 </div>
 @if (reviewMessage()) {

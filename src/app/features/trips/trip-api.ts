@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { Api } from '../../core/http/api';
 import type { SeatLayout } from '../../shared/seat-map/seat-layout';
 import type { VehicleLayout } from '../vehicle-layouts/layout-api';
@@ -92,6 +92,12 @@ export interface TripManifest {
 @Injectable({ providedIn: 'root' })
 export class TripApi {
   private readonly api = inject(Api);
+  private readonly bookingChange = signal<{ trip: string } | null>(null);
+  readonly lastBookingChange = this.bookingChange.asReadonly();
+
+  bookingChanged(trip: string) {
+    this.bookingChange.set({ trip });
+  }
 
   async list(query: TripQuery) {
     const params = new URLSearchParams();

@@ -22,11 +22,11 @@
     <div class="sidebar-brand"><app-brand /></div>
     <a
       class="workspace-chip"
-      routerLink="/app/dashboard"
-      [attr.aria-label]="(session.business()?.name || 'Business workspace') + ' dashboard'"
+      [routerLink]="session.destination()"
+      [attr.aria-label]="workspaceLabel()"
       (click)="drawer.close()"
     >
-      <span class="workspace-initial">
+      <span class="workspace-initial" aria-hidden="true">
         @if (logo(); as image) {
           <img [ngSrc]="image" width="31" height="34" alt="" />
         } @else {

@@ -1,0 +1,63 @@
+@if (routes.error()) {
+  <app-errors [messages]="errors(routes.error())" />
+  <button appButton type="button" variant="secondary" (click)="routes.reload()">
+    Retry routes
+  </button>
+} @else if (routes.isLoading()) {
+  <p role="status">Loading routes…</p>
+} @else if (!options().length) {
+  <p>No routes depart from terminals you can book from.</p>
+} @else {
+  <div class="form-grid">
+    <app-searchable-select
+      [id]="'book-route'"
+      label="Route"
+      placeholder="Choose a route"
+      searchLabel="Search routes"
+      [control]="route"
+      [options]="options()"
+    />
+    <app-field [id]="'book-date'" label="Departure date (WAT)" type="date" [control]="date" />
+  </div>
+  @if (departures.isLoading()) {
+    <p role="status">Loading scheduled departures…</p>
+  } @else if (departures.error()) {
+    <app-errors [messages]="errors(departures.error())" />
+    <button appButton type="button" variant="secondary" (click)="departures.reload()">
+      Retry departures
+    </button>
+  } @else if (departures.hasValue()) {
+    @if (departures.value().content.length) {
+      <ul class="departure-list" aria-label="Scheduled departures">
+        @for (trip of departures.value().content; track trip._id) {
+          <li>
+            <div>
+              <strong>{{ departure(trip.departureTime) }}</strong>
+              <p class="muted">
+                {{ trip.vehicleLayout?.name || 'Vehicle layout unavailable' }} · From
+                {{ fare(trip.pricing.baseFare) }}
+              </p>
+            </div>
+            <button
+              appButton
+              variant="secondary"
+              type="button"
+              [attr.aria-label]="'Choose departure ' + departure(trip.departureTime)"
+              (click)="choose(trip._id)"
+            >
+              Choose
+            </button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p role="status">No scheduled departures for this route and date.</p>
+    }
+    <app-directory-pager
+      [page]="departures.value()"
+      singular="departure"
+      plural="departures"
+      (pageChange)="page.set($event)"
+    />
+  }
+}

@@ -1,0 +1,173 @@
+@if (
+  fromManifest() &&
+    record.hasValue() &&
+    access.canReadTripManifestFrom(record.value().branch) &&
+    record.value().trip;
+  as trip
+) {
+  <a class="text-button trip-back" [routerLink]="['/app/trips', trip._id, 'manifest']"
+    >← Passenger manifest</a
+  >
+} @else if (fromCustomer() && record.hasValue()) {
+  <a class="text-button trip-back" [routerLink]="['/app/customers', record.value().customer]"
+    >← Customer history</a
+  >
+} @else {
+  <a class="text-button trip-back" routerLink="/app/bookings">← All bookings</a>
+}
+<div class="page-heading">
+  <div><h1 tabindex="-1" #heading>Booking details</h1></div>
+  <a appButton variant="secondary" routerLink="/app/bookings/find"
+    >Find {{ ticket() ? 'another ticket' : 'ticket' }}</a
+  >
+</div>
+<app-errors [messages]="messages()" />
+@if (ticketMissing()) {
+  <div class="panel directory-message">
+    <p role="status">Ticket not found. Check the code on the ticket and try again.</p>
+    <a
+      appButton
+      variant="secondary"
+      routerLink="/app/bookings/find"
+      [queryParams]="{ code: ticket() }"
+      >Edit ticket code</a
+    >
+  </div>
+} @else if (record.error()) {
+  <div class="panel directory-message">
+    <app-errors [messages]="errors(record.error())" />
+    <button appButton variant="secondary" type="button" (click)="record.reload()">Retry</button>
+  </div>
+} @else if (record.hasValue()) {
+  @let booking = record.value();
+  <app-booking-ticket
+    [booking]="booking"
+    [journey]="journey()"
+    [departure]="booking.trip?.departureTime"
+  />
+  <div class="trip-actions mt-4" role="group" aria-label="Booking actions">
+    @if (canCheckIn(booking)) {
+      <button
+        appButton
+        type="button"
+        [disabled]="busy() || record.isLoading()"
+        (click)="update('check-in')"
+      >
+        Check in
+      </button>
+    }
+    @if (canCancel(booking)) {
+      <button
+        appButton
+        variant="secondary"
+        type="button"
+        [disabled]="busy() || record.isLoading()"
+        #cancelTrigger
+        (click)="openCancellation(booking, cancelTrigger)"
+      >
+        Cancel booking
+      </button>
+    }
+    @if (canReuse(booking)) {
+      <a appButton [routerLink]="['/app/bookings/reuse', booking._id]">Reuse ticket</a>
+    }
+    @if (booking.trip && access.canReadTripFrom(booking.branch)) {
+      <a appButton variant="secondary" [routerLink]="['/app/trips', booking.trip._id]"
+        >Trip details</a
+      >
+    }
+    <a appButton variant="secondary" [routerLink]="['/app/customers', booking.customer]"
+      >Customer history</a
+    >
+  </div>
+  <section class="panel trip-panel mt-4 max-w-[720px]" aria-labelledby="booking-record-heading">
+    <h2 id="booking-record-heading">Booking record</h2>
+    <dl class="trip-facts">
+      <div>
+        <dt>Channel</dt>
+        <dd>{{ channel[booking.channel] }}</dd>
+      </div>
+      <div>
+        <dt>Booked at</dt>
+        <dd>{{ showWat(booking.createdAt) }}</dd>
+      </div>
+      @if (booking.nextOfKin; as kin) {
+        <div>
+          <dt>Next of kin</dt>
+          <dd>{{ kin.firstName }} {{ kin.lastName }} · {{ kin.phoneNumber }}</dd>
+        </div>
+        @if (kin.email) {
+          <div>
+            <dt>Next-of-kin email</dt>
+            <dd>{{ kin.email }}</dd>
+          </div>
+        }
+      }
+      @if (booking.bloodgroup) {
+        <div>
+          <dt>Blood group</dt>
+          <dd>{{ booking.bloodgroup }}</dd>
+        </div>
+      }
+      @if (booking.checkIn; as checkIn) {
+        <div>
+          <dt>Checked in at</dt>
+          <dd>{{ showWat(checkIn.checkedInAt) }}</dd>
+        </div>
+      }
+      @if (booking.cancellation; as cancellation) {
+        <div>
+          <dt>{{ cancellation.reason === 'MISSED' ? 'Marked missed' : 'Customer cancelled' }}</dt>
+          <dd>{{ showWat(cancellation.cancelledAt) }}</dd>
+        </div>
+      }
+      @if (booking.rebookedFrom; as original) {
+        <div>
+          <dt>Reused ticket</dt>
+          <dd>
+            <a class="text-button" [routerLink]="['/app/bookings', original]"
+              >Open original ticket</a
+            >
+          </dd>
+        </div>
+      }
+      @if (booking.reusedBy; as replacement) {
+        <div>
+          <dt>Replacement ticket</dt>
+          <dd>
+            <a class="text-button" [routerLink]="['/app/bookings', replacement]"
+              >Open replacement ticket</a
+            >
+          </dd>
+        </div>
+      }
+    </dl>
+  </section>
+} @else if (record.isLoading()) {
+  <p role="status">Loading ticket…</p>
+}
+@if (cancellation(); as trigger) {
+  <app-management-dialog
+    dialogId="cancel-ticket"
+    title="Cancel this booking?"
+    description="Cancellation releases the seat for another passenger. It does not issue a refund."
+    [trigger]="trigger"
+    [busy]="busy()"
+    (dismiss)="cancellation.set(undefined)"
+  >
+    <div class="management-actions">
+      <button
+        appButton
+        variant="secondary"
+        type="button"
+        [disabled]="busy()"
+        (click)="cancellation.set(undefined)"
+      >
+        Keep booking
+      </button>
+      <button appButton type="button" [disabled]="busy()" (click)="update('cancel')">
+        {{ busy() ? 'Cancelling…' : 'Cancel booking' }}
+      </button>
+    </div>
+  </app-management-dialog>
+}

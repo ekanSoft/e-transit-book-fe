@@ -1,5 +1,12 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, resource } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  resource,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -18,7 +25,7 @@ import { routeLabel, showWat, tripReadErrors } from './trip-format';
 })
 export class TripManifestPage {
   readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id'))));
-  private readonly access = inject(WorkspaceAccess);
+  readonly access = inject(WorkspaceAccess);
   private readonly api = inject(TripApi);
   readonly manifest = resource({
     params: computed(() => {
@@ -39,4 +46,10 @@ export class TripManifestPage {
   readonly showWat = showWat;
   readonly routeLabel = routeLabel;
   readonly statuses = tripStatuses;
+
+  constructor() {
+    effect(() => {
+      if (this.id() && this.api.lastBookingChange()?.trip === this.id()) this.manifest.reload();
+    });
+  }
 }

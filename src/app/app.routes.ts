@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import {
   authGuard,
+  bookingStaffGuard,
   employeesGuard,
   guestGuard,
   layoutsGuard,
@@ -102,6 +103,18 @@ export const routes: Routes = [
         path: 'app/trips',
         canActivate: [tripsGuard],
         loadChildren: () => import('./features/trips/trip-routes').then((m) => m.tripRoutes),
+      },
+      {
+        path: 'app/bookings',
+        canActivate: [bookingStaffGuard],
+        loadChildren: () =>
+          import('./features/bookings/booking-routes').then((m) => m.bookingRoutes),
+      },
+      {
+        path: 'app/customers',
+        canActivate: [bookingStaffGuard],
+        loadChildren: () =>
+          import('./features/customers/customer-routes').then((m) => m.customerRoutes),
       },
       {
         path: 'app/employees',

@@ -1,0 +1,73 @@
+<div class="page-heading directory-heading">
+  <div>
+    <h1 tabindex="-1">Customers</h1>
+    <p>Find passenger contact details and booking history.</p>
+  </div>
+  @if (access.canEditCustomers()) {
+    <button appButton type="button" #addButton (click)="add.set(addButton)">
+      <app-icon name="plus" /> Add customer
+    </button>
+  }
+</div>
+<section class="panel directory" aria-label="Customer directory">
+  <div class="directory-toolbar">
+    <app-directory-search
+      label="Search customers"
+      placeholder="Name, phone or email"
+      [value]="query().search"
+      (changed)="search($event)"
+    />
+  </div>
+  @if (customers.error()) {
+    <div class="directory-message">
+      <app-errors [messages]="errors(customers.error())" />
+      <button appButton variant="secondary" type="button" (click)="customers.reload()">
+        Retry
+      </button>
+    </div>
+  } @else if (customers.isLoading()) {
+    <p class="directory-message" role="status">Loading customers…</p>
+  } @else if (customers.hasValue()) {
+    @if (customers.value().content.length) {
+      <table class="directory-table" role="table" aria-label="Customers">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Name</th>
+            <th scope="col" role="columnheader">Phone</th>
+            <th scope="col" role="columnheader">Email</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          @for (customer of customers.value().content; track customer._id) {
+            <tr role="row">
+              <td role="cell">
+                <span class="directory-mobile-label">Name</span
+                ><a class="text-button" [routerLink]="[customer._id]">{{ name(customer) }}</a>
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Phone</span>{{ phone(customer.phoneNumber) }}
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Email</span>{{ customer.email || '—' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="directory-message">
+        {{ query().search ? 'No customers match your search.' : 'No customers yet.' }}
+      </p>
+    }
+  }
+  <app-directory-pager
+    [page]="customers.hasValue() ? customers.value() : undefined"
+    [waiting]="customers.isLoading()"
+    singular="customer"
+    plural="customers"
+    (pageChange)="go($event)"
+  />
+</section>
+@if (add(); as trigger) {
+  <app-customer-form [trigger]="trigger" (dismissed)="add.set(undefined)" (saved)="saved()" />
+}

@@ -1,5 +1,10 @@
 import { Business } from '../http/api.models';
-import { businessDestination, firstIncompleteStage, registrationConflict } from './routing';
+import {
+  businessDestination,
+  firstIncompleteStage,
+  permitsWorkspaceRoute,
+  registrationConflict,
+} from './routing';
 const business: Business = {
   _id: 'business-1',
   name: 'Test Transport',
@@ -36,6 +41,21 @@ describe('Business access and registration resume', () => {
         registrationStage: ['BRANCH', 'PROFILE', 'VERIFICATION'],
       }),
     ).toBe('/pending-approval'));
+  it('lets consistent pending workspaces open operational read sections from registration', () => {
+    const destination = businessDestination(business);
+    expect(permitsWorkspaceRoute(destination, '/app/customers/123', business)).toBe(true);
+    expect(permitsWorkspaceRoute(destination, '/app/bookings/tickets/ABCD1234', business)).toBe(
+      true,
+    );
+    expect(permitsWorkspaceRoute(destination, '/app/trips/123/manifest', business)).toBe(true);
+    expect(permitsWorkspaceRoute(destination, '/app/employees', business)).toBe(false);
+    expect(
+      permitsWorkspaceRoute(destination, '/app/customers', {
+        ...business,
+        accountStatus: 'SUSPENDED',
+      }),
+    ).toBe(false);
+  });
   it('never lets an active business edit registration, even with stale stage data', () =>
     expect(businessDestination({ ...business, accountStatus: 'ACTIVE' })).toBe(
       '/pending-approval',

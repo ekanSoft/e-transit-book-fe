@@ -19,6 +19,8 @@
                 [attr.data-type]="cell.type"
                 [class.marked]="selectedHere"
                 [class.invalid]="error"
+                [class.unavailable]="mode() === 'select' && unavailableSeat(cell)"
+                [disabled]="mode() === 'select' && unavailableSeat(cell)"
                 [attr.aria-label]="describe(row.row, col, cell, error)"
                 [attr.aria-pressed]="mode() === 'select' ? selectedHere : null"
                 (click)="cellPress.emit({ row: row.row, column: col })"

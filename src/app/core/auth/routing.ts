@@ -15,9 +15,19 @@ export function registrationConflict(business: Business): boolean {
     (business.accountStatus === 'ACTIVE' && !business.registrationComplete)
   );
 }
-export function permitsWorkspaceRoute(destination: string, url: string) {
+export function permitsWorkspaceRoute(
+  destination: string,
+  url: string,
+  business?: Business | null,
+) {
   const path = url.split(/[?#]/, 1)[0];
   if (destination === '/app/dashboard') return path === '/app' || path.startsWith('/app/');
+  if (
+    business?.accountStatus === 'PENDING' &&
+    !registrationConflict(business) &&
+    /^\/app\/(customers|bookings|trips)(?:\/|$)/.test(path)
+  )
+    return true;
   return path === destination;
 }
 export function isSignInRoute(url: string) {

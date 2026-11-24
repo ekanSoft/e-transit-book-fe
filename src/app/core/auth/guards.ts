@@ -17,7 +17,9 @@ export const authGuard: CanActivateFn = async (_route, state) => {
   await session.ensureContext();
   if (!session.authenticated()) return router.parseUrl('/login');
   const destination = session.destination();
-  return permitsWorkspaceRoute(destination, state.url) ? true : router.parseUrl(destination);
+  return permitsWorkspaceRoute(destination, state.url, session.business())
+    ? true
+    : router.parseUrl(destination);
 };
 
 export const terminalsGuard: CanActivateFn = () =>
@@ -34,6 +36,12 @@ export const layoutsGuard: CanActivateFn = () =>
 
 export const tripsGuard: CanActivateFn = () =>
   inject(WorkspaceAccess).canViewTrips() || inject(Router).parseUrl('/app/dashboard');
+
+export const bookingStaffGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canViewBookings() || inject(Router).parseUrl('/app/dashboard');
+
+export const bookSeatGuard: CanActivateFn = () =>
+  inject(WorkspaceAccess).canBookSeats() || inject(Router).parseUrl('/app/bookings');
 
 export const scheduleTripGuard: CanActivateFn = () =>
   inject(WorkspaceAccess).canScheduleTrip() || inject(Router).parseUrl('/app/trips');

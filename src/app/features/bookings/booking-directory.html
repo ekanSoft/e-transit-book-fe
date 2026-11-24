@@ -1,0 +1,129 @@
+<div class="page-heading directory-heading">
+  <div>
+    <h1 tabindex="-1">Bookings</h1>
+    <p>Review bookings and find passenger tickets.</p>
+  </div>
+  <div class="trip-actions">
+    <a appButton variant="secondary" routerLink="find"><app-icon name="search" /> Find ticket</a>
+    @if (access.canBookSeats()) {
+      <a appButton routerLink="new" [queryParams]="tripId() ? { trip: tripId() } : null"
+        ><app-icon name="plus" /> New booking</a
+      >
+    }
+  </div>
+</div>
+<section class="panel directory" aria-label="Booking directory">
+  <div class="directory-toolbar">
+    <div class="trip-actions">
+      @if (tripId()) {
+        <a
+          appButton
+          variant="quiet"
+          routerLink="."
+          [queryParams]="{ trip: null }"
+          queryParamsHandling="merge"
+          >Clear trip filter</a
+        >
+      }
+      @if (customerId()) {
+        <a
+          appButton
+          variant="quiet"
+          routerLink="."
+          [queryParams]="{ customer: null }"
+          queryParamsHandling="merge"
+          >Clear customer filter</a
+        >
+      }
+    </div>
+    <div class="directory-filters">
+      <app-field
+        class="directory-filter"
+        [id]="'booking-status'"
+        label="Status"
+        [hideLabel]="true"
+        [optional]="true"
+        [control]="status"
+        [options]="statusOptions"
+        [overlayOptions]="true"
+      />
+    </div>
+  </div>
+  @if (tripId() || customerId()) {
+    <p class="directory-message">
+      @if (tripId()) {
+        Bookings for the selected departure.
+      }
+      @if (customerId()) {
+        Customer {{ customer.hasValue() ? name(customer.value()) : 'filter applied' }}.
+      }
+    </p>
+  }
+  @if (bookings.error()) {
+    <div class="directory-message">
+      <app-errors [messages]="errors(bookings.error())" />
+      <button appButton variant="secondary" type="button" (click)="bookings.reload()">Retry</button>
+    </div>
+  } @else if (bookings.isLoading()) {
+    <p class="directory-message" role="status">Loading bookings…</p>
+  } @else if (bookings.hasValue()) {
+    @if (bookings.value().content.length) {
+      <table class="directory-table" role="table" aria-label="Bookings">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Ticket</th>
+            <th scope="col" role="columnheader">Passenger</th>
+            <th scope="col" role="columnheader">Journey</th>
+            <th scope="col" role="columnheader">Seat</th>
+            <th scope="col" role="columnheader">Fare</th>
+            <th scope="col" role="columnheader">Channel</th>
+            <th scope="col" role="columnheader">Status</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          @for (booking of bookings.value().content; track booking._id) {
+            <tr role="row">
+              <td role="cell">
+                <span class="directory-mobile-label">Ticket</span
+                ><a class="text-button" [routerLink]="[booking._id]">{{ booking.ticket }}</a>
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Passenger</span>{{ name(booking.passenger) }}
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Journey</span
+                ><span
+                  >{{ journey(booking.route)
+                  }}<small class="directory-detail">{{
+                    booking.trip ? date(booking.trip.departureTime) : 'Departure unavailable'
+                  }}</small></span
+                >
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Seat</span>{{ booking.seatNumber }}
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Fare</span>{{ fare(booking.fare) }}
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Channel</span>{{ channel[booking.channel] }}
+              </td>
+              <td role="cell">
+                <span class="directory-mobile-label">Status</span>{{ statusLabel(booking) }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="directory-message">No bookings match these filters.</p>
+    }
+  }
+  <app-directory-pager
+    [page]="bookings.hasValue() ? bookings.value() : undefined"
+    [waiting]="bookings.isLoading()"
+    singular="booking"
+    plural="bookings"
+    (pageChange)="page.set($event)"
+  />
+</section>

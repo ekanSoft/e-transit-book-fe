@@ -33,12 +33,16 @@ export class SeatMap {
   readonly mode = input<'edit' | 'view' | 'miniature' | 'select'>('view');
   readonly selected = input<SeatPosition | null>(null);
   readonly seatDescriptions = input<ReadonlyMap<string, string>>(new Map());
+  readonly unavailable = input<ReadonlySet<string>>(new Set());
   readonly errors = input<ReadonlyMap<string, string>>(new Map());
   readonly cellPress = output<SeatPosition>();
   // Consumers can annotate a seat without changing the saved grid.
   readonly annotation = contentChild<TemplateRef<{ $implicit: SeatCell }>>(TemplateRef);
   readonly rows = computed(() => frontToRear(this.grid()));
   readonly width = computed(() => columns(this.grid()));
+  unavailableSeat(cell: SeatCell) {
+    return cell.type === 'SEAT' && this.unavailable().has(cell.seatNumber.toLowerCase());
+  }
   describe(row: number, column: number, cell: SeatCell, error?: string) {
     const label =
       cell.type === 'SEAT'

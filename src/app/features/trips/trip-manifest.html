@@ -112,7 +112,17 @@
                 >
               </td>
               <td role="cell">
-                <span class="directory-mobile-label">Ticket</span>{{ entry.ticket }}
+                <span class="directory-mobile-label">Ticket</span>
+                @if (access.canViewBookings()) {
+                  <a
+                    class="text-button"
+                    [routerLink]="['/app/bookings', 'tickets', entry.ticket]"
+                    [queryParams]="{ from: 'manifest' }"
+                    >{{ entry.ticket }}</a
+                  >
+                } @else {
+                  {{ entry.ticket }}
+                }
               </td>
               <td role="cell">
                 <span class="directory-mobile-label">Channel</span
