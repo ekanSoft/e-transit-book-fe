@@ -78,9 +78,7 @@ export class BusinessProfile {
     const slug = this.session.business()?.slug;
     if (!slug) return null;
     const origin = this.document.location;
-    const publicOrigin =
-      environment.publicBookingOrigin ||
-      (origin?.hostname === 'app.etransitbook.com' ? 'https://etransitbook.com' : origin?.origin);
+    const publicOrigin = environment.publicBookingOrigin || origin?.origin;
     return publicOrigin ? new URL('/public/' + encodeURIComponent(slug), publicOrigin).href : null;
   });
   readonly copyResult = signal<{ url: string; copied: boolean } | null>(null);
