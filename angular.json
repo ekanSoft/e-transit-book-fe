@@ -31,7 +31,6 @@
               "allowedHosts": [
                 "etransitbook.com",
                 "www.etransitbook.com",
-                "app.etransitbook.com",
                 "etransitbook.netlify.app"
               ]
             },

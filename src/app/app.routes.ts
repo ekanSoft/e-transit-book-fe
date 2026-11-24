@@ -19,16 +19,7 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    canMatch: [() => typeof location !== 'undefined' && location.hostname === 'etransitbook.com'],
-    loadComponent: () => import('./features/public-booking/home').then((m) => m.Home),
-  },
-  {
-    path: '',
-    pathMatch: 'full',
-    redirectTo: () =>
-      typeof location !== 'undefined' && location.hostname === 'app.etransitbook.com'
-        ? '/app/dashboard'
-        : '/login',
+    redirectTo: 'login',
   },
   {
     path: '',

@@ -5,7 +5,6 @@
 export const SSR_ALLOWED_HOSTS = [
   'etransitbook.com',
   'www.etransitbook.com',
-  'app.etransitbook.com',
   'etransitbook.netlify.app',
 ] as const;
 
