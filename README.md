@@ -17,14 +17,14 @@ The frontend opens at `http://localhost:4200`. The backend must run at `http://l
 
 ## Configuration and deployment
 
-Angular uses build-time environment files, not automatic `.env` loading:
+Copy `.env.example` to `.env` for local development. Set the same two public settings separately on each Render frontend service (staging and production). The build reads the service environment first and uses the local file for missing values.
 
-| Configuration | File                                          | API base URL                   |
-| ------------- | --------------------------------------------- | ------------------------------ |
-| Development   | `src/environments/environment.development.ts` | `http://localhost:4500/api/v1` |
-| Production    | `src/environments/environment.ts`             | `/api/v1`                      |
+| Variable | Value |
+| --- | --- |
+| `PUBLIC_BOOKING_ORIGIN` | Passenger-facing frontend origin, e.g. `https://etransitbook.com`. Used by the Business profile copy button. |
+| `API_BASE_URL` | Full backend API base **including its version**, e.g. `https://api.etransitbook.com/api/v1`. Use `/api/v2` in the URL when the deployed backend serves v2. A same-origin relative path such as `/api/v1` is also supported. |
 
-Production intentionally uses a same-origin relative URL. Configure the deployment reverse proxy to forward `/api/v1` to the backend. For a separate API origin, set `apiBaseUrl` in the appropriate build environment before building and configure backend CORS accordingly. No API keys, Swagger credentials, or production hostnames belong in these files.
+On Render use `npm ci && npm run build` as the build command. Rebuild after changing either value. The browser bundle includes these public URLs. The local file and generated settings are Git-ignored. Without overrides, development uses the local API and production uses the same-origin `/api/v1` path. For a separate API origin, allow the frontend origin in backend CORS. The current backend uses `FRONTEND_URL` to build Paystack return links. Ensure that origin serves the passenger return route.
 
 ```powershell
 npm run build
@@ -41,7 +41,7 @@ Open `/public/:slug` for the operator’s routes and WAT departure search. Publi
 
 Deploy the same browser build on the apex and dashboard hostnames. The apex root opens the public home and the app hostname root opens the guarded dashboard. Local development retains the login root. Netlify’s static publish directory is `dist/e-transit-book-fe/browser`. The packaged `_redirects` forwards API requests to `api.etransitbook.com` and serves `index.csr.html` for deep links.
 
-Set the backend’s `PUBLIC_BOOKING_ORIGIN` to `https://etransitbook.com` in production. Local test keys can use `http://localhost:4200`. Keep the signed webhook configured separately at the reachable API origin. The receipt and booking flow are covered in the [checkout handoff](docs/tasks/public-booking-checkout-progress.md).
+Set the backend’s `FRONTEND_URL` to `https://etransitbook.com` in production. Local test keys can use `http://localhost:4200`. Keep the signed webhook configured separately at the reachable API origin. The receipt and booking flow are covered in the [checkout handoff](docs/tasks/public-booking-checkout-progress.md).
 
 ## Routes and behavior
 

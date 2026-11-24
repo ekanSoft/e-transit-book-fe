@@ -3,6 +3,9 @@ import {
   Component,
   computed,
   DestroyRef,
+  ElementRef,
+  viewChild,
+  afterRenderEffect,
   effect,
   inject,
   signal,
@@ -39,7 +42,16 @@ export class Checkout {
   readonly seat = signal<Seat | null>(null);
   readonly error = signal('');
   readonly busy = computed(() => this.attempts.initializing().has(this.store.slug()));
-  readonly attempt = computed(() => this.attempts.get(this.store.slug()));
+  readonly reviewing = signal(false);
+  private readonly reviewHeading = viewChild<ElementRef<HTMLElement>>('reviewHeading');
+  readonly urlReference = signal('');
+  readonly attempt = computed(() => {
+    const a = this.attempts.get(this.store.slug());
+    if (!a) return null;
+    const url = this.urlReference();
+    if (url ? a.reference !== url : !holdActive(a)) return null;
+    return a;
+  });
   readonly now = signal(Date.now());
   readonly holdActive = computed(() => holdActive(this.attempt(), this.now()));
   readonly remaining = computed(() =>
@@ -56,6 +68,7 @@ export class Checkout {
   private generation = 0;
   private expirySynced = false;
   constructor() {
+    afterRenderEffect(() => this.reviewHeading()?.nativeElement.focus());
     const timer = setInterval(() => this.now.set(Date.now()), 1000);
     this.life.onDestroy(() => clearInterval(timer));
     effect(() => {
@@ -68,11 +81,23 @@ export class Checkout {
       this.expirySynced = true;
       untracked(() => void this.syncExpiredHold(attempt.reference));
     });
-    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(() => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const slug = this.store.slug();
+      const urlRef = params.get('reference')?.trim() ?? '';
+      this.urlReference.set(urlRef);
       this.generation++;
+      this.reviewing.set(false);
       this.trip.set(null);
       this.seat.set(null);
-      if (!this.attempt()) void this.refresh();
+      if (this.attempt()) return;
+      if (urlRef) {
+        void this.router.navigate(['/public', slug, 'payment', 'return'], {
+          queryParams: { reference: urlRef },
+          replaceUrl: true,
+        });
+      } else {
+        void this.refresh();
+      }
     });
   }
   private chooseAgain(id: string) {
@@ -133,7 +158,7 @@ export class Checkout {
       return false;
     }
   }
-  async submit() {
+  review() {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
       this.error.set('Check the highlighted passenger details.');
@@ -142,31 +167,50 @@ export class Checkout {
         ?.focus();
       return;
     }
+    if (!this.seat()?.fees) {
+      this.error.set('The total is unavailable. Refresh availability before continuing.');
+      return;
+    }
+    this.error.set('');
+    this.reviewing.set(true);
+  }
+  async pay() {
     const slug = this.store.slug();
-    if (!this.attempts.start(slug)) return;
+    const t = this.trip();
+    const s = this.seat();
+    if (!this.reviewing() || !t || !s || this.form.invalid || !this.attempts.start(slug)) return;
     this.error.set('');
     try {
-      if (!(await this.refresh())) return;
-      const t = this.trip()!,
-        s = this.seat()!;
       const { data } = await this.store.api.post<Quote>(this.store.path + '/checkout', {
         trip: t._id,
         seatNumber: s.seatNumber,
+        expectedTotalKobo: s.fees.totalKobo,
         ...passengerPayload(this.form),
       });
-      this.attempts.set(slug, {
+      const quote = {
         ...data,
         trip: t._id,
         journey: journey(t.route),
         departureTime: t.departureTime,
         seatNumber: s.seatNumber,
+      };
+      this.attempts.set(slug, quote);
+      if (this.life.destroyed || this.store.slug() !== slug) return;
+      this.form.reset();
+      await this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { reference: data.reference },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
       });
-      if (this.store.slug() === slug) this.form.reset();
+      const url = securePaymentUrl(data.authorizationUrl);
+      if (url && !this.life.destroyed) window.location.assign(url);
     } catch (e) {
       if (this.life.destroyed) return;
       if (e instanceof HttpErrorResponse && e.status === 409 && this.trip()) {
         await this.chooseAgain(this.trip()!._id);
       } else if (e instanceof HttpErrorResponse && e.status === 400) {
+        this.reviewing.set(false);
         const controls = Object.fromEntries(
           this.parties.flatMap((p) =>
             Object.entries(p.group.controls).map(([key, c]) => [

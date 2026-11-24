@@ -1,3 +1,4 @@
+import type { Fees } from './attempts';
 import type { SeatLayout } from '../../shared/seat-map/seat-layout';
 import type { PublicRoute } from './public-store';
 export interface PublicVehicleLayout {
@@ -33,6 +34,7 @@ export interface Seat {
   seatNumber: string;
   fare: number;
   available: boolean;
+  fees: Fees;
 }
 export interface PublicTrip extends Pick<
   Departure,

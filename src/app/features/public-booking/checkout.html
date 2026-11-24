@@ -3,7 +3,7 @@
   <div class="split">
     <section class="paper">
       @if (holdActive()) {
-        <h1>Review your payment</h1>
+        <h1>Your seat is held</h1>
         <p>{{ a.journey }}</p>
         <p>{{ showWat(a.departureTime) }} · Seat {{ a.seatNumber }}</p>
         <app-fee-lines [fees]="a.fees" />
@@ -29,7 +29,9 @@
           >Check payment status</a
         >
         @if (!holdActive()) {
-          <button type="button" class="action" (click)="discardAttempt()">Choose another seat</button>
+          <button type="button" class="action" (click)="discardAttempt()">
+            Choose another seat
+          </button>
         }
       </div>
     </section>
@@ -37,12 +39,32 @@
 } @else {
   <div class="split">
     <section class="paper">
-      <h1>Passenger details</h1>
+      @if (reviewing()) {
+        <h1 #reviewHeading tabindex="-1">Review your payment</h1>
+      } @else {
+        <h1>Passenger details</h1>
+      }
       @if (error()) {
         <p role="alert" class="note">{{ error() }}</p>
       }
-      @if (trip()) {
-        <form class="stack" (submit)="$event.preventDefault(); submit()" novalidate>
+      @if (reviewing() && seat(); as s) {
+        <app-fee-lines [fees]="s.fees" />
+        <p>Your seat will be held when you continue to payment.</p>
+        <div class="row">
+          <button type="button" class="action" (click)="pay()" [disabled]="busy()">
+            {{ busy() ? 'Opening payment…' : 'Continue to secure payment' }}
+          </button>
+          <button
+            type="button"
+            class="secondary"
+            (click)="reviewing.set(false)"
+            [disabled]="busy()"
+          >
+            Edit passenger details
+          </button>
+        </div>
+      } @else if (trip()) {
+        <form class="stack" (submit)="$event.preventDefault(); review()" novalidate>
           @for (p of parties; track p.id) {
             <fieldset class="stack">
               <legend>
@@ -85,14 +107,19 @@
             [control]="form.controls.bloodgroup"
             [optional]="true"
           />
-          <!-- <p>
-            Review the full price before continuing to Paystack. Your seat can be held for up to 15
-            minutes, or until departure.
-          </p> -->
-          <button class="action" [disabled]="busy()">
-            {{ busy() ? 'Checking availability…' : 'Hold seat and review total' }}
-          </button>
+          <button class="action">Review total</button>
         </form>
+      } @else if (urlReference()) {
+        <p class="note" role="status">
+          This checkout is no longer open in the browser. Use your payment reference to check the
+          latest status.
+        </p>
+        <a
+          class="action"
+          [routerLink]="['/public', store.slug(), 'payment', 'return']"
+          [queryParams]="{ reference: urlReference() }"
+          >Check payment status</a
+        >
       } @else if (error()) {
         <button class="secondary" (click)="refresh()">Refresh availability</button>
       } @else {

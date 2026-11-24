@@ -4,6 +4,10 @@ import {
   Component,
   inject,
   Injector,
+  effect,
+  untracked,
+  viewChild,
+  ElementRef,
   input,
   output,
   resource,
@@ -34,7 +38,7 @@ export class CustomerLookup {
   readonly selected = input<Customer | null>(null);
   readonly selectedChange = output<Customer>();
   readonly open = signal<HTMLElement | undefined>(undefined);
-  readonly raced = signal(false);
+  private readonly addButton = viewChild.required<ElementRef<HTMLButtonElement>>('find');
   readonly errors = errorMessages;
   readonly name = contactName;
   readonly formatPhone = normalizeNigerianPhone;
@@ -48,6 +52,21 @@ export class CustomerLookup {
     loader: ({ params }) => this.api.byPhone(params.phone),
   });
 
+  constructor() {
+    effect(() => {
+      if (!this.request() || this.match.status() !== 'resolved') return;
+      const customer = this.match.value();
+      const trigger = this.addButton().nativeElement;
+      untracked(() => {
+        if (customer) this.choose(customer, trigger);
+        else if (this.access.canEditCustomers()) {
+          this.request.set('');
+          this.open.set(trigger);
+        }
+      });
+    });
+  }
+
   lookup() {
     const control = this.phone();
     control.markAsTouched();
@@ -60,19 +79,16 @@ export class CustomerLookup {
   changed() {
     if (normalizeNigerianPhone(this.phone().value) === this.request()) return;
     this.request.set('');
-    this.raced.set(false);
   }
 
   duplicate(number: string) {
     this.open.set(undefined);
     this.phone().setValue(number);
-    this.raced.set(true);
     this.lookup();
   }
 
   choose(customer: Customer, focus: HTMLElement) {
     this.open.set(undefined);
-    this.raced.set(false);
     this.phone().setValue(normalizeNigerianPhone(customer.phoneNumber));
     this.request.set('');
     this.selectedChange.emit(customer);

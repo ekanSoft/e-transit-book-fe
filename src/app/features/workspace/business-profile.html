@@ -19,7 +19,40 @@
         <h2>{{ b.name }}</h2>
         <p>{{ b.businessType.replace('_', ' ').toLowerCase() | titlecase }}</p>
       </div>
-      <span class="badge success">{{ b.accountStatus.toLowerCase() | titlecase }}</span>
+      @if (bookingLink(); as url) {
+        <div class="share">
+          @let result = copyResult();
+          @let copied = result?.url === url && result?.copied;
+          <div class="share-actions badge success">
+            <a
+              [href]="url"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open passenger booking in a new tab"
+              aria-label="Passenger booking link (opens in a new tab)"
+            >
+              Passenger booking link <app-icon name="external" />
+            </a>
+            <button
+              type="button"
+              aria-label="Copy passenger booking link"
+              title="Copy passenger booking link"
+              (click)="copyLink(url)"
+            >
+              <app-icon [name]="copied ? 'check' : 'copy'" />
+            </button>
+          </div>
+          <span class="sr-only" role="status">{{
+            copied ? 'Passenger booking link copied.' : ''
+          }}</span>
+          @if (result?.url === url && !result?.copied) {
+            <label
+              >Copy link manually
+              <input readonly [value]="url" #manualLink (focus)="manualLink.select()"
+            /></label>
+          }
+        </div>
+      }
     </div>
     <dl class="details-grid">
       <div>
@@ -37,6 +70,12 @@
       <div>
         <dt>Support phone</dt>
         <dd>{{ b.supportPhoneNumber || 'Not provided' }}</dd>
+      </div>
+      <div>
+        <dt>Account status</dt>
+        <dd>
+          <span class="badge success">{{ b.accountStatus.toLowerCase() | titlecase }}</span>
+        </dd>
       </div>
     </dl>
   </section>

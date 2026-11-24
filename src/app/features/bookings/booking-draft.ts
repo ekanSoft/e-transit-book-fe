@@ -295,7 +295,7 @@ export class BookingDraft {
 
   nextFromContact(form: HTMLFormElement) {
     if (!this.reuseId && !this.selectedCustomer()) {
-      this.contactError.set('Find and select a customer to continue.');
+      this.contactError.set('Enter a customer to continue.');
       form.ownerDocument.getElementById('booking-customer-phone')?.focus();
       return;
     }

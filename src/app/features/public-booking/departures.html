@@ -3,8 +3,20 @@
   <p>And book your trip online with ease.</p>
 </div>
 <section class="paper">
-  @if (attempts.get(store.slug())) {
-    <a [routerLink]="['checkout']">Resume your checkout</a>
+  @if (attempts.get(store.slug()); as open) {
+  @if (holdActive(open)) {
+    <a
+      [routerLink]="['checkout']"
+      [queryParams]="{ trip: open.trip, seat: open.seatNumber, reference: open.reference }"
+      >Resume your checkout</a
+    >
+  } @else {
+    <a
+      [routerLink]="['payment', 'return']"
+      [queryParams]="{ reference: open.reference }"
+      >Check payment status</a
+    >
+  }
   }
   @if (origins().length) {
     <form class="stack" (submit)="$event.preventDefault(); search()">

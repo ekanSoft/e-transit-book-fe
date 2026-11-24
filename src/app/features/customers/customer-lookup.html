@@ -7,7 +7,7 @@
     [control]="phone()"
   />
   <button appButton type="submit" variant="secondary" #find [disabled]="match.isLoading()">
-    Find customer
+    Add Customer
   </button>
 </form>
 @if (selected(); as customer) {
@@ -22,20 +22,7 @@
     <button appButton variant="secondary" type="button" (click)="lookup()">Retry lookup</button>
   </div>
 } @else if (match.hasValue()) {
-  <div class="customer-result">
-    @if (match.value(); as customer) {
-      <p role="status">{{ raced() ? 'This number is already registered.' : 'Customer found.' }}</p>
-      <button appButton variant="secondary" type="button" (click)="choose(customer, find)">
-        Select {{ name(customer) }}
-      </button>
-      <p class="muted">{{ formatPhone(customer.phoneNumber) }}</p>
-    } @else if (access.canEditCustomers()) {
-      <p role="status">No customer found for this number.</p>
-      <button appButton variant="secondary" type="button" #add (click)="open.set(add)">
-        Add customer
-      </button>
-    }
-  </div>
+  <p class="customer-result" role="status">No customer found for this number.</p>
 }
 @if (open(); as trigger) {
   <app-customer-form

@@ -366,10 +366,6 @@
               <dt>Seat</dt>
               <dd>{{ seat() || 'Choose a seat' }}</dd>
             </div>
-            <div>
-              <dt>Seat fare</dt>
-              <dd>{{ effectiveFare() === undefined ? '—' : fareLabel(effectiveFare()!) }}</dd>
-            </div>
             @if ((!reuseId || isAdditionalPayment()) && methodLabel()) {
               <div>
                 <dt>Payment method</dt>
@@ -382,6 +378,10 @@
                 <dd>{{ fareLabel(additionalAmount()!) }}</dd>
               </div>
             }
+            <div class="summary-fare">
+              <dt>Seat fare</dt>
+              <dd>{{ effectiveFare() === undefined ? '—' : fareLabel(effectiveFare()!) }}</dd>
+            </div>
           </dl>
         </aside>
       }

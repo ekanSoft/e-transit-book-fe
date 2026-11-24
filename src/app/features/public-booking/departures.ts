@@ -10,7 +10,7 @@ import {
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Attempts } from './attempts';
+import { Attempts, holdActive } from './attempts';
 import { Field } from '../../shared/forms/field';
 import { journey, terminalPlace, PublicStore, type PublicRoute } from './public-store';
 import { fareLabel, isCalendarDate, showWat, watDate } from '../trips/trip-format';
@@ -33,6 +33,7 @@ function choices(routes: PublicRoute[], branch: (route: PublicRoute) => PublicRo
 export class Departures {
   readonly store = inject(PublicStore);
   readonly attempts = inject(Attempts);
+  readonly holdActive = holdActive;
   private readonly router = inject(Router);
   private readonly location = inject(ActivatedRoute);
   readonly origin = new FormControl('', { nonNullable: true });

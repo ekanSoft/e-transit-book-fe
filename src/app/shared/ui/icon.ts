@@ -27,6 +27,8 @@ const paths = {
   chart: 'M3 3v17h18M7 15v-4m5 4V7m5 8V9',
   search: 'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Zm-2 5 6 6',
   arrow: 'M5 12h14m-6-6 6 6-6 6',
+  external: 'M14 3h7v7m0-7L10 14m0-9H4v15h15v-6',
+  copy: 'M8 8h12v13H8zM16 8V3H4v13h4',
   check: 'm5 12 4 4L19 6',
   building: 'M4 21V3h12v18M16 9h4v12M2 21h20M8 7h4M8 11h4M8 15h4M8 21v-3h4v3',
   shield: 'M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Zm-4 9 3 3 5-5',

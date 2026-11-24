@@ -6,6 +6,10 @@
 > **Backend (read-only):** `C:\Users\PC\Documents\source-codes\e-transit-book`  
 > **Purpose:** Deliver a simple, reliable walk-in booking workflow alongside a useful customer directory, ticket lookup, check-in, cancellation, and ticket reuse.
 
+## Booking visibility
+
+Staff lists and customer history include confirmed, checked-in and cancelled bookings. The backend excludes locked and expired checkouts before pagination and from staff ID and ticket lookups. These records remain available for payment verification by checkout reference.
+
 ## Source of truth and scope
 
 - [x] Read frontend `AGENTS.md`, `README.md`, existing Trips/manifest pages, seat-map renderer, forms, API client, and `WorkspaceAccess` rules.

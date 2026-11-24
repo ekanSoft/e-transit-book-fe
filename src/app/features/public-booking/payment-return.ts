@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PublicStore } from './public-store';
+import { Attempts } from './attempts';
 import { ConfirmedTicket } from './confirmed-ticket';
 import type { Receipt } from './receipt';
-import { Attempts } from './attempts';
 import { showWat } from '../trips/trip-format';
 export interface Verification {
   status: 'LOCKED' | 'EXPIRED' | 'CANCELLED' | 'CONFIRMED' | 'CHECKED_IN';
@@ -63,11 +63,8 @@ export class PaymentReturn {
       this.request++;
       this.busy.set(false);
       this.result.set(null);
-      const saved = this.attempts.get(this.store.slug());
-      const ref = params.get('reference') || params.get('trxref') || saved?.reference || '';
+      const ref = params.get('reference') || params.get('trxref') || '';
       this.reference.set(ref);
-      if (saved && ref === saved.reference)
-        this.attempts.set(this.store.slug(), { ...saved, returned: true });
       void this.verify();
     });
   }
@@ -85,6 +82,7 @@ export class PaymentReturn {
     }
     if (this.busy()) return;
     const request = ++this.request;
+    const slug = this.store.slug();
     this.busy.set(true);
     this.error.set('');
     try {
@@ -94,6 +92,11 @@ export class PaymentReturn {
       );
       if (request !== this.request || this.life.destroyed) return;
       this.result.set(data);
+      if (
+        (data.paymentReview || data.status !== 'LOCKED') &&
+        this.attempts.get(slug)?.reference === ref
+      )
+        this.attempts.set(slug, null);
     } catch {
       if (request === this.request)
         this.error.set(
@@ -104,8 +107,6 @@ export class PaymentReturn {
     }
   }
   another() {
-    const slug = this.store.slug();
-    if (this.attempts.get(slug)?.reference === this.reference()) this.attempts.set(slug, null);
-    void this.router.navigate(['/public', slug]);
+    void this.router.navigate(['/public', this.store.slug()]);
   }
 }

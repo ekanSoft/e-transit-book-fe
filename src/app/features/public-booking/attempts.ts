@@ -28,7 +28,11 @@ export function amount(kobo: number) {
   return money.format(kobo / 100);
 }
 export function holdActive(attempt: Attempt | null | undefined, at = Date.now()) {
-  return Boolean(attempt && Number.isFinite(Date.parse(attempt.holdExpiresAt)) && Date.parse(attempt.holdExpiresAt) > at);
+  return Boolean(
+    attempt &&
+    Number.isFinite(Date.parse(attempt.holdExpiresAt)) &&
+    Date.parse(attempt.holdExpiresAt) > at,
+  );
 }
 export function securePaymentUrl(value: string) {
   try {
@@ -70,7 +74,7 @@ export class Attempts {
       if (a) sessionStorage.setItem('etb.public.' + slug, JSON.stringify(a));
       else sessionStorage.removeItem('etb.public.' + slug);
     } catch {
-      /* In-memory recovery remains available in this tab. */
+      // Checkout can still use the in-memory quote when browser storage is unavailable.
     }
   }
   start(slug: string) {

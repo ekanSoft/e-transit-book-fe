@@ -1,5 +1,16 @@
 # Verification record
 
+## Staff customer entry and the public booking link · 24 November 2026
+
+- Chrome with fixture API responses exercised **Add Customer** for existing and new phone numbers, lookup retry, duplicate recovery, missing-customer validation, and continuation to the payment step. All six employee roles saw the operator-specific public URL on Business profile. Axe reported zero violations on the customer dialog and the desktop and mobile profile.
+- A read-only check of the running Acemett API returned an available Makurdi to LifeCamp seat with a checkout total of 1,846,701 kobo. Hosted payment and email delivery were outside this demo check.
+
+## Public fare review, payment confirmation and ticket locations · 24 November 2026
+
+- Edge with fixture API responses verified that **Review total** moved focus to the review heading and sent zero checkout requests. Axe reported zero violations on that screen. **Continue to secure payment** sent one request with the reviewed total and followed the returned URL to a simulated Paystack page.
+- Angular and Nest production builds passed. All 10 targeted frontend tests and 22 backend unit tests passed. The isolated MongoDB integration used a simulated Paystack gateway and mail delivery. It checked a price change before the hold, seat competition, expired holds, confirmation despite a one-kobo settlement difference, replay, and state/city labels in both the receipt and email payload for a legacy checkout.
+- A temporary local API running the updated backend returned **Benue, Makurdi → Federal Capital Territory, LifeCamp** for the existing confirmed ticket from the screenshot. A fresh hosted transfer and inbox delivery were not exercised.
+
 ## Public booking and online checkout · 24 November 2026
 
 - Live Swagger and Acemett reads confirmed guest route discovery, unpaginated departures and saved trip-seat details. An isolated real Paystack test checkout reached the hosted page. Its browser security check prevented completing the external payment.
