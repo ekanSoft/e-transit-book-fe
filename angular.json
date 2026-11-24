@@ -28,7 +28,12 @@
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": []
+              "allowedHosts": [
+                "etransitbook.com",
+                "www.etransitbook.com",
+                "app.etransitbook.com",
+                "etransitbook.netlify.app"
+              ]
             },
             "ssr": {
               "entry": "src/server.ts"

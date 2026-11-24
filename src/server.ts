@@ -4,9 +4,10 @@ import {
   getContext,
   getTrustProxyHeaders,
 } from '@netlify/angular-runtime/app-engine.js';
+import { mergeSsrAllowedHosts } from './ssr-allowed-hosts';
 
 const angularAppEngine = new AngularAppEngine({
-  allowedHosts: getAllowedHosts(),
+  allowedHosts: mergeSsrAllowedHosts(getAllowedHosts()),
   trustProxyHeaders: getTrustProxyHeaders(),
 });
 
