@@ -14,7 +14,7 @@ import { Icon } from '../../shared/ui/icon';
 type ThemePreference = 'system' | 'light' | 'dark';
 
 function preferenceFrom(value: string | null | undefined): ThemePreference {
-  return value === 'light' || value === 'dark' ? value : 'system';
+  return value === 'system' || value === 'dark' ? value : 'light';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,7 +23,7 @@ export class Theme {
   private readonly root = this.document.documentElement;
   private readonly window = this.document.defaultView;
   private readonly media = this.window?.matchMedia?.('(prefers-color-scheme: light)');
-  private readonly deviceLight = signal(this.media?.matches ?? false);
+  private readonly deviceLight = signal(this.media?.matches ?? true);
   private readonly selected = signal(preferenceFrom(this.root.dataset['themePreference']));
   readonly preference = this.selected.asReadonly();
   readonly light = computed(() =>
@@ -57,8 +57,7 @@ export class Theme {
   setPreference(value: ThemePreference) {
     this.selected.set(value);
     try {
-      if (value === 'system') this.window?.localStorage.removeItem('etransitbook.theme');
-      else this.window?.localStorage.setItem('etransitbook.theme', value);
+      this.window?.localStorage.setItem('etransitbook.theme', value);
     } catch {
       /* In-memory preference still applies. */
     }

@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
+import { App } from '../../app';
+import { RouteProgress } from '../../core/layout/route-progress';
 import { EmailRequest } from './email-request';
 import { VerifySignup } from './verify-signup';
 import { ResetPassword } from './reset-password';
@@ -215,15 +217,21 @@ describe('Email authentication flows', () => {
     });
   }
   it('verifies a directly opened email link and shows the sign-in action after success', async () => {
-    const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/verify-signup?token=link-token-from-email', VerifySignup);
-    const screen = harness.routeNativeElement!;
-    expect(screen.textContent).toContain('Verifying your email');
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    await TestBed.inject(Router).navigateByUrl('/verify-signup?token=link-token-from-email');
+    await fixture.whenStable();
+
+    const app: HTMLElement = fixture.nativeElement;
+    const screen = app.querySelector('app-verify-signup')!;
+    expect(app.querySelector('.route-progress')?.textContent).toContain('Loading page');
+    expect(screen.textContent?.trim()).toBe('');
     expect(screen.querySelector('button, form, a[href="/login"]')).toBeNull();
     const request = http.expectOne({ method: 'POST', url: verifyUrl });
     expect(request.request.body).toEqual({ token: 'link-token-from-email' });
     request.flush({ success: true, data: { message: 'Signup verified successfully' } });
     await vi.waitFor(() => expect(screen.textContent).toContain('Your email is verified'));
+    expect(app.querySelector('.route-progress')).toBeNull();
     expect(screen.querySelector('a[href="/login"]')?.textContent).toContain('Continue to sign in');
     expect(screen.querySelector('app-email-request')).toBeNull();
   });
@@ -239,9 +247,22 @@ describe('Email authentication flows', () => {
       );
     const screen = harness.routeNativeElement!;
     await vi.waitFor(() => expect(screen.textContent).toContain('Verification token has expired'));
+    expect(TestBed.inject(RouteProgress).loading()).toBe(false);
     expect(screen.querySelector('input[type="email"]')).toBeTruthy();
     expect(screen.textContent).not.toContain('Your email is verified');
     expect(screen.textContent).not.toContain('Try again');
+  });
+
+  it('shows recovery if a successful HTTP response does not confirm verification', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/verify-signup?token=link-token-from-email', VerifySignup);
+    http.expectOne(verifyUrl).flush({ success: true });
+
+    const screen = harness.routeNativeElement!;
+    await vi.waitFor(() => expect(screen.textContent).toContain("Couldn't verify your email"));
+    expect(screen.querySelector('input[type="email"]')).toBeTruthy();
+    expect(TestBed.inject(RouteProgress).loading()).toBe(false);
+    http.expectNone(resendUrl);
   });
 
   it('retries the same token after a temporary failure', async () => {
@@ -257,6 +278,7 @@ describe('Email authentication flows', () => {
     await vi.waitFor(() => expect(screen.textContent).toContain('Temporarily unavailable'));
     screen.querySelector<HTMLButtonElement>('button[type="button"]')!.click();
     const retry = http.expectOne(verifyUrl);
+    expect(TestBed.inject(RouteProgress).loading()).toBe(true);
     expect(retry.request.body).toEqual({ token: 'retry-link' });
     retry.flush({ success: true, data: { message: 'Signup verified successfully' } });
     await vi.waitFor(() => expect(screen.textContent).toContain('Your email is verified'));
@@ -271,7 +293,8 @@ describe('Email authentication flows', () => {
     expect(second.request.body).toEqual({ token: 'second-link' });
     first.flush({ success: true, data: { message: 'Signup verified successfully' } });
     await harness.fixture.whenStable();
-    expect(harness.routeNativeElement?.textContent).toContain('Verifying your email');
+    expect(TestBed.inject(RouteProgress).loading()).toBe(true);
+    expect(harness.routeNativeElement?.textContent?.trim()).toBe('');
     second.flush({ success: true, data: { message: 'Signup verified successfully' } });
     await vi.waitFor(() =>
       expect(harness.routeNativeElement?.textContent).toContain('Your email is verified'),

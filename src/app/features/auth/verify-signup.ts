@@ -5,7 +5,6 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   Subject,
   catchError,
-  defer,
   distinctUntilChanged,
   exhaustMap,
   map,
@@ -15,6 +14,7 @@ import {
 } from 'rxjs';
 import { Api } from '../../core/http/api';
 import { errorMessages } from '../../core/http/errors';
+import { RouteProgress } from '../../core/layout/route-progress';
 import { Button } from '../../shared/ui/button';
 import { Errors } from '../../shared/ui/feedback';
 import { Icon } from '../../shared/ui/icon';
@@ -30,33 +30,36 @@ type VerificationState =
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let state = verification();
-    <span class="status-symbol"
-      ><app-icon [name]="state.status === 'verified' ? 'check' : 'mail'"
-    /></span>
-    <h1 aria-live="polite">
-      @switch (state.status) {
-        @case ('verifying') {
-          Verifying your email
-        }
-        @case ('verified') {
-          Your email is verified
-        }
-        @case ('failed') {
-          Couldn't verify your email
-        }
-        @default {
-          Verify your email
+    @if (state.status !== 'verifying') {
+      <span class="status-symbol"
+        ><app-icon [name]="state.status === 'verified' ? 'check' : 'mail'"
+      /></span>
+    }
+    <div aria-live="polite">
+      @if (state.status !== 'verifying') {
+        <h1>
+          @switch (state.status) {
+            @case ('verified') {
+              Your email is verified
+            }
+            @case ('failed') {
+              Couldn't verify your email
+            }
+            @default {
+              Verify your email
+            }
+          }
+        </h1>
+        @if (state.status === 'verified') {
+          <p class="muted">You're ready to sign in and set up your transport business.</p>
         }
       }
-    </h1>
+    </div>
     @if (state.status === 'verified') {
-      <p class="muted">You're ready to sign in and set up your transport business.</p>
       <a appButton class="w-full" routerLink="/login"
         >Continue to sign in<app-icon name="arrow"
       /></a>
-    } @else if (state.status === 'verifying') {
-      <p class="muted">Please wait while we confirm your email address.</p>
-    } @else {
+    } @else if (state.status !== 'verifying') {
       @if (state.status === 'failed') {
         <app-errors [messages]="state.messages" />
         @if (state.retryable) {
@@ -72,6 +75,7 @@ type VerificationState =
 })
 export class VerifySignup {
   private readonly api = inject(Api);
+  private readonly routeProgress = inject(RouteProgress);
   protected readonly retry = new Subject<void>();
   protected readonly verification = toSignal(
     inject(ActivatedRoute).queryParamMap.pipe(
@@ -90,18 +94,33 @@ export class VerifySignup {
   );
 
   private verify(token: string) {
-    return defer(() => this.api.post('/auth/verify-signup', { token })).pipe(
-      map((): VerificationState => ({ status: 'verified' })),
-      catchError((error: unknown) =>
-        of<VerificationState>({
-          status: 'failed',
-          messages: errorMessages(error),
-          retryable:
-            error instanceof HttpErrorResponse &&
-            (error.status === 0 || error.status === 429 || error.status >= 500),
+    return this.routeProgress
+      .track(() => this.api.post<{ message: string }>('/auth/verify-signup', { token }))
+      .pipe(
+        map((response): VerificationState => {
+          if (
+            response?.success === true &&
+            typeof response.data?.message === 'string' &&
+            response.data.message.trim()
+          ) {
+            return { status: 'verified' };
+          }
+          return {
+            status: 'failed',
+            messages: ['We couldn’t confirm your email. Please try again.'],
+            retryable: true,
+          };
         }),
-      ),
-      startWith<VerificationState>({ status: 'verifying' }),
-    );
+        catchError((error: unknown) =>
+          of<VerificationState>({
+            status: 'failed',
+            messages: errorMessages(error),
+            retryable:
+              error instanceof HttpErrorResponse &&
+              (error.status === 0 || error.status === 429 || error.status >= 500),
+          }),
+        ),
+        startWith<VerificationState>({ status: 'verifying' }),
+      );
   }
 }
