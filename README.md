@@ -75,7 +75,7 @@ Routing uses both `accountStatus` and `registrationComplete`. Pending incomplete
 
 ## Workspace
 
-The portal follows the device’s light or dark appearance by default, including changes while it is open. The header toggle saves an explicit choice for this browser. Select **System** under **My account → Appearance** to follow the device again. The initial theme is applied before Angular starts. The sidebar retains its dark palette in both modes. A native modal drawer provides navigation on smaller viewports.
+The portal defaults to Light. The header toggle saves Light or Dark for this browser. Select **System** under **My account → Appearance** to follow the device, including changes while the portal is open. The initial theme is applied before Angular starts. The sidebar retains its dark palette in both modes. A native modal drawer provides navigation on smaller viewports.
 
 The dashboard uses `GET /reports/dashboard` for totals, payment mix and upcoming trips. For periods with revenue it also reads `GET /reports/sales` for daily values. The default period is the last seven WAT calendar days. Administrators and operations managers receive company reports. Terminal managers and accountants receive their backend-scoped reports. Booking agents and drivers see today's permitted departures from `GET /trips`.
 

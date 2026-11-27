@@ -1,5 +1,10 @@
 # Verification record
 
+## Signup verification and workspace entry · 26 November 2026
+
+- The Angular router test used fixture API responses to open an email link, establish the returned session, and automatically enter onboarding through the dashboard guard without another login request. Routing tests covered completed businesses with both active and pending status.
+- The production build and all 73 targeted authentication, routing, workspace access, and structural accessibility tests passed. The verification response and temporary activation rule were checked against backend source. A real inbox link and browser-based visual checks remain unverified.
+
 ## Staff customer entry and the public booking link · 24 November 2026
 
 - Chrome with fixture API responses exercised **Add Customer** for existing and new phone numbers, lookup retry, duplicate recovery, missing-customer validation, and continuation to the payment step. All six employee roles saw the operator-specific public URL on Business profile. Axe reported zero violations on the customer dialog and the desktop and mobile profile.

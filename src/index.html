@@ -5,24 +5,22 @@
     <title>eTransitBook · Operator portal</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="color-scheme" content="light dark" />
     <script>
       (() => {
         let saved;
         try {
           saved = localStorage.getItem('etransitbook.theme');
         } catch {
-          // The device preference also works when storage is disabled.
+          // Use the default theme when storage is disabled.
         }
         const root = document.documentElement;
-        if (saved === 'dark' || saved === 'light') {
-          root.dataset.themePreference = saved;
-          root.dataset.theme = saved;
-        } else {
-          root.dataset.theme = window.matchMedia?.('(prefers-color-scheme: light)').matches
-            ? 'light'
-            : 'dark';
-        }
+        const preference = saved === 'dark' || saved === 'system' ? saved : 'light';
+        const systemDark =
+          preference === 'system' &&
+          window.matchMedia?.('(prefers-color-scheme: light)').matches === false;
+        root.dataset.themePreference = preference;
+        root.dataset.theme = preference === 'dark' || systemDark ? 'dark' : 'light';
       })();
     </script>
     <meta name="robots" content="noindex, nofollow" />

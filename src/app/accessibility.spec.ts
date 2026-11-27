@@ -121,9 +121,12 @@ describe('AXE structural accessibility of rendered Angular screens', () => {
       if (component === VerifySignup) {
         TestBed.inject(HttpTestingController)
           .expectOne(environment.apiBaseUrl + '/auth/verify-signup')
-          .flush({ success: true, data: { message: 'Signup verified successfully' } });
+          .flush(
+            { message: 'Verification link expired' },
+            { status: 400, statusText: 'Bad Request' },
+          );
         await vi.waitFor(() =>
-          expect(fixture?.nativeElement.textContent).toContain('Your email is verified'),
+          expect(fixture?.nativeElement.textContent).toContain('Verification link expired'),
         );
       }
       wrapper = document.createElement(fragment ? 'main' : 'div');

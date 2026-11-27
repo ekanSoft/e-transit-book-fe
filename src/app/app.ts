@@ -8,6 +8,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouteProgress } from './core/layout/route-progress';
 import { Toasts } from './shared/ui/feedback';
 
 @Component({
@@ -15,13 +16,14 @@ import { Toasts } from './shared/ui/feedback';
   imports: [RouterOutlet, Toasts],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<a class="skip-link" href="#main-content">Skip to content</a>
-    @if (navigating()) {
+    @if (navigating() || routeProgress.loading()) {
       <div class="route-progress" role="status">Loading page…</div>
     }
     <router-outlet /><app-toasts />`,
 })
 export class App {
   readonly navigating = signal(false);
+  protected readonly routeProgress = inject(RouteProgress);
   constructor() {
     inject(Router)
       .events.pipe(takeUntilDestroyed())

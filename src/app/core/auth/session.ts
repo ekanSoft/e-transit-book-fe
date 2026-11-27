@@ -103,6 +103,11 @@ export class Session {
     await this.acceptLogin(data);
   }
   private async acceptLogin(result: LoginSuccess) {
+    this.establishSession(result);
+    await this.loadContext();
+    if (this.token() === result.token) await this.router.navigateByUrl(this.destination());
+  }
+  establishSession(result: LoginSuccess) {
     this.clear(false);
     this.expectedBusiness = result.business.id;
     this.tokenState.set(result.token);
@@ -111,8 +116,6 @@ export class Session {
     } catch {
       this.storageWarning.set(true);
     }
-    await this.loadContext();
-    if (this.token() === result.token) await this.router.navigateByUrl(this.destination());
   }
   async ensureContext() {
     if (this.authenticated() && !this.business()) await this.loadContext();

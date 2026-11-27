@@ -24,13 +24,13 @@ describe('Portal appearance', () => {
     TestBed.tick();
   }
 
-  it('follows the device without saving an override', () => {
+  it('defaults to Light even when the device uses Dark', () => {
+    Object.assign(media, { matches: false });
     const theme = TestBed.inject(Theme);
-    expect(theme.preference()).toBe('system');
+    expect(theme.preference()).toBe('light');
     expect(theme.light()).toBe(true);
-    changeDevice(false);
-    expect(document.documentElement.dataset['theme']).toBe('dark');
     changeDevice(true);
+    changeDevice(false);
     expect(document.documentElement.dataset['theme']).toBe('light');
     expect(localStorage.getItem(key)).toBeNull();
   });
@@ -45,9 +45,21 @@ describe('Portal appearance', () => {
     changeDevice(false);
     expect(theme.light()).toBe(true);
     theme.setPreference('system');
-    expect(localStorage.getItem(key)).toBeNull();
+    expect(localStorage.getItem(key)).toBe('system');
     expect(theme.light()).toBe(false);
     changeDevice(true);
+    expect(theme.light()).toBe(true);
+  });
+
+  it('restores a saved System preference and uses Light when storage is cleared', () => {
+    document.documentElement.dataset['themePreference'] = 'system';
+    Object.assign(media, { matches: false });
+    const theme = TestBed.inject(Theme);
+    expect(theme.preference()).toBe('system');
+    expect(theme.light()).toBe(false);
+
+    window.dispatchEvent(new StorageEvent('storage', { storageArea: localStorage }));
+    expect(theme.preference()).toBe('light');
     expect(theme.light()).toBe(true);
   });
 });
