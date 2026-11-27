@@ -4,6 +4,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
+import { authGuard } from '../../core/auth/guards';
+import { Session } from '../../core/auth/session';
 import { App } from '../../app';
 import { RouteProgress } from '../../core/layout/route-progress';
 import { EmailRequest } from './email-request';
@@ -20,6 +22,8 @@ describe('Email authentication flows', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
+          { path: 'app/dashboard', component: App, canActivate: [authGuard] },
+          { path: 'onboarding', component: App, canActivate: [authGuard] },
           { path: 'login', component: Login },
           { path: 'verify-signup', component: VerifySignup },
           { path: 'auth/access-status', component: AccessStatus },
@@ -37,7 +41,16 @@ describe('Email authentication flows', () => {
     });
     http = TestBed.inject(HttpTestingController);
   });
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    localStorage.removeItem('etransitbook.session');
+  });
+  const verifiedLogin = {
+    requiresAccountSelection: false,
+    token: 'returned-session-token',
+    business: { id: 'business-1' },
+    user: { id: 'owner-1', signupVerified: true },
+  };
   const resendUrl = environment.apiBaseUrl + '/auth/resend-token';
   const verifyUrl = environment.apiBaseUrl + '/auth/verify-signup';
   const loginUrl = environment.apiBaseUrl + '/auth/login';
@@ -216,7 +229,22 @@ describe('Email authentication flows', () => {
       expect(component.choices()).toEqual([]);
     });
   }
-  it('verifies a directly opened email link and shows the sign-in action after success', async () => {
+  async function expectAutomaticOnboarding() {
+    await vi.waitFor(() => expect(TestBed.inject(Session).loading()).toBe(true));
+    http.expectOne(environment.apiBaseUrl + '/employees/me').flush({
+      data: { business: { _id: 'business-1' } },
+    });
+    http.expectOne(environment.apiBaseUrl + '/business').flush({
+      data: {
+        _id: 'business-1',
+        accountStatus: 'PENDING',
+        registrationComplete: false,
+        registrationStage: [],
+      },
+    });
+    await vi.waitFor(() => expect(TestBed.inject(Router).url).toBe('/onboarding'));
+  }
+  it('verifies a directly opened email link and signs in before continuing to onboarding', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     await TestBed.inject(Router).navigateByUrl('/verify-signup?token=link-token-from-email');
@@ -229,10 +257,11 @@ describe('Email authentication flows', () => {
     expect(screen.querySelector('button, form, a[href="/login"]')).toBeNull();
     const request = http.expectOne({ method: 'POST', url: verifyUrl });
     expect(request.request.body).toEqual({ token: 'link-token-from-email' });
-    request.flush({ success: true, data: { message: 'Signup verified successfully' } });
-    await vi.waitFor(() => expect(screen.textContent).toContain('Your email is verified'));
-    expect(app.querySelector('.route-progress')).toBeNull();
-    expect(screen.querySelector('a[href="/login"]')?.textContent).toContain('Continue to sign in');
+    request.flush({ success: true, data: verifiedLogin });
+    await expectAutomaticOnboarding();
+    expect(TestBed.inject(Session).token()).toBe(verifiedLogin.token);
+    expect(localStorage.getItem('etransitbook.session')).toBe(verifiedLogin.token);
+    http.expectNone(loginUrl);
     expect(screen.querySelector('app-email-request')).toBeNull();
   });
 
@@ -280,8 +309,8 @@ describe('Email authentication flows', () => {
     const retry = http.expectOne(verifyUrl);
     expect(TestBed.inject(RouteProgress).loading()).toBe(true);
     expect(retry.request.body).toEqual({ token: 'retry-link' });
-    retry.flush({ success: true, data: { message: 'Signup verified successfully' } });
-    await vi.waitFor(() => expect(screen.textContent).toContain('Your email is verified'));
+    retry.flush({ success: true, data: verifiedLogin });
+    await expectAutomaticOnboarding();
   });
 
   it('ignores a completed response once a different verification link is open', async () => {
@@ -291,14 +320,12 @@ describe('Email authentication flows', () => {
     await harness.navigateByUrl('/verify-signup?token=second-link', VerifySignup);
     const second = http.expectOne(verifyUrl);
     expect(second.request.body).toEqual({ token: 'second-link' });
-    first.flush({ success: true, data: { message: 'Signup verified successfully' } });
+    first.flush({ success: true, data: verifiedLogin });
     await harness.fixture.whenStable();
     expect(TestBed.inject(RouteProgress).loading()).toBe(true);
     expect(harness.routeNativeElement?.textContent?.trim()).toBe('');
-    second.flush({ success: true, data: { message: 'Signup verified successfully' } });
-    await vi.waitFor(() =>
-      expect(harness.routeNativeElement?.textContent).toContain('Your email is verified'),
-    );
+    second.flush({ success: true, data: verifiedLogin });
+    await expectAutomaticOnboarding();
   });
   it('uses the reset link token after refresh and excludes confirmation from the request', async () => {
     const component = TestBed.createComponent(ResetPassword).componentInstance;
